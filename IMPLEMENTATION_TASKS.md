@@ -287,7 +287,7 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 ... (All checked)
 
 ### Task 4.7: Create useVenues Hook
-- [ ] Create `hooks/useVenues.ts`:
+- [x] Create `hooks/useVenues.ts`:
   - `useVenues()`: Fetch all venues
   - Handle loading, error states
   - Use SWR or React Query for caching (optional)
@@ -317,7 +317,7 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 - [x] Create `app/(dashboard)/vendors/[vendorId]/edit/page.tsx`
 
 ### Task 5.7: Create useVendors Hook
-- [ ] Create `hooks/useVendors.ts`:
+- [x] Create `hooks/useVendors.ts`:
   - `useVendors(venueId?, category?, search?)`: Fetch vendors with filters
   - Handle loading, error states
 
@@ -346,7 +346,7 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 - [x] Create `app/(dashboard)/events/[eventId]/edit/page.tsx`
 
 ### Task 6.7: Create useEvents Hook
-- [ ] Create `hooks/useEvents.ts`:
+- [x] Create `hooks/useEvents.ts`:
   - `useEvents(venueId?, status?, search?)`: Fetch events with filters
   - `useEvent(eventId)`: Fetch single event
   - Handle loading, error states
@@ -433,7 +433,10 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 - [x] Automatic redirect to review page
 
 ### Task 10.6: Display Reviews on Vendor Profile
-- [ ] Update vendor profile page to show reviews
+- [x] Update vendor profile page to show reviews
+- [x] Created vendor detail page at `app/(dashboard)/vendors/[vendorId]/page.tsx`
+- [x] Created vendor reviews API endpoint at `app/api/vendors/[vendorId]/reviews/route.ts`
+- [x] Updated VendorCard component to link to detail page
 
 ---
 
