@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Check, Star, TrendingUp, AlertCircle } from "lucide-react";
-import { Event, Vendor, VendorMatchResult } from "@/lib/types";
+import { Event, Vendor, VendorMatchResult, VendorCategory } from "@/lib/types";
 import { rankVendorsByMatch } from "@/lib/algorithms/vendorMatching";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,10 +28,20 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
             try {
                 const res = await fetch(`/api/vendors?venueId=${event.venue_id}`);
                 if (!res.ok) throw new Error("Failed to fetch vendors");
-                const data = await res.json();
+                const allVendors = await res.json();
+
+                // Extract services needed from budget_breakdown
+                const servicesNeeded = event.budget_breakdown
+                    ? (Object.keys(event.budget_breakdown) as VendorCategory[])
+                    : [];
+
+                // Filter vendors to only show those matching needed services
+                const filteredVendors = servicesNeeded.length > 0
+                    ? allVendors.filter((v: Vendor) => servicesNeeded.includes(v.category as VendorCategory))
+                    : allVendors; // Show all if no services specified
 
                 // Rank vendors based on event criteria
-                const ranked = rankVendorsByMatch(event, data);
+                const ranked = rankVendorsByMatch(event, filteredVendors);
                 setRankedVendors(ranked);
             } catch (error) {
                 console.error(error);
@@ -80,15 +90,22 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
     if (isLoading) return <Loading />;
 
     if (rankedVendors.length === 0) {
+        const servicesNeeded = event.budget_breakdown
+            ? (Object.keys(event.budget_breakdown) as VendorCategory[])
+            : [];
+
         return (
             <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed">
                 <AlertCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900">No matching vendors</h3>
                 <p className="text-gray-500 max-w-sm mx-auto mt-2">
-                    We couldn&apos;t find any vendors for this venue. Add vendors to your venue list to see matches.
+                    {servicesNeeded.length > 0
+                        ? `We couldn't find any vendors matching the services you need (${servicesNeeded.join(', ')}). Add vendors in these categories to see matches.`
+                        : "No services selected for this event. Edit the event to specify which vendor services you need."
+                    }
                 </p>
                 <Button asChild variant="outline" className="mt-6">
-                    <a href="/vendors/new">Add First Vendor</a>
+                    <a href="/vendors/new">Add Vendor</a>
                 </Button>
             </div>
         );

@@ -13,6 +13,7 @@ import {
     FormItem,
     FormLabel,
     FormMessage,
+    FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,7 +24,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Event, Space } from "@/lib/types";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Event, Space, VendorCategory } from "@/lib/types";
+import { X } from "lucide-react";
 
 // Schema extension to include space_id which isn't in base event schema but needed for creation
 const eventFormWithSpaceSchema = eventFormSchema.extend({
@@ -37,7 +40,34 @@ interface EventFormProps {
     isLoading?: boolean;
 }
 
+// Service category options with display names
+const SERVICE_CATEGORIES: { value: VendorCategory; label: string }[] = [
+    { value: "catering", label: "Catering" },
+    { value: "av", label: "AV Equipment" },
+    { value: "florals", label: "Florals & Decor" },
+    { value: "photography", label: "Photography" },
+    { value: "entertainment", label: "Entertainment" },
+    { value: "parking", label: "Parking" },
+    { value: "security", label: "Security" },
+    { value: "other", label: "Other Services" },
+];
+
+type ServiceBudget = {
+    category: VendorCategory;
+    amount: number;
+};
+
 export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: EventFormProps) {
+    // Parse existing budget_breakdown into service budgets
+    const initialServiceBudgets: ServiceBudget[] = initialData?.budget_breakdown
+        ? Object.entries(initialData.budget_breakdown as Record<string, number>).map(([category, amount]) => ({
+            category: category as VendorCategory,
+            amount,
+        }))
+        : [];
+
+    const [serviceBudgets, setServiceBudgets] = useState<ServiceBudget[]>(initialServiceBudgets);
+
     const form = useForm<z.infer<typeof eventFormWithSpaceSchema>>({
         resolver: zodResolver(eventFormWithSpaceSchema),
         mode: "onBlur", // Enable inline validation
@@ -64,9 +94,45 @@ export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: 
         },
     });
 
+    // Helper functions for service management
+    const toggleService = (category: VendorCategory) => {
+        const exists = serviceBudgets.find(s => s.category === category);
+        if (exists) {
+            setServiceBudgets(serviceBudgets.filter(s => s.category !== category));
+        } else {
+            setServiceBudgets([...serviceBudgets, { category, amount: 0 }]);
+        }
+    };
+
+    const updateServiceBudget = (category: VendorCategory, amount: number) => {
+        setServiceBudgets(serviceBudgets.map(s =>
+            s.category === category ? { ...s, amount } : s
+        ));
+    };
+
+    const removeService = (category: VendorCategory) => {
+        setServiceBudgets(serviceBudgets.filter(s => s.category !== category));
+    };
+
+    // Calculate total allocated budget
+    const totalAllocated = serviceBudgets.reduce((sum, s) => sum + s.amount, 0);
+
+    // Wrap onSubmit to include budget_breakdown
+    const handleFormSubmit = async (values: any) => {
+        const budget_breakdown = serviceBudgets.reduce((acc, s) => {
+            acc[s.category] = s.amount;
+            return acc;
+        }, {} as Record<string, number>);
+
+        await onSubmit({
+            ...values,
+            budget_breakdown,
+        });
+    };
+
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
                 <FormField
                     control={form.control}
                     name="space_id"
@@ -189,6 +255,85 @@ export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: 
                         </FormItem>
                     )}
                 />
+
+                {/* Service Categories Section */}
+                <div className="space-y-4">
+                    <div>
+                        <FormLabel>Services Needed</FormLabel>
+                        <FormDescription>
+                            Select which vendor services you need for this event and allocate budget for each.
+                        </FormDescription>
+                    </div>
+
+                    {/* Service Selection Checkboxes */}
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                        {SERVICE_CATEGORIES.map((service) => {
+                            const isSelected = serviceBudgets.some(s => s.category === service.value);
+                            return (
+                                <div key={service.value} className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={service.value}
+                                        checked={isSelected}
+                                        onCheckedChange={() => toggleService(service.value)}
+                                    />
+                                    <label
+                                        htmlFor={service.value}
+                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                    >
+                                        {service.label}
+                                    </label>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Budget Allocation for Selected Services */}
+                    {serviceBudgets.length > 0 && (
+                        <div className="space-y-3 mt-4">
+                            <div className="text-sm font-medium">Budget Allocation</div>
+                            {serviceBudgets.map((service) => {
+                                const serviceLabel = SERVICE_CATEGORIES.find(s => s.category === service.category)?.label || service.category;
+                                return (
+                                    <div key={service.category} className="flex items-center gap-3">
+                                        <div className="flex-1 flex items-center gap-2">
+                                            <label className="text-sm min-w-[120px]">{serviceLabel}</label>
+                                            <div className="relative flex-1">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                                                <Input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    value={service.amount || ""}
+                                                    onChange={(e) => updateServiceBudget(service.category, parseFloat(e.target.value) || 0)}
+                                                    className="pl-7"
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => removeService(service.category)}
+                                            className="h-9 w-9 p-0"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                );
+                            })}
+                            <div className="flex justify-between items-center pt-2 border-t">
+                                <span className="text-sm font-medium">Total Allocated:</span>
+                                <span className="text-sm font-bold">${totalAllocated.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                            {totalAllocated > parseFloat(form.watch("budget_total")?.toString() || "0") && (
+                                <p className="text-sm text-red-600">
+                                    Warning: Allocated budget exceeds total budget
+                                </p>
+                            )}
+                        </div>
+                    )}
+                </div>
 
                 <FormField
                     control={form.control}

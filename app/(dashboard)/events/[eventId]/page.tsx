@@ -4,9 +4,9 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { CalendarDays, DollarSign, Edit, MapPin, Users, Settings, Send } from "lucide-react";
+import { CalendarDays, DollarSign, Edit, MapPin, Users, Settings, Send, CheckCircle2 } from "lucide-react";
 
-import { Event, Venue, EventVendor } from "@/lib/types";
+import { Event, Venue, EventVendor, VendorCategory } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -96,6 +96,30 @@ export default function EventDetailsPage({ params }: { params: Promise<{ eventId
             default: return "bg-gray-100 text-gray-800";
         }
     };
+
+    const getCategoryLabel = (category: VendorCategory): string => {
+        const labels: Record<VendorCategory, string> = {
+            catering: "Catering",
+            av: "AV Equipment",
+            florals: "Florals & Decor",
+            photography: "Photography",
+            entertainment: "Entertainment",
+            parking: "Parking",
+            security: "Security",
+            other: "Other Services",
+        };
+        return labels[category] || category;
+    };
+
+    // Extract services needed from budget_breakdown
+    const servicesNeeded = event?.budget_breakdown
+        ? Object.keys(event.budget_breakdown as Record<string, number>) as VendorCategory[]
+        : [];
+
+    // Check which services have vendors assigned
+    const assignedCategories = new Set(
+        event?.event_vendors?.map(ev => ev.category) || []
+    );
 
     if (isLoading) return <Loading />;
 
@@ -202,6 +226,44 @@ export default function EventDetailsPage({ params }: { params: Promise<{ eventId
                             </CardContent>
                         </Card>
                     </div>
+
+                    {/* Services Needed Section */}
+                    {servicesNeeded.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Services Needed</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                                    {servicesNeeded.map((category) => {
+                                        const isAssigned = assignedCategories.has(category);
+                                        const budgetAmount = (event.budget_breakdown as Record<string, number>)?.[category] || 0;
+                                        return (
+                                            <div
+                                                key={category}
+                                                className={`flex items-center justify-between p-3 rounded-lg border ${
+                                                    isAssigned ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    {isAssigned && (
+                                                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                                    )}
+                                                    <div>
+                                                        <div className="text-sm font-medium">{getCategoryLabel(category)}</div>
+                                                        <div className="text-xs text-gray-500">{formatCurrency(budgetAmount)}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="mt-4 text-sm text-gray-500">
+                                    {assignedCategories.size} of {servicesNeeded.length} services have vendors assigned
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                         <Card className="col-span-4">
