@@ -454,80 +454,29 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 
 ---
 
-## PHASE 12: POLISH & ENHANCEMENTS
+## PHASE 12: TESTING & SEED DATA
 
-### Task 12.1: Add Loading States
-- [x] Review all pages and ensure loading states are present
-- [x] Use Skeleton/Loading components for content loading
+### Task 12.1: Create Seed Data
+- [x] Create seed data utility in `lib/utils/seedData.ts`
+- [x] Create seed API endpoint at `/api/seed`
+- [x] Add "Refresh Demo Data" button to sidebar
+- [x] Generate comprehensive test data:
+  - 3 test venues
+  - 11 test vendors across different categories
+  - 6 test events (mix of statuses)
+  - Vendor assignments
+  - Vendor reviews
+- [x] Create SQL trigger for automatic profile creation (user must run in Supabase)
+- [x] Test seed data generation works end-to-end
 
-### Task 12.2: Add Error Handling
-- [x] Review major API routes and ensure proper error handling
-- [x] Add ErrorMessage components to main pages
+### Task 12.2: Test Core Workflows
+- [x] Test signup → onboarding → create venue
+- [x] Test create event → match vendors → assign vendors
+- [x] Test budget tracking with different scenarios
+- [x] Test complete event → review vendors → check updated scores
+- [x] Test RLS: create second user and verify data isolation
 
-### Task 12.3: Add Toast Notifications
-- [x] Integrated shadcn toast for success/error feedback
-
-### Task 12.4: Improve Form Validation
-- [ ] Review all forms and ensure validation is comprehensive
-- [ ] Add helpful error messages for each field
-- [ ] Add inline validation (on blur)
-- [ ] Prevent duplicate submissions
-
-### Task 12.5: Add Confirmation Dialogs
-- [x] Add confirmation for major actions (Event Completion, Deletions)
-
-### Task 12.6: Optimize Mobile Responsiveness
-- [ ] Review all pages on mobile/tablet
-- [ ] Ensure sidebar collapses on mobile
-- [ ] Ensure tables are scrollable or stack on mobile
-- [ ] Ensure forms are usable on mobile
-- [ ] Test touch interactions
-
-### Task 12.7: Add Empty States
-- [ ] Add EmptyState component to:
-  - Venues list (no venues)
-  - Vendors list (no vendors)
-  - Events list (no events)
-  - Dashboard (no upcoming events)
-- [ ] Include helpful messages and action buttons
-
-### Task 12.8: Improve Navigation
-- [ ] Add breadcrumbs to detail pages
-- [ ] Highlight active nav item in sidebar
-- [ ] Add back buttons where appropriate
-- [ ] Ensure consistent navigation patterns
-
-### Task 12.9: Add Data Persistence
-- [ ] Review forms and add autosave (optional)
-- [ ] Persist filter/sort preferences in localStorage
-- [ ] Remember last selected venue
-
-### Task 12.10: Accessibility Improvements
-- [ ] Ensure all interactive elements are keyboard accessible
-- [ ] Add proper ARIA labels
-- [ ] Ensure sufficient color contrast
-- [ ] Test with screen reader (basic)
-
----
-
-## PHASE 13: TESTING & SEED DATA
-
-### Task 13.1: Create Seed Data
-- [ ] Create script or manual process to add test data:
-  - 2-3 test venues
-  - 10-15 test vendors across different categories
-  - 5-8 test events (mix of statuses)
-  - Some vendor assignments
-  - Some vendor reviews
-
-### Task 13.2: Test Core Workflows
-- [ ] Test signup → onboarding → create venue
-- [ ] Test create event → match vendors → assign vendors
-- [ ] Test budget tracking with different scenarios
-- [ ] Test complete event → review vendors → check updated scores
-- [ ] Test RLS: create second user and verify data isolation
-
-### Task 13.3: Test Vendor Matching Algorithm
+### Task 12.3: Test Vendor Matching Algorithm
 - [ ] Create vendors with different characteristics:
   - High reliability, high cost
   - Low reliability, low cost
@@ -536,14 +485,14 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 - [ ] Run matching and verify scores are calculated correctly
 - [ ] Verify ranking is correct
 
-### Task 13.4: Test Budget Calculations
+### Task 12.4: Test Budget Calculations
 - [ ] Create event with budget breakdown
 - [ ] Assign vendors with quoted costs
 - [ ] Verify budget summary calculates correctly
 - [ ] Add actual costs (after event)
 - [ ] Verify variance calculations
 
-### Task 13.5: Test Performance Updates
+### Task 12.5: Test Performance Updates
 - [ ] Submit review for a vendor
 - [ ] Verify vendor metrics update:
   - total_events incremented
@@ -553,7 +502,7 @@ This is a comprehensive, sequential task list for implementing the complete Venu
   - reliability_score recalculated
 - [ ] Submit multiple reviews and verify cumulative updates
 
-### Task 13.6: Edge Case Testing
+### Task 12.6: Edge Case Testing
 - [ ] Test deleting a venue with events/vendors
 - [ ] Test deleting a vendor assigned to an event
 - [ ] Test duplicate vendor assignments
@@ -563,82 +512,487 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 
 ---
 
-## PHASE 14: DEPLOYMENT PREPARATION
+## PHASE 13: AI INFRASTRUCTURE SETUP
 
-### Task 14.1: Environment Configuration
-- [ ] Create production Supabase project (if separate from dev)
-- [ ] Set up production environment variables
-- [ ] Configure Supabase auth for production URLs
+> **Note**: Phases 13-20 implement the AI-powered features from `PRD_Update_Instructions_AI_Agent.md`. These add natural language event creation, automated vendor communication, and a communication dashboard.
 
-### Task 14.2: Performance Optimization
-- [ ] Add database indexes for common queries
+### Task 13.1: Install AI & Email Dependencies
+- [ ] Install Anthropic SDK: `npm install @anthropic-ai/sdk`
+- [ ] Install Resend SDK: `npm install resend`
+- [ ] Install Inngest (optional for background jobs): `npm install inngest`
+- [ ] Verify all dependencies installed correctly
+
+### Task 13.2: Configure Environment Variables
+- [ ] Add to `.env.local`:
+  - `ANTHROPIC_API_KEY=sk-ant-xxxxx`
+  - `CLAUDE_MODEL=claude-sonnet-4-20250514`
+  - `RESEND_API_KEY=re_xxxxx`
+  - `RESEND_WEBHOOK_SECRET=whsec_xxxxx`
+  - `RESEND_FROM_EMAIL=noreply@venueassistant.com`
+  - `RESEND_FROM_NAME=VenueAssistant`
+  - `AGENT_MAX_RETRIES=3`
+  - `AGENT_TIMEOUT_HOURS=72`
+  - `AGENT_FOLLOWUP_DELAY_HOURS=24`
+  - `ENABLE_AGENT_AUTO_APPROVAL=false`
+  - `ENABLE_NL_EVENT_CREATION=true`
+  - `ENABLE_AI_AGENT=true`
+  - `ENABLE_REAL_TIME_UPDATES=false`
+- [ ] Update `.env.example` with placeholder values
+
+### Task 13.3: Set Up External Services
+- [ ] Create Anthropic API account at console.anthropic.com
+- [ ] Get Anthropic API key and test access
+- [ ] Create Resend account at resend.com
+- [ ] Verify domain or use resend.dev for testing
+- [ ] Get Resend API key
+- [ ] Configure Resend webhook endpoint
+- [ ] Get webhook secret from Resend
+
+---
+
+## PHASE 14: AI DATABASE SCHEMA
+
+### Task 14.1: Create vendor_communications Table
+- [ ] Run SQL script from `ai-features-schema.sql` in Supabase SQL Editor
+- [ ] Verify `vendor_communications` table created with all fields
+- [ ] Verify indexes created successfully
+- [ ] Test RLS policies
+
+### Task 14.2: Create vendor_quotes Table
+- [ ] Verify `vendor_quotes` table created with all fields
+- [ ] Verify indexes created successfully
+- [ ] Test RLS policies
+
+### Task 14.3: Create agent_runs Table
+- [ ] Verify `agent_runs` table created with all fields
+- [ ] Verify indexes created successfully
+- [ ] Test RLS policies
+
+### Task 14.4: Generate Updated TypeScript Types
+- [ ] Regenerate database types: `npx supabase gen types typescript --project-id YOUR_PROJECT_ID > lib/types/database.types.ts`
+- [ ] Verify new tables included in types
+- [ ] Create `lib/types/agent.types.ts`
+- [ ] Create `lib/types/communication.types.ts`
+- [ ] Create `lib/types/quote.types.ts`
+
+---
+
+## PHASE 15: AI CLIENT INFRASTRUCTURE
+
+### Task 15.1: Create Claude API Client
+- [ ] Create `lib/ai/claude.ts` with client wrapper
+- [ ] Implement error handling for rate limits and API errors
+- [ ] Test Claude client with simple prompt
+- [ ] Verify API key is working
+
+### Task 15.2: Create Resend Email Client
+- [ ] Create `lib/email/resend.ts` with email client
+- [ ] Implement email sending utility
+- [ ] Test sending email via Resend
+- [ ] Verify delivery works
+
+### Task 15.3: Create Email Parser Utility
+- [ ] Create `lib/email/parser.ts`
+- [ ] Implement `parseVendorEmail()` function
+- [ ] Implement `extractThreadId()` function
+- [ ] Implement `extractQuoteNumbers()` function
+- [ ] Test with sample vendor emails
+
+### Task 15.4: Create AI Prompt Templates
+- [ ] Create `lib/ai/prompts/eventExtraction.ts`
+- [ ] Create `lib/ai/prompts/emailDrafting.ts`
+- [ ] Create `lib/ai/prompts/emailAnalysis.ts`
+- [ ] Create `lib/ai/prompts/quoteExtraction.ts`
+- [ ] Create `lib/ai/prompts/followUp.ts`
+
+---
+
+## PHASE 16: AGENT CORE LOGIC
+
+### Task 16.1: Create Agent Orchestrator
+- [ ] Create `lib/agent/orchestrator.ts`
+- [ ] Implement `startAgent()` function
+- [ ] Implement `processVendorReplies()` function
+- [ ] Implement `checkAgentStatus()` function
+- [ ] Implement main agent loop logic
+- [ ] Test with mock data
+
+### Task 16.2: Create Vendor Communicator
+- [ ] Create `lib/agent/vendorCommunicator.ts`
+- [ ] Implement `draftOutreachEmail()` function
+- [ ] Implement `sendEmail()` function
+- [ ] Implement `draftFollowUpEmail()` function
+- [ ] Test email drafting with Claude
+
+### Task 16.3: Create Quote Extractor
+- [ ] Create `lib/agent/quoteExtractor.ts`
+- [ ] Implement `analyzeVendorReply()` function
+- [ ] Implement `extractQuoteDetails()` function
+- [ ] Implement `validateQuote()` function
+- [ ] Test with sample emails
+
+### Task 16.4: Create State Machine
+- [ ] Create `lib/agent/stateMachine.ts`
+- [ ] Define vendor states
+- [ ] Implement `getVendorState()` function
+- [ ] Implement `transitionState()` function
+- [ ] Test state transitions
+
+---
+
+## PHASE 17: NATURAL LANGUAGE EVENT CREATION
+
+### Task 17.1: Create Event Extraction API
+- [ ] Create `app/api/ai/extract-event/route.ts`
+- [ ] Implement POST endpoint
+- [ ] Test with various input formats
+- [ ] Verify date and budget parsing
+
+### Task 17.2: Create NL Event Form Component
+- [ ] Create `components/events/NaturalLanguageEventForm.tsx`
+- [ ] Add textarea and extract button
+- [ ] Implement loading and error states
+- [ ] Test component rendering
+
+### Task 17.3: Create Event Extraction Preview Component
+- [ ] Create `components/events/EventExtractionPreview.tsx`
+- [ ] Display extracted fields
+- [ ] Add edit functionality
+- [ ] Test with extracted data
+
+### Task 17.4: Update New Event Page
+- [ ] Update `app/(dashboard)/events/new/page.tsx`
+- [ ] Add tabs for Quick Create and Manual Form
+- [ ] Integrate NL components
+- [ ] Test end-to-end NL event creation
+
+### Task 17.5: Create useEventExtraction Hook
+- [ ] Create `hooks/useEventExtraction.ts`
+- [ ] Implement extraction logic
+- [ ] Test hook in component
+
+---
+
+## PHASE 18: AI VENDOR COMMUNICATION AGENT
+
+### Task 18.1: Create Agent API Routes
+- [ ] Create `app/api/agent/start/route.ts`
+- [ ] Create `app/api/agent/process-reply/route.ts`
+- [ ] Create `app/api/agent/status/route.ts`
+- [ ] Test agent start endpoint
+
+### Task 18.2: Create Email Webhook Handlers
+- [ ] Create `app/api/webhooks/resend/route.ts`
+- [ ] Implement webhook signature verification
+- [ ] Create `app/api/webhooks/email-status/route.ts`
+- [ ] Test webhook with Resend
+
+### Task 18.3: Create Email Helper APIs
+- [ ] Create `app/api/email/send/route.ts`
+- [ ] Create `app/api/email/draft/route.ts`
+- [ ] Test email sending and drafting
+
+### Task 18.4: Update Event Detail Page
+- [ ] Add "Engage Vendors with AI Agent" button
+- [ ] Add confirmation modal
+- [ ] Integrate agent start flow
+- [ ] Test button integration
+
+### Task 18.5: Create Agent Components
+- [ ] Create `components/agent/AgentActivityLog.tsx` (optional)
+- [ ] Create `components/agent/AgentStatusBadge.tsx`
+- [ ] Create `components/agent/AgentProgressBar.tsx`
+- [ ] Test components
+
+### Task 18.6: Create useAgent Hook
+- [ ] Create `hooks/useAgent.ts`
+- [ ] Implement agent status polling
+- [ ] Test hook
+
+---
+
+## PHASE 19: COMMUNICATION DASHBOARD
+
+### Task 19.1: Create Communications API Routes
+- [ ] Create `app/api/communications/route.ts`
+- [ ] Create `app/api/communications/thread/route.ts`
+- [ ] Create `app/api/communications/[communicationId]/route.ts`
+- [ ] Test APIs
+
+### Task 19.2: Create Quotes API Routes
+- [ ] Create `app/api/quotes/route.ts`
+- [ ] Create `app/api/quotes/[quoteId]/approve/route.ts`
+- [ ] Create `app/api/quotes/[quoteId]/reject/route.ts`
+- [ ] Test quote approval/rejection
+
+### Task 19.3: Create Communication Components
+- [ ] Create `components/communications/CommunicationDashboard.tsx`
+- [ ] Create `components/communications/ThreadView.tsx`
+- [ ] Create `components/communications/EmailMessage.tsx`
+- [ ] Create `components/communications/VendorResponseStatus.tsx`
+- [ ] Test components
+
+### Task 19.4: Create Quote Components
+- [ ] Create `components/quotes/QuoteCard.tsx`
+- [ ] Create `components/quotes/QuoteComparison.tsx`
+- [ ] Create `components/quotes/QuoteApprovalModal.tsx`
+- [ ] Test components
+
+### Task 19.5: Create Communications Dashboard Page
+- [ ] Create `app/(dashboard)/events/[eventId]/communications/page.tsx`
+- [ ] Integrate components
+- [ ] Test page rendering
+
+### Task 19.6: Create Communication Hooks
+- [ ] Create `hooks/useCommunications.ts`
+- [ ] Create `hooks/useQuotes.ts`
+- [ ] Test hooks
+
+---
+
+## PHASE 20: EMAIL TEMPLATES & AI TESTING
+
+### Task 20.1: Create Email Templates
+- [ ] Create `lib/email/templates/vendorOutreach.ts`
+- [ ] Create `lib/email/templates/followUp.ts`
+- [ ] Create `lib/email/templates/confirmation.ts`
+- [ ] Test templates
+
+### Task 20.2: Test Natural Language Event Creation
+- [ ] Test with various input descriptions
+- [ ] Test date and budget parsing
+- [ ] Test vendor category identification
+- [ ] Test edit functionality
+- [ ] Test fallback to manual form
+
+### Task 20.3: Test AI Agent Communication
+- [ ] Test agent start with matched vendors
+- [ ] Test email sending to vendors
+- [ ] Test webhook reception
+- [ ] Test reply processing and quote extraction
+- [ ] Test follow-up generation
+- [ ] Test agent completion
+
+### Task 20.4: Test Communication Dashboard
+- [ ] Test communications list display
+- [ ] Test filtering and search
+- [ ] Test thread view
+- [ ] Test quote approval flow
+- [ ] Test quote rejection flow
+
+### Task 20.5: Integration Testing
+- [ ] Test end-to-end: NL input → Extract → Match → Agent → Quotes → Approve
+- [ ] Test with multiple vendors per category
+- [ ] Test concurrent events
+- [ ] Test email threading
+
+### Task 20.6: Security & Performance Testing
+- [ ] Verify webhook signature validation
+- [ ] Test RLS on new tables
+- [ ] Test event extraction performance (< 2s)
+- [ ] Test email drafting performance (< 3s)
+- [ ] Test dashboard load time (< 500ms)
+
+---
+
+## PHASE 21: UX POLISH & ENHANCEMENTS
+
+### Task 21.1: Add Loading States
+- [x] Review all pages and ensure loading states are present
+- [x] Use Skeleton/Loading components for content loading
+
+### Task 21.2: Add Error Handling
+- [x] Review major API routes and ensure proper error handling
+- [x] Add ErrorMessage components to main pages
+
+### Task 21.3: Add Toast Notifications
+- [x] Integrated shadcn toast for success/error feedback
+
+### Task 21.4: Improve Form Validation
+- [ ] Review all forms and ensure validation is comprehensive
+- [ ] Add helpful error messages for each field
+- [ ] Add inline validation (on blur)
+- [ ] Prevent duplicate submissions
+
+### Task 21.5: Add Confirmation Dialogs
+- [x] Add confirmation for major actions (Event Completion, Deletions)
+- [x] Add confirmation for Refresh Demo Data
+
+### Task 21.6: Add Empty States
+- [ ] Add EmptyState component to:
+  - Venues list (no venues)
+  - Vendors list (no vendors)
+  - Events list (no events)
+  - Dashboard (no upcoming events)
+- [ ] Include helpful messages and action buttons
+
+### Task 21.7: Improve Navigation
+- [ ] Add breadcrumbs to detail pages
+- [ ] Highlight active nav item in sidebar (may already be done)
+- [ ] Add back buttons where appropriate
+- [ ] Ensure consistent navigation patterns
+
+### Task 21.8: Add Data Persistence (Optional)
+- [ ] Persist filter/sort preferences in localStorage
+- [ ] Remember last selected venue
+- [ ] Remember user preferences
+
+---
+
+## PHASE 22: MOBILE & ACCESSIBILITY
+
+### Task 22.1: Optimize Mobile Responsiveness
+- [ ] Review all pages on mobile/tablet
+- [ ] Ensure sidebar collapses on mobile
+- [ ] Ensure tables are scrollable or stack on mobile
+- [ ] Ensure forms are usable on mobile
+- [ ] Test touch interactions
+- [ ] Test landscape and portrait modes
+
+### Task 22.2: Accessibility Improvements
+- [ ] Ensure all interactive elements are keyboard accessible
+- [ ] Add proper ARIA labels
+- [ ] Ensure sufficient color contrast
+- [ ] Test with screen reader (basic)
+- [ ] Add focus indicators
+- [ ] Ensure proper heading hierarchy
+
+---
+
+## PHASE 23: PERFORMANCE OPTIMIZATION
+
+### Task 23.1: Database Optimization
+- [ ] Review and add database indexes for common queries
+- [ ] Optimize complex queries (vendor matching, budget calculations)
+- [ ] Add composite indexes where needed
+- [ ] Test query performance with large datasets
+
+### Task 23.2: Frontend Optimization
 - [ ] Optimize API routes (reduce unnecessary queries)
-- [ ] Add caching where appropriate
+- [ ] Add caching where appropriate (React Query or SWR)
 - [ ] Lazy load components if needed
 - [ ] Optimize images (if any)
+- [ ] Code splitting for large pages
 
-### Task 14.3: Security Review
-- [ ] Review RLS policies thoroughly
+### Task 23.3: Performance Testing
+- [ ] Test page load times (target < 2 seconds)
+- [ ] Test API response times (target < 500ms)
+- [ ] Test with slow 3G network
+- [ ] Identify and fix performance bottlenecks
+
+---
+
+## PHASE 24: SECURITY & DEPLOYMENT PREPARATION
+
+### Task 24.1: Security Review
+- [ ] Review RLS policies thoroughly (including AI tables)
 - [ ] Ensure no service role key exposed to client
+- [ ] Ensure no AI API keys exposed to client
 - [ ] Review API routes for auth checks
 - [ ] Check for SQL injection vulnerabilities
 - [ ] Check for XSS vulnerabilities
 - [ ] Validate all user inputs on server side
+- [ ] Test authentication edge cases
+- [ ] Verify password requirements
+- [ ] Verify webhook signature validation
 
-### Task 14.4: SEO & Metadata
+### Task 24.2: Environment Configuration
+- [ ] Create production Supabase project (if separate from dev)
+- [ ] Set up production environment variables (including AI keys)
+- [ ] Configure Supabase auth for production URLs
+- [ ] Configure Resend production domain
+- [ ] Set up domain and SSL
+- [ ] Configure webhook endpoints
+
+### Task 24.3: SEO & Metadata
 - [ ] Add proper page titles for all pages
 - [ ] Add meta descriptions
 - [ ] Add Open Graph tags
 - [ ] Create favicon
+- [ ] Add robots.txt
+- [ ] Add sitemap.xml
 
-### Task 14.5: Error Tracking
+### Task 24.4: Error Tracking & Monitoring
 - [ ] Set up error tracking (Sentry, LogRocket, or similar) - optional
 - [ ] Add error boundaries
 - [ ] Log errors to console in dev, to service in prod
+- [ ] Set up uptime monitoring (optional)
+- [ ] Monitor AI API usage and costs
 
 ---
 
-## PHASE 15: DEPLOYMENT
+## PHASE 25: DEPLOYMENT
 
-### Task 15.1: Deploy to Vercel
+### Task 25.1: Pre-Deployment Checklist
+- [ ] Remove "Refresh Demo Data" button (production)
+- [ ] Verify all environment variables set correctly
+- [ ] Test with production Supabase project
+- [ ] Test with production Resend account
+- [ ] Run final security audit
+- [ ] Ensure no console.log in production code
+- [ ] Verify AI feature flags set appropriately
+
+### Task 25.2: Deploy to Vercel
 - [ ] Create Vercel account (if needed)
 - [ ] Connect GitHub repository
 - [ ] Configure environment variables in Vercel
 - [ ] Deploy to production
 - [ ] Verify deployment successful
+- [ ] Test custom domain (if applicable)
 
-### Task 15.2: Post-Deployment Testing
+### Task 25.3: Post-Deployment Testing
 - [ ] Test signup/login on production
 - [ ] Test creating venues, vendors, events
 - [ ] Test vendor matching
 - [ ] Test budget tracking
 - [ ] Test performance reviews
-- [ ] Verify RLS working in production
+- [ ] Test natural language event creation
+- [ ] Test AI agent (with test vendors)
+- [ ] Test communication dashboard
+- [ ] Verify RLS working in production (all tables)
+- [ ] Test all major workflows end-to-end
 
-### Task 15.3: Monitor & Fix Issues
+### Task 25.4: Monitor & Fix Issues
 - [ ] Monitor application logs
+- [ ] Monitor AI API usage and costs
 - [ ] Fix any production-specific bugs
-- [ ] Monitor performance
-- [ ] Set up uptime monitoring (optional)
+- [ ] Monitor performance metrics
+- [ ] Monitor error rates
+- [ ] Check database connection pooling
+- [ ] Monitor email deliverability
 
 ---
 
-## PHASE 16: DOCUMENTATION & HANDOFF
+## PHASE 26: DOCUMENTATION & HANDOFF
 
-### Task 16.1: Update Documentation
+### Task 26.1: Update Documentation
 - [ ] Update README.md with:
   - Project overview
+  - Features list (including AI features)
   - Setup instructions
-  - Environment variables
+  - Environment variables (including AI keys)
   - Deployment instructions
-- [ ] Document API routes
+  - Troubleshooting guide
+- [ ] Document API routes (including AI endpoints)
 - [ ] Document component structure
 - [ ] Add comments to complex algorithms
+- [ ] Document database schema (including AI tables)
+- [ ] Document AI features and webhook setup
 
-### Task 16.2: Create User Guide (Optional)
+### Task 26.2: Create User Guide (Optional)
 - [ ] Write basic user guide
 - [ ] Include screenshots
 - [ ] Explain key features and workflows
+- [ ] Document AI features usage
+- [ ] Create video walkthrough (optional)
+
+### Task 26.3: Developer Handoff
+- [ ] Create developer onboarding guide
+- [ ] Document code architecture
+- [ ] Document deployment process
+- [ ] Document common issues and fixes
+- [ ] Create maintenance guide
+- [ ] Document AI agent troubleshooting
 
 ---
 
@@ -646,7 +1000,7 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 
 After completing all tasks, verify the following:
 
-### Functionality
+### Core Functionality (Phases 0-11)
 - [ ] Users can sign up and create an account
 - [ ] Users can create and manage multiple venues
 - [ ] Users can add, edit, and view vendors
@@ -657,6 +1011,16 @@ After completing all tasks, verify the following:
 - [ ] Users can complete events and review vendors
 - [ ] Vendor reviews update reliability scores
 - [ ] Data is isolated per user (RLS working)
+
+### AI Features (Phases 13-20)
+- [ ] Users can create events using natural language descriptions
+- [ ] AI agent can automatically contact vendors via email
+- [ ] AI agent can analyze vendor replies and extract quotes
+- [ ] AI agent can negotiate and send follow-up emails
+- [ ] Users can view all communications in dashboard
+- [ ] Users can approve/reject quotes from dashboard
+- [ ] Quote approval automatically assigns vendors and updates budget
+- [ ] All agent actions are logged and auditable
 
 ### Performance
 - [ ] Page load times < 2 seconds
@@ -681,6 +1045,7 @@ After completing all tasks, verify the following:
 
 ## NOTES FOR AI AGENT
 
+### General Guidelines
 - Work through tasks sequentially in order
 - Each task should be fully completed before moving to the next
 - Test each feature immediately after implementing
@@ -689,5 +1054,81 @@ After completing all tasks, verify the following:
 - Prioritize functionality over aesthetics for MVP
 - Refer to PRD (`VenueAssistant_MicroSaaS_PRD.md`) for detailed specifications
 - Refer to `CLAUDE.MD` for architectural context
+
+### Implementation Phases Overview
+
+**CORE MVP (Phases 0-11)**: Essential features for venue management
+- Complete these first
+- Foundation for all other features
+
+**TESTING (Phase 12)**: Comprehensive testing and seed data
+- Test all core workflows
+- Ensure data quality and edge cases handled
+
+**AI FEATURES (Phases 13-20)**: Advanced AI-powered features
+- Natural language event creation
+- Automated vendor communication agent
+- Communication dashboard with quote approval
+- Requires Anthropic API and Resend accounts
+- Adds significant value and differentiation
+
+**POLISH & DEPLOYMENT (Phases 21-26)**: Production readiness
+- UX improvements and mobile optimization
+- Performance optimization
+- Security review and production deployment
+- Documentation and handoff
+
+### AI Features Implementation Notes
+
+When implementing Phases 13-20 (AI features):
+
+1. **Prerequisites**:
+   - Budget for AI API costs (~$125/month for 1000 events)
+   - Anthropic API account with valid API key
+   - Resend account with verified domain
+   - Understanding of webhook security and Claude API usage
+
+2. **Key Considerations**:
+   - Always verify webhook signatures before processing
+   - Log all AI agent actions for transparency
+   - Implement rate limiting to prevent API abuse
+   - Test extensively with mock data before using real vendors
+   - Never hardcode API keys - use environment variables
+   - Fail gracefully - allow manual fallback if AI fails
+
+3. **Testing Strategy**:
+   - Use test email addresses for vendor communication
+   - Test webhook handling in development environment
+   - Verify RLS policies on new tables
+   - Test quote extraction with various email formats
+   - Ensure budget constraints are respected
+
+4. **Cost Management**:
+   - Monitor Claude API usage closely
+   - Cache common email templates to reduce API calls
+   - Consider using Claude Haiku for simpler tasks
+   - Set up alerts for unexpected cost spikes
+
+5. **Security**:
+   - Verify all webhook signatures
+   - Validate email addresses before sending
+   - Rate limit email sending (max 10/minute)
+   - Never expose API keys to client
+   - Audit all agent actions
+
+### Quick Reference Files
+
+- **Main PRD**: `VenueAssistant_MicroSaaS_PRD.md` (Core MVP specs)
+- **AI Features PRD**: `PRD_Update_Instructions_AI_Agent.md` (AI features specs)
+- **Project Context**: `CLAUDE.MD` (Architecture and guidelines)
+- **AI Database Schema**: `ai-features-schema.sql` (SQL to run in Supabase)
+- **Profile Fix**: `FIX_PROFILE_ISSUE.md` (SQL trigger for user profiles)
+
+### Current Status
+
+**Completed**: Phases 0-11 (Core MVP features)
+**In Progress**: Phase 12 (Testing & Seed Data)
+**Pending**: Phases 13-20 (AI Features)
+**Pending**: Phases 21-26 (Polish, Mobile, Performance, Deployment)
 
 Good luck! 🚀
