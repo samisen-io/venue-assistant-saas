@@ -3,7 +3,9 @@
     "allow": [
       "Bash(find:*)",
       "Bash(npm install:*)",
-      "Bash(npx shadcn@latest add:*)"
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(dir:*)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File move-to-root.ps1)"
     ]
   }
 }
