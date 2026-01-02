@@ -7,7 +7,7 @@ import { ExtractedQuoteData, QuoteBreakdownItem } from '@/lib/types/quote.types'
 export interface QuoteExtractionInput {
   emailBody: string
   vendorName: string
-  vendorCategory: string
+  vendorServices: string
   eventDetails: {
     eventName: string
     eventDate: string
@@ -16,12 +16,12 @@ export interface QuoteExtractionInput {
 }
 
 export function buildQuoteExtractionPrompt(input: QuoteExtractionInput): string {
-  const { emailBody, vendorName, vendorCategory, eventDetails } = input
+  const { emailBody, vendorName, vendorServices, eventDetails } = input
 
   return `You are an AI assistant specialized in extracting pricing and quote information from vendor emails.
 
 **Context:**
-Vendor: ${vendorName} (${vendorCategory})
+Vendor: ${vendorName} (${vendorServices})
 Event: ${eventDetails.eventName}
 Date: ${eventDetails.eventDate}
 Guests: ${eventDetails.guestCount}

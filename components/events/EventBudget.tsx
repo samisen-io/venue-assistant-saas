@@ -22,7 +22,10 @@ interface EventBudgetProps {
     refreshKey: number;
 }
 
-type EventVendorWithData = EventVendor & { vendors: Vendor | null };
+type EventVendorWithData = EventVendor & {
+    vendors: Vendor | null;
+    event_services?: { name: string } | null;
+};
 
 export function EventBudget({ eventId, totalBudget, refreshKey }: EventBudgetProps) {
     const [eventVendors, setEventVendors] = useState<EventVendorWithData[]>([]);
@@ -106,7 +109,7 @@ export function EventBudget({ eventId, totalBudget, refreshKey }: EventBudgetPro
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Category</TableHead>
+                                <TableHead>Service</TableHead>
                                 <TableHead>Vendor</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead className="text-right">Quoted</TableHead>
@@ -126,7 +129,9 @@ export function EventBudget({ eventId, totalBudget, refreshKey }: EventBudgetPro
                                     const variance = (association.actual_cost || association.quoted_cost || 0) - (association.quoted_cost || 0);
                                     return (
                                         <TableRow key={association.id}>
-                                            <TableCell className="font-medium capitalize">{association.category}</TableCell>
+                                            <TableCell className="font-medium">
+                                                {association.event_services?.name || "Service"}
+                                            </TableCell>
                                             <TableCell>{association.vendors?.name || "N/A"}</TableCell>
                                             <TableCell>
                                                 <Badge variant={association.confirmed ? "default" : "secondary"}>

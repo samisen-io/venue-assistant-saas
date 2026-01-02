@@ -17,13 +17,17 @@ interface Communication {
   from_email: string
   to_email: string
   sent_at: string | null
+  created_at: string
   read_at: string | null
   status: string | null
   vendor: {
     id: string
     name: string
-    category: string
     contact_email: string
+    vendor_services?: Array<{
+      event_service_id: string
+      event_services?: { name: string } | null
+    }>
   }
 }
 
@@ -198,7 +202,7 @@ export function CommunicationsList({ eventId }: CommunicationsListProps) {
                 <div>
                   <CardTitle className="text-lg">{vendor.name}</CardTitle>
                   <CardDescription>
-                    {vendor.category} • {vendor.contact_email}
+                    {((vendor.vendor_services || [])[0]?.event_services?.name || "Service")} - {vendor.contact_email}
                   </CardDescription>
                 </div>
                 <Badge variant="outline">{vendorComms.length} messages</Badge>

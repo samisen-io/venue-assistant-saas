@@ -25,7 +25,10 @@ export interface VendorCommunicationWithDetails extends VendorCommunication {
     id: string
     name: string
     contact_email: string
-    category: string
+    vendor_services?: Array<{
+      event_service_id: string
+      event_services?: { name: string } | null
+    }>
   }
   event?: {
     id: string
@@ -71,7 +74,7 @@ export interface EmailTemplateVariables {
   budget?: number
   specialRequirements?: string
   contactName?: string
-  category?: string
+  services?: string
   [key: string]: any
 }
 

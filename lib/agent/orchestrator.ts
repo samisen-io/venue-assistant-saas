@@ -29,7 +29,14 @@ export class AgentOrchestrator {
       // Validate event exists
       const { data: event, error: eventError} = await (supabase as any)
         .from('events')
-        .select('*, venue:venues(*)')
+        .select(`
+          *,
+          venue:venues(*),
+          event_service_requirements (
+            event_service_id,
+            event_services (id, name, slug)
+          )
+        `)
         .eq('id', eventId)
         .single()
 
@@ -43,7 +50,13 @@ export class AgentOrchestrator {
       // Get vendors for the venue
       const { data: allVendors, error: vendorsError } = await (supabase as any)
         .from('vendors')
-        .select('*')
+        .select(`
+          *,
+          vendor_services (
+            event_service_id,
+            event_services (id, name, slug)
+          )
+        `)
         .eq('venue_id', event.venue.id)
 
       if (vendorsError) {
@@ -54,7 +67,12 @@ export class AgentOrchestrator {
       }
 
       // Filter vendors if specific IDs provided, otherwise use all vendors
-      let targetVendors = allVendors || []
+      const requiredServiceIds = (event.event_service_requirements || []).map((req: any) => req.event_service_id)
+      let targetVendors = (allVendors || []).filter((vendor: any) => {
+        if (requiredServiceIds.length === 0) return true
+        const vendorServiceIds = (vendor.vendor_services || []).map((service: any) => service.event_service_id)
+        return vendorServiceIds.some((serviceId: string) => requiredServiceIds.includes(serviceId))
+      })
       if (vendorIds && vendorIds.length > 0) {
         targetVendors = targetVendors.filter((v: any) => vendorIds.includes(v.id))
       }
@@ -213,7 +231,16 @@ export class AgentOrchestrator {
       // Get unprocessed vendor communications
       const { data: communications } = await (supabase as any)
         .from('vendor_communications')
-        .select('*, vendor:vendors(*)')
+        .select(`
+          *,
+          vendor:vendors(
+            *,
+            vendor_services (
+              event_service_id,
+              event_services (id, name, slug)
+            )
+          )
+        `)
         .eq('event_id', agentRun.event_id)
         .eq('direction', 'inbound')
         .eq('processed', false)
@@ -234,10 +261,15 @@ export class AgentOrchestrator {
 
           // If has quote, extract it
           if (analysis.hasQuote) {
+            const vendorServices = ((comm.vendor as any).vendor_services || [])
+              .map((service: any) => service.event_services?.name)
+              .filter(Boolean)
+              .join(', ') || 'services'
+
             const quote = await extractQuoteFromReply({
               emailBody: comm.body,
               vendorName: comm.vendor.name,
-              vendorCategory: comm.vendor.category,
+              vendorServices,
               eventDetails: {
                 eventName: agentRun.event.event_name,
                 eventDate: agentRun.event.event_date,
@@ -313,7 +345,16 @@ export class AgentOrchestrator {
       // Get vendor states
       const { data: communications } = await (supabase as any)
         .from('vendor_communications')
-        .select('*, vendor:vendors(*)')
+        .select(`
+          *,
+          vendor:vendors(
+            *,
+            vendor_services (
+              event_service_id,
+              event_services (id, name, slug)
+            )
+          )
+        `)
         .eq('event_id', agentRun.event_id)
 
       if (!communications) return agentRun

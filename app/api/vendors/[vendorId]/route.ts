@@ -19,7 +19,11 @@ export async function GET(
             .from('vendors')
             .select(`
         *,
-        venues (name)
+        venues (name),
+        vendor_services (
+            event_service_id,
+            event_services (id, name, slug)
+        )
       `)
             .eq('id', vendorId)
             .single()
@@ -48,15 +52,36 @@ export async function PUT(
 
         const json = await request.json()
         const body = vendorFormSchema.partial().parse(json)
+        const { event_service_ids, ...vendorFields } = body
 
         const { data: vendor, error } = await supabase
             .from('vendors')
-            .update(body as any)
+            .update(vendorFields as any)
             .eq('id', vendorId)
             .select()
             .single()
 
         if (error) throw error
+
+        if (event_service_ids) {
+            await supabase
+                .from('vendor_services')
+                .delete()
+                .eq('vendor_id', vendorId)
+
+            if (event_service_ids.length > 0) {
+                const vendorServices = event_service_ids.map((eventServiceId: string) => ({
+                    vendor_id: vendorId,
+                    event_service_id: eventServiceId
+                }))
+
+                const { error: vendorServicesError } = await supabase
+                    .from('vendor_services')
+                    .insert(vendorServices)
+
+                if (vendorServicesError) throw vendorServicesError
+            }
+        }
 
         return NextResponse.json(vendor)
     } catch (error) {

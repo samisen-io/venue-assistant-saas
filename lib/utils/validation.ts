@@ -42,7 +42,7 @@ export const spaceFormSchema = z.object({
 
 export const vendorFormSchema = z.object({
     name: z.string().min(2, 'Vendor name must be at least 2 characters').max(100, 'Vendor name must be less than 100 characters'),
-    category: z.string().min(1, 'Please select a category'),
+    event_service_ids: z.array(z.string()).min(1, 'Please select at least one service'),
     contact_name: z.string().max(100, 'Contact name must be less than 100 characters').optional(),
     contact_email: z.string().email('Please enter a valid email address'),
     contact_phone: z.string().regex(/^[\d\s\-\(\)]+$/, 'Invalid phone number format').optional().or(z.literal('')),

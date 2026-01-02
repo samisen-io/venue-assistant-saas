@@ -115,10 +115,18 @@ export default function VendorDetailPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <p className="text-sm text-gray-500">Category</p>
-              <Badge variant="secondary" className="capitalize mt-1">
-                {vendor.category}
-              </Badge>
+              <p className="text-sm text-gray-500">Services</p>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {((vendor as any).vendor_services || []).length > 0 ? (
+                  (vendor as any).vendor_services.map((service: any) => (
+                    <Badge key={service.event_service_id} variant="secondary">
+                      {service.event_services?.name || "Service"}
+                    </Badge>
+                  ))
+                ) : (
+                  <Badge variant="secondary">No services set</Badge>
+                )}
+              </div>
             </div>
             <Separator />
             <div>

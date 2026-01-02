@@ -5,7 +5,10 @@ export type Profile = Database['public']['Tables']['profiles']['Row']
 export type Venue = Database['public']['Tables']['venues']['Row']
 export type Space = Database['public']['Tables']['spaces']['Row']
 export type Vendor = Database['public']['Tables']['vendors']['Row']
+export type EventService = Database['public']['Tables']['event_services']['Row']
+export type VendorService = Database['public']['Tables']['vendor_services']['Row']
 export type Event = Database['public']['Tables']['events']['Row']
+export type EventServiceRequirement = Database['public']['Tables']['event_service_requirements']['Row']
 export type EventVendor = Database['public']['Tables']['event_vendors']['Row']
 export type VendorReview = Database['public']['Tables']['vendor_reviews']['Row']
 
@@ -27,7 +30,8 @@ export type VendorMatchResult = {
 }
 
 export type BudgetBreakdown = {
-    category: string
+    event_service_id: string
+    event_service_name: string
     budgeted: number
     quoted: number
     actual: number
@@ -42,16 +46,6 @@ export type BudgetSummary = {
     variance_percentage: number
     status: "UNDER_BUDGET" | "ON_TRACK" | "OVER_BUDGET"
 }
-
-export type VendorCategory =
-    | "catering"
-    | "av"
-    | "florals"
-    | "parking"
-    | "security"
-    | "entertainment"
-    | "photography"
-    | "other"
 
 export type SpaceType =
     | "ballroom"

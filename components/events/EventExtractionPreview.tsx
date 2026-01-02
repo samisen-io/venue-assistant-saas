@@ -237,10 +237,10 @@ export default function EventExtractionPreview({
           </div>
         )}
 
-        {/* Needed Categories */}
+        {/* Needed Services */}
         {editedData.needed_categories && editedData.needed_categories.length > 0 && (
           <div className="space-y-2">
-            <label className="text-sm font-medium">Vendor Categories Needed</label>
+            <label className="text-sm font-medium">Services Needed</label>
             <div className="flex flex-wrap gap-2">
               {editedData.needed_categories.map((category) => (
                 <Badge key={category} variant="secondary" className="capitalize">

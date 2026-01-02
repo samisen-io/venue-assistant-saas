@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, Search, Filter } from "lucide-react";
-import { Vendor } from "@/lib/types";
+import { EventService, Vendor } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { VendorCard } from "@/components/vendors/VendorCard";
@@ -23,7 +23,8 @@ export default function VendorsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("all");
+    const [eventServices, setEventServices] = useState<EventService[]>([]);
+    const [selectedServiceId, setSelectedServiceId] = useState("all");
 
     const fetchVendors = async () => {
         setIsLoading(true);
@@ -48,11 +49,27 @@ export default function VendorsPage() {
         fetchVendors();
     }, []);
 
+    useEffect(() => {
+        const fetchServices = async () => {
+            try {
+                const res = await fetch("/api/event-services");
+                if (!res.ok) throw new Error("Failed to fetch services");
+                const data = await res.json();
+                setEventServices(data);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchServices();
+    }, []);
+
     const filteredVendors = vendors.filter((vendor) => {
         const matchesSearch = vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             vendor.contact_name?.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = selectedCategory === "all" || vendor.category === selectedCategory;
-        return matchesSearch && matchesCategory;
+        const matchesService = selectedServiceId === "all" || (vendor as any).vendor_services?.some(
+            (service: any) => service.event_service_id === selectedServiceId
+        );
+        return matchesSearch && matchesService;
     });
 
     if (isLoading) return <Loading />;
@@ -81,20 +98,18 @@ export default function VendorsPage() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="w-full sm:w-[200px]">
-                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <div className="w-full sm:w-[220px]">
+                    <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
                         <SelectTrigger>
-                            <SelectValue placeholder="All Categories" />
+                            <SelectValue placeholder="All Services" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Categories</SelectItem>
-                            <SelectItem value="catering">Catering</SelectItem>
-                            <SelectItem value="av">A/V</SelectItem>
-                            <SelectItem value="florals">Florals</SelectItem>
-                            <SelectItem value="parking">Parking</SelectItem>
-                            <SelectItem value="security">Security</SelectItem>
-                            <SelectItem value="entertainment">Entertainment</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
+                            <SelectItem value="all">All Services</SelectItem>
+                            {eventServices.map((service) => (
+                                <SelectItem key={service.id} value={service.id}>
+                                    {service.name}
+                                </SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>
@@ -102,16 +117,16 @@ export default function VendorsPage() {
 
             {filteredVendors.length === 0 ? (
                 <EmptyState
-                    title={searchTerm || selectedCategory !== "all" ? "No matches found" : "No vendors found"}
-                    description={searchTerm || selectedCategory !== "all"
+                    title={searchTerm || selectedServiceId !== "all" ? "No matches found" : "No vendors found"}
+                    description={searchTerm || selectedServiceId !== "all"
                         ? "Try adjusting your search filters to find more vendors."
                         : "Add vendors to your database to track performance and get AI-powered recommendations for events."}
-                    actionLabel={searchTerm || selectedCategory !== "all" ? "Clear Filters" : "Add Vendor"}
-                    {...(searchTerm || selectedCategory !== "all"
+                    actionLabel={searchTerm || selectedServiceId !== "all" ? "Clear Filters" : "Add Vendor"}
+                    {...(searchTerm || selectedServiceId !== "all"
                         ? {
                             onAction: () => {
                                 setSearchTerm("");
-                                setSelectedCategory("all");
+                                setSelectedServiceId("all");
                             }
                         }
                         : { actionHref: "/vendors/new" }

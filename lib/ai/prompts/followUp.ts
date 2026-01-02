@@ -8,7 +8,7 @@ export interface FollowUpInput {
   vendorName: string
   eventName: string
   eventDate: string
-  category: string
+  vendorServices: string
   previousCommunications: VendorCommunication[]
   daysWithoutResponse: number
   reason: 'no_response' | 'incomplete_quote' | 'clarification_needed' | 'deadline_reminder'
@@ -16,7 +16,7 @@ export interface FollowUpInput {
 }
 
 export function buildFollowUpPrompt(input: FollowUpInput): string {
-  const { vendorName, eventName, eventDate, category, previousCommunications, daysWithoutResponse, reason, specificQuestions } = input
+  const { vendorName, eventName, eventDate, vendorServices, previousCommunications, daysWithoutResponse, reason, specificQuestions } = input
 
   const lastEmail = previousCommunications[previousCommunications.length - 1]
 
@@ -39,7 +39,7 @@ export function buildFollowUpPrompt(input: FollowUpInput): string {
   return `You are an AI assistant drafting a follow-up email to a vendor.
 
 **Context:**
-- Vendor: ${vendorName} (${category} services)
+- Vendor: ${vendorName} (${vendorServices})
 - Event: ${eventName} on ${eventDate}
 - Situation: ${reasonContext}
 - Days since last contact: ${daysWithoutResponse}

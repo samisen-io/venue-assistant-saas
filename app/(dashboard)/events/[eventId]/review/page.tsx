@@ -10,7 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loading } from "@/components/shared/Loading";
 import { useToast } from "@/hooks/use-toast";
 
-type EventVendorWithData = EventVendor & { vendors: Vendor | null };
+type EventVendorWithData = EventVendor & {
+    vendors: Vendor | null;
+    event_services?: { name: string } | null;
+};
 
 export default function EventReviewPage({ params }: { params: Promise<{ eventId: string }> }) {
     const { eventId } = use(params);
@@ -109,7 +112,7 @@ export default function EventReviewPage({ params }: { params: Promise<{ eventId:
                             <CardHeader className="bg-gray-50 border-b">
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="text-lg">{v.vendors.name}</CardTitle>
-                                    <span className="text-sm font-medium text-gray-500 uppercase">{v.category}</span>
+                                    <span className="text-sm font-medium text-gray-500 uppercase">{v.event_services?.name || "Service"}</span>
                                 </div>
                             </CardHeader>
                             <CardContent className="p-6 space-y-6">

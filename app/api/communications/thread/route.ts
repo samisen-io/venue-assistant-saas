@@ -36,7 +36,16 @@ export async function GET(request: NextRequest) {
       .from('vendor_communications')
       .select(`
         *,
-        vendor:vendors(id, name, contact_email, category, reliability_score),
+        vendor:vendors(
+          id,
+          name,
+          contact_email,
+          reliability_score,
+          vendor_services (
+            event_service_id,
+            event_services (id, name, slug)
+          )
+        ),
         event:events(id, event_name, event_date, venue:venues(owner_id))
       `)
       .eq('event_id', eventId)

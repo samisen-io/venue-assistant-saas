@@ -85,12 +85,64 @@ export interface Database {
                     updated_at?: string | null
                 }
             }
+            spaces: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    name: string
+                    capacity: number | null
+                    space_type: string | null
+                    floor_level: string | null
+                    square_footage: number | null
+                    hourly_rate: number | null
+                    setup_time_minutes: number | null
+                    cleanup_time_minutes: number | null
+                    amenities: string[] | null
+                    notes: string | null
+                    is_active: boolean | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    name: string
+                    capacity?: number | null
+                    space_type?: string | null
+                    floor_level?: string | null
+                    square_footage?: number | null
+                    hourly_rate?: number | null
+                    setup_time_minutes?: number | null
+                    cleanup_time_minutes?: number | null
+                    amenities?: string[] | null
+                    notes?: string | null
+                    is_active?: boolean | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    name?: string
+                    capacity?: number | null
+                    space_type?: string | null
+                    floor_level?: string | null
+                    square_footage?: number | null
+                    hourly_rate?: number | null
+                    setup_time_minutes?: number | null
+                    cleanup_time_minutes?: number | null
+                    amenities?: string[] | null
+                    notes?: string | null
+                    is_active?: boolean | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+            }
             vendors: {
                 Row: {
                     id: string
                     venue_id: string
                     name: string
-                    category: string
                     contact_name: string | null
                     contact_email: string
                     contact_phone: string | null
@@ -111,7 +163,6 @@ export interface Database {
                     id?: string
                     venue_id: string
                     name: string
-                    category: string
                     contact_name?: string | null
                     contact_email: string
                     contact_phone?: string | null
@@ -132,7 +183,6 @@ export interface Database {
                     id?: string
                     venue_id?: string
                     name?: string
-                    category?: string
                     contact_name?: string | null
                     contact_email?: string
                     contact_phone?: string | null
@@ -150,9 +200,59 @@ export interface Database {
                     updated_at?: string | null
                 }
             }
+            event_services: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    name: string
+                    slug: string
+                    description: string | null
+                    is_active: boolean | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    name: string
+                    slug: string
+                    description?: string | null
+                    is_active?: boolean | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    name?: string
+                    slug?: string
+                    description?: string | null
+                    is_active?: boolean | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+            }
+            vendor_services: {
+                Row: {
+                    vendor_id: string
+                    event_service_id: string
+                    created_at: string | null
+                }
+                Insert: {
+                    vendor_id: string
+                    event_service_id: string
+                    created_at?: string | null
+                }
+                Update: {
+                    vendor_id?: string
+                    event_service_id?: string
+                    created_at?: string | null
+                }
+            }
             events: {
                 Row: {
                     id: string
+                    space_id: string | null
                     venue_id: string
                     event_name: string
                     event_type: string
@@ -170,6 +270,7 @@ export interface Database {
                 }
                 Insert: {
                     id?: string
+                    space_id?: string | null
                     venue_id: string
                     event_name: string
                     event_type: string
@@ -187,6 +288,7 @@ export interface Database {
                 }
                 Update: {
                     id?: string
+                    space_id?: string | null
                     venue_id?: string
                     event_name?: string
                     event_type?: string
@@ -203,12 +305,41 @@ export interface Database {
                     updated_at?: string | null
                 }
             }
+            event_service_requirements: {
+                Row: {
+                    id: string
+                    event_id: string
+                    event_service_id: string
+                    budget_amount: number | null
+                    notes: string | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    event_id: string
+                    event_service_id: string
+                    budget_amount?: number | null
+                    notes?: string | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    event_id?: string
+                    event_service_id?: string
+                    budget_amount?: number | null
+                    notes?: string | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+            }
             event_vendors: {
                 Row: {
                     id: string
                     event_id: string
                     vendor_id: string
-                    category: string
+                    event_service_id: string
                     assignment_type: string | null
                     quoted_cost: number | null
                     actual_cost: number | null
@@ -220,7 +351,7 @@ export interface Database {
                     id?: string
                     event_id: string
                     vendor_id: string
-                    category: string
+                    event_service_id: string
                     assignment_type?: string | null
                     quoted_cost?: number | null
                     actual_cost?: number | null
@@ -232,7 +363,7 @@ export interface Database {
                     id?: string
                     event_id?: string
                     vendor_id?: string
-                    category?: string
+                    event_service_id?: string
                     assignment_type?: string | null
                     quoted_cost?: number | null
                     actual_cost?: number | null

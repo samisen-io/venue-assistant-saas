@@ -25,10 +25,13 @@ export interface VendorQuoteWithDetails extends VendorQuote {
   vendor?: {
     id: string
     name: string
-    category: string
     contact_email: string
     contact_name?: string
     reliability_score?: number
+    vendor_services?: Array<{
+      event_service_id: string
+      event_services?: { name: string } | null
+    }>
   }
   event?: {
     id: string
@@ -51,7 +54,7 @@ export interface VendorQuoteWithDetails extends VendorQuote {
 // Quote comparison data
 export interface QuoteComparison {
   eventId: string
-  category: string
+  serviceId: string
   quotes: VendorQuoteWithDetails[]
   lowestCost: number
   highestCost: number
@@ -96,7 +99,7 @@ export interface QuoteFilters {
   eventId?: string
   vendorId?: string
   status?: QuoteStatus
-  category?: string
+  serviceId?: string
   minCost?: number
   maxCost?: number
   dateFrom?: string

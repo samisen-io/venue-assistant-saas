@@ -24,6 +24,15 @@ export async function clearAllData(
   // Event vendors (references events and vendors)
   await supabase.from('event_vendors').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
+  // Event service requirements
+  await supabase.from('event_service_requirements').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+  // Vendor services
+  await supabase.from('vendor_services').delete().neq('vendor_id', '00000000-0000-0000-0000-000000000000');
+
+  // Event services
+  await supabase.from('event_services').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
   // Events (references spaces and venues)
   await supabase.from('events').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
@@ -252,8 +261,30 @@ export async function seedDemoData(
     const rooftopSpaces = spaces.slice(11, 14);
     const banquetHalls = spaces.slice(14, 16);
 
-    // 3. Create Vendors (44 vendors - 4x increase, attached to venue)
-    const vendorData = [
+    // 3. Create Event Services (catalog for the venue)
+    const { data: eventServices, error: eventServicesError } = await supabase
+      .from('event_services')
+      .insert([
+        { venue_id: venue.id, name: 'Catering', slug: 'catering' },
+        { venue_id: venue.id, name: 'AV Equipment', slug: 'av' },
+        { venue_id: venue.id, name: 'Florals & Decor', slug: 'florals' },
+        { venue_id: venue.id, name: 'Photography', slug: 'photography' },
+        { venue_id: venue.id, name: 'Entertainment', slug: 'entertainment' },
+        { venue_id: venue.id, name: 'Parking', slug: 'parking' },
+        { venue_id: venue.id, name: 'Security', slug: 'security' },
+        { venue_id: venue.id, name: 'Other Services', slug: 'other' },
+      ])
+      .select();
+
+    if (eventServicesError || !eventServices || eventServices.length === 0) {
+      console.error('Event services error details:', eventServicesError);
+      throw new Error(eventServicesError?.message || 'Failed to create event services');
+    }
+
+    const serviceIdBySlug = new Map(eventServices.map((service) => [service.slug, service.id]));
+
+    // 4. Create Vendors (44 vendors - 4x increase, attached to venue)
+    const vendorSeedData = [
       // Catering vendors (12 total)
       { venue_id: venue.id, name: 'Gourmet Catering Co.', category: 'catering', contact_name: 'Sarah Johnson', contact_email: 'sarah@gourmetcatering.com', contact_phone: '(415) 555-1001', cost_per_unit: 45, website: 'https://gourmetcatering.example.com', reliability_score: 92, total_events: 15, on_time_count: 14, on_time_percentage: 93.3, avg_quality_rating: 4.7 },
       { venue_id: venue.id, name: 'Budget Bites Catering', category: 'catering', contact_name: 'Mike Chen', contact_email: 'mike@budgetbites.com', contact_phone: '(415) 555-1002', cost_per_unit: 25, reliability_score: 75, total_events: 20, on_time_count: 16, on_time_percentage: 80, avg_quality_rating: 3.8 },
@@ -311,6 +342,8 @@ export async function seedDemoData(
       { venue_id: venue.id, name: 'Jazz Collective Band', category: 'entertainment', contact_name: 'Nathan Young', contact_email: 'nathan@jazzcollective.com', contact_phone: '(415) 555-1039', cost_per_unit: 2000, reliability_score: 93, total_events: 20, on_time_count: 19, on_time_percentage: 95, avg_quality_rating: 4.8 },
     ];
 
+    const vendorData = vendorSeedData.map(({ category, ...vendor }) => vendor);
+
     const { data: vendors, error: vendorsError } = await supabase
       .from('vendors')
       .insert(vendorData)
@@ -320,7 +353,28 @@ export async function seedDemoData(
       throw new Error('Failed to create vendors');
     }
 
-    // 4. Create Events (24 events - 4x increase, distributed across spaces)
+    const vendorServices = vendorSeedData
+      .map((vendorSeed) => {
+        const vendor = vendors.find((v) => v.name === vendorSeed.name);
+        const serviceId = serviceIdBySlug.get(vendorSeed.category);
+        if (!vendor || !serviceId) return null;
+        return {
+          vendor_id: vendor.id,
+          event_service_id: serviceId,
+        };
+      })
+      .filter((item): item is { vendor_id: string; event_service_id: string } => Boolean(item));
+
+    const { error: vendorServicesError } = await supabase
+      .from('vendor_services')
+      .insert(vendorServices);
+
+    if (vendorServicesError) {
+      console.error('Vendor services error:', vendorServicesError);
+      throw new Error(vendorServicesError?.message || 'Failed to create vendor services');
+    }
+
+    // 5. Create Events (24 events - 4x increase, distributed across spaces)
     const today = new Date();
     const futureDate1 = new Date(today); futureDate1.setDate(today.getDate() + 15);
     const futureDate2 = new Date(today); futureDate2.setDate(today.getDate() + 30);
@@ -371,26 +425,27 @@ export async function seedDemoData(
       throw new Error(eventsError?.message || 'Failed to create events');
     }
 
-    // 4. Create Event-Vendor Assignments
+    // 6. Create Event-Vendor Assignments
     const assignments = [];
+    const getServiceId = (slug: string) => serviceIdBySlug.get(slug);
 
     // Tech Conference assignments
     assignments.push(
       {
         event_id: events[0].id,
         vendor_id: vendors.find((v) => v.name === 'Gourmet Catering Co.')?.id,
-        vendor_type: 'primary',
-        category: 'catering',
+        event_service_id: getServiceId('catering'),
+        assignment_type: 'primary',
         quoted_cost: 15750, // 350 guests * $45
-        status: 'pending',
+        confirmed: false,
       },
       {
         event_id: events[0].id,
         vendor_id: vendors.find((v) => v.name === 'TechSound Audio Visual')?.id,
-        vendor_type: 'primary',
-        category: 'av',
+        event_service_id: getServiceId('av'),
+        assignment_type: 'primary',
         quoted_cost: 1500,
-        status: 'pending',
+        confirmed: false,
       }
     );
 
@@ -399,26 +454,26 @@ export async function seedDemoData(
       {
         event_id: events[1].id,
         vendor_id: vendors.find((v) => v.name === 'Premium Feast Services')?.id,
-        vendor_type: 'primary',
-        category: 'catering',
+        event_service_id: getServiceId('catering'),
+        assignment_type: 'primary',
         quoted_cost: 13000, // 200 guests * $65
-        status: 'confirmed',
+        confirmed: true,
       },
       {
         event_id: events[1].id,
         vendor_id: vendors.find((v) => v.name === 'Bloom & Blossom')?.id,
-        vendor_type: 'primary',
-        category: 'florals',
+        event_service_id: getServiceId('florals'),
+        assignment_type: 'primary',
         quoted_cost: 3200, // 4 arrangements * $800
-        status: 'confirmed',
+        confirmed: true,
       },
       {
         event_id: events[1].id,
         vendor_id: vendors.find((v) => v.name === 'DJ Masters Entertainment')?.id,
-        vendor_type: 'primary',
-        category: 'entertainment',
+        event_service_id: getServiceId('entertainment'),
+        assignment_type: 'primary',
         quoted_cost: 1200,
-        status: 'confirmed',
+        confirmed: true,
       }
     );
 
@@ -427,29 +482,29 @@ export async function seedDemoData(
       {
         event_id: events[3].id,
         vendor_id: vendors.find((v) => v.name === 'Gourmet Catering Co.')?.id,
-        vendor_type: 'primary',
-        category: 'catering',
+        event_service_id: getServiceId('catering'),
+        assignment_type: 'primary',
         quoted_cost: 13500,
         actual_cost: 13500,
-        status: 'confirmed',
+        confirmed: true,
       },
       {
         event_id: events[3].id,
         vendor_id: vendors.find((v) => v.name === 'TechSound Audio Visual')?.id,
-        vendor_type: 'primary',
-        category: 'av',
+        event_service_id: getServiceId('av'),
+        assignment_type: 'primary',
         quoted_cost: 1500,
         actual_cost: 1650, // Slightly over
-        status: 'confirmed',
+        confirmed: true,
       },
       {
         event_id: events[3].id,
         vendor_id: vendors.find((v) => v.name === 'VIP Valet Services')?.id,
-        vendor_type: 'primary',
-        category: 'parking',
+        event_service_id: getServiceId('parking'),
+        assignment_type: 'primary',
         quoted_cost: 4500,
         actual_cost: 4350, // Slightly under
-        status: 'confirmed',
+        confirmed: true,
       },
     ];
     assignments.push(...completedEvent1Vendors);
@@ -459,34 +514,56 @@ export async function seedDemoData(
       {
         event_id: events[4].id,
         vendor_id: vendors.find((v) => v.name === 'Premium Feast Services')?.id,
-        vendor_type: 'primary',
-        category: 'catering',
+        event_service_id: getServiceId('catering'),
+        assignment_type: 'primary',
         quoted_cost: 11700,
         actual_cost: 11700,
-        status: 'confirmed',
+        confirmed: true,
       },
       {
         event_id: events[4].id,
         vendor_id: vendors.find((v) => v.name === 'ProAV Solutions')?.id,
-        vendor_type: 'primary',
-        category: 'av',
+        event_service_id: getServiceId('av'),
+        assignment_type: 'primary',
         quoted_cost: 2000,
         actual_cost: 2000,
-        status: 'confirmed',
+        confirmed: true,
       },
     ];
     assignments.push(...completedEvent2Vendors);
 
     const { data: eventVendors, error: assignmentsError } = await supabase
       .from('event_vendors')
-      .insert(assignments.filter((a) => a.vendor_id))
+      .insert(assignments.filter((a) => a.vendor_id && a.event_service_id))
       .select();
 
     if (assignmentsError) {
       console.error('Assignments error:', assignmentsError);
     }
 
-    // 5. Create Reviews for completed events
+    const requirementMap = new Map<string, { event_id: string; event_service_id: string; budget_amount: number }>();
+    assignments
+      .filter((a) => a.event_id && a.event_service_id)
+      .forEach((assignment) => {
+        const key = `${assignment.event_id}-${assignment.event_service_id}`;
+        const current = requirementMap.get(key);
+        const amount = assignment.quoted_cost || 0;
+        requirementMap.set(key, {
+          event_id: assignment.event_id,
+          event_service_id: assignment.event_service_id,
+          budget_amount: (current?.budget_amount || 0) + amount,
+        });
+      });
+
+    const { error: requirementsError } = await supabase
+      .from('event_service_requirements')
+      .insert(Array.from(requirementMap.values()));
+
+    if (requirementsError) {
+      console.error('Event service requirements error:', requirementsError);
+    }
+
+    // 7. Create Reviews for completed events
     const reviews = [];
 
     // Reviews for Corporate Gala vendors

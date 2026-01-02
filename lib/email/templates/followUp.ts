@@ -34,6 +34,10 @@ export function generateFollowUpSubject(data: FollowUpTemplateData): string {
  */
 export function generateFollowUpHTML(data: FollowUpTemplateData): string {
   const { event, vendor, venueName, venueContact, daysSinceInitial, customMessage, urgency } = data
+  const vendorServices = ((vendor as any).vendor_services || [])
+    .map((service: any) => service.event_services?.name)
+    .filter(Boolean)
+    .join(', ') || 'their services'
 
   const eventDate = formatDate(event.event_date)
   const daysUntilEvent = Math.ceil(
@@ -167,7 +171,7 @@ export function generateFollowUpHTML(data: FollowUpTemplateData): string {
 
       <div class="detail-row">
         <div class="detail-label">Service Needed:</div>
-        <div class="detail-value">${vendor.category}</div>
+        <div class="detail-value">${vendorServices}</div>
       </div>
 
       ${event.guest_count ? `
@@ -183,7 +187,7 @@ export function generateFollowUpHTML(data: FollowUpTemplateData): string {
     <p><strong>What we need from you:</strong></p>
     <ul>
       <li>Confirmation of your availability for ${eventDate}</li>
-      <li>Quote for ${vendor.category} services</li>
+      <li>Quote for ${vendorServices} services</li>
       <li>Any questions you may have about the event</li>
     </ul>
 
@@ -213,6 +217,10 @@ export function generateFollowUpHTML(data: FollowUpTemplateData): string {
  */
 export function generateFollowUpPlainText(data: FollowUpTemplateData): string {
   const { event, vendor, venueName, venueContact, daysSinceInitial, customMessage } = data
+  const vendorServices = ((vendor as any).vendor_services || [])
+    .map((service: any) => service.event_services?.name)
+    .filter(Boolean)
+    .join(', ') || 'their services'
 
   const eventDate = formatDate(event.event_date)
   const daysUntilEvent = Math.ceil(
@@ -234,13 +242,13 @@ QUICK RECAP:
 -----------
 Event: ${event.event_name}
 Date: ${eventDate} (${daysUntilEvent} days away)
-Service Needed: ${vendor.category}
+Service Needed: ${vendorServices}
 ${event.guest_count ? `Guest Count: ${event.guest_count}\n` : ''}
 We understand you may be busy, but we'd really appreciate hearing from you at your earliest convenience. Even if you're unavailable or unable to provide a quote at this time, please let us know so we can plan accordingly.
 
 WHAT WE NEED FROM YOU:
 - Confirmation of your availability for ${eventDate}
-- Quote for ${vendor.category} services
+- Quote for ${vendorServices} services
 - Any questions you may have about the event
 
 Please reply to this email or contact us directly. We're hoping to finalize our vendor lineup soon and would love to work with you!

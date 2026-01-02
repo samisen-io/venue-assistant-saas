@@ -148,11 +148,16 @@ export async function draftFollowUpEmail(input: {
       ? Math.floor((Date.now() - new Date(lastOutbound.sent_at!).getTime()) / (1000 * 60 * 60 * 24))
       : 0
 
+    const vendorServices = ((vendor as any).vendor_services || [])
+      .map((service: any) => service.event_services?.name)
+      .filter(Boolean)
+      .join(', ') || 'their services'
+
     const prompt = buildFollowUpPrompt({
       vendorName: vendor.name,
       eventName: event.event_name,
       eventDate: event.event_date,
-      category: vendor.category,
+      vendorServices,
       previousCommunications,
       daysWithoutResponse,
       reason,

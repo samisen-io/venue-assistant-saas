@@ -28,10 +28,18 @@ export function buildVendorOutreachPrompt(input: EmailDraftingInput): string {
 
 function buildInitialOutreachPrompt(input: EmailDraftingInput): string {
   const { vendor, event, venueName } = input
+  const vendorServices = ((vendor as any).vendor_services || [])
+    .map((service: any) => service.event_services?.name)
+    .filter(Boolean)
+    .join(', ') || 'their services'
+  const eventServices = ((event as any).event_service_requirements || [])
+    .map((service: any) => service.event_services?.name)
+    .filter(Boolean)
+    .join(', ')
 
   return `You are an AI assistant helping to draft a professional email to a vendor for an event.
 
-Write a professional, friendly, and concise email to reach out to ${vendor.name} (${vendor.category} vendor) for the following event:
+Write a professional, friendly, and concise email to reach out to ${vendor.name} (${vendorServices}) for the following event:
 
 **Event Details:**
 - Event Name: ${event.event_name}
@@ -41,6 +49,7 @@ Write a professional, friendly, and concise email to reach out to ${vendor.name}
 - Venue: ${venueName}
 - Guest Count: ${event.guest_count}
 - Budget: $${event.budget_total}
+${eventServices ? `- Services Needed: ${eventServices}` : ''}
 ${event.description ? `- Description: ${event.description}` : ''}
 ${event.special_requirements ? `- Special Requirements: ${event.special_requirements}` : ''}
 
@@ -64,7 +73,7 @@ ${event.special_requirements ? `- Special Requirements: ${event.special_requirem
 - Do NOT include a subject line (that will be added separately)
 - Do NOT include a signature block (that will be added automatically)
 - Focus on the body content only
-- Be specific about what services are needed based on the vendor category
+- Be specific about what services are needed based on the event services list
 - Express enthusiasm about potentially working together
 
 Write ONLY the email body text. Do not include "Subject:" or any email headers.`
@@ -132,11 +141,15 @@ Write the confirmation email body:`
 
 function buildInquiryPrompt(input: EmailDraftingInput): string {
   const { vendor, event } = input
+  const vendorServices = ((vendor as any).vendor_services || [])
+    .map((service: any) => service.event_services?.name)
+    .filter(Boolean)
+    .join(', ') || 'their services'
 
   return `You are an AI assistant helping to draft a brief inquiry email to a vendor.
 
 **Event:** ${event.event_name} on ${event.event_date}
-**Vendor:** ${vendor.name} (${vendor.category})
+**Vendor:** ${vendor.name} (${vendorServices})
 
 **Task:**
 Write a short, direct inquiry email that:

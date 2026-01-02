@@ -23,12 +23,21 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const eventId = searchParams.get('eventId')
     const status = searchParams.get('status')
-    const category = searchParams.get('category')
+    const serviceId = searchParams.get('serviceId')
 
     // Build query
     let query = (supabase as any).from('vendor_quotes').select(`
       *,
-      vendor:vendors(id, name, contact_email, category, reliability_score),
+      vendor:vendors(
+        id,
+        name,
+        contact_email,
+        reliability_score,
+        vendor_services (
+          event_service_id,
+          event_services (id, name, slug)
+        )
+      ),
       event:events(id, event_name, event_date, budget_total, venue:venues(owner_id)),
       communication:vendor_communications(id, subject, received_at)
     `)
@@ -52,14 +61,16 @@ export async function GET(request: NextRequest) {
       throw error
     }
 
-    // Filter by ownership and optionally by category
+    // Filter by ownership and optionally by service
     let ownedQuotes = quotes.filter(
       (quote: any) => quote.event?.venue?.owner_id === user.id
     )
 
-    if (category) {
+    if (serviceId) {
       ownedQuotes = ownedQuotes.filter(
-        (quote: any) => quote.vendor?.category === category
+        (quote: any) => quote.vendor?.vendor_services?.some(
+          (service: any) => service.event_service_id === serviceId
+        )
       )
     }
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Check, Star, TrendingUp, AlertCircle } from "lucide-react";
-import { Event, Vendor, VendorMatchResult, VendorCategory } from "@/lib/types";
+import { Event, Vendor, VendorMatchResult } from "@/lib/types";
 import { rankVendorsByMatch } from "@/lib/algorithms/vendorMatching";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,18 +30,24 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
                 if (!res.ok) throw new Error("Failed to fetch vendors");
                 const allVendors = await res.json();
 
-                // Extract services needed from budget_breakdown
-                const servicesNeeded = event.budget_breakdown
-                    ? (Object.keys(event.budget_breakdown) as VendorCategory[])
-                    : [];
+                const serviceRequirements = (event as any).event_service_requirements || [];
+                const requiredServiceIds = serviceRequirements.map((req: any) => req.event_service_id);
+
+                const vendorServicesById: Record<string, string[]> = {};
+                allVendors.forEach((vendor: any) => {
+                    vendorServicesById[vendor.id] = (vendor.vendor_services || []).map((service: any) => service.event_service_id);
+                });
 
                 // Filter vendors to only show those matching needed services
-                const filteredVendors = servicesNeeded.length > 0
-                    ? allVendors.filter((v: Vendor) => servicesNeeded.includes(v.category as VendorCategory))
+                const filteredVendors = requiredServiceIds.length > 0
+                    ? allVendors.filter((v: any) => {
+                        const services = vendorServicesById[v.id] || [];
+                        return services.some((serviceId) => requiredServiceIds.includes(serviceId));
+                    })
                     : allVendors; // Show all if no services specified
 
                 // Rank vendors based on event criteria
-                const ranked = rankVendorsByMatch(event, filteredVendors);
+                const ranked = rankVendorsByMatch(event, filteredVendors, requiredServiceIds, vendorServicesById);
                 setRankedVendors(ranked);
             } catch (error) {
                 console.error(error);
@@ -52,7 +58,7 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
         fetchVendors();
     }, [event]);
 
-    const addVendorToEvent = async (vendor: Vendor) => {
+    const addVendorToEvent = async (vendor: Vendor, eventServiceId: string) => {
         setIsSubmitting(vendor.id);
         try {
             const res = await fetch(`/api/events/${event.id}/vendors`, {
@@ -60,7 +66,7 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     vendor_id: vendor.id,
-                    category: vendor.category,
+                    event_service_id: eventServiceId,
                     quoted_cost: vendor.cost_per_unit
                 }),
             });
@@ -90,17 +96,15 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
     if (isLoading) return <Loading />;
 
     if (rankedVendors.length === 0) {
-        const servicesNeeded = event.budget_breakdown
-            ? (Object.keys(event.budget_breakdown) as VendorCategory[])
-            : [];
+        const serviceRequirements = (event as any).event_service_requirements || [];
 
         return (
             <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed">
                 <AlertCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900">No matching vendors</h3>
                 <p className="text-gray-500 max-w-sm mx-auto mt-2">
-                    {servicesNeeded.length > 0
-                        ? `We couldn't find any vendors matching the services you need (${servicesNeeded.join(', ')}). Add vendors in these categories to see matches.`
+                    {serviceRequirements.length > 0
+                        ? "We couldn't find any vendors matching the services you need. Add vendors with these services to see matches."
                         : "No services selected for this event. Edit the event to specify which vendor services you need."
                     }
                 </p>
@@ -123,6 +127,12 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
             <div className="grid gap-4">
                 {rankedVendors.slice(0, 5).map((result) => {
                     const { vendor, score, reasons } = result;
+                    const vendorServices = (vendor as any).vendor_services || [];
+                    const serviceRequirements = (event as any).event_service_requirements || [];
+                    const matchedServices = serviceRequirements.filter((req: any) =>
+                        vendorServices.some((service: any) => service.event_service_id === req.event_service_id)
+                    );
+                    const defaultServiceId = matchedServices[0]?.event_service_id || vendorServices[0]?.event_service_id;
                     return (
                         <Card key={vendor.id} className="overflow-hidden border-l-4" style={{ borderLeftColor: score > 80 ? '#10b981' : score > 50 ? '#f59e0b' : '#ef4444' }}>
                             <CardContent className="p-4">
@@ -130,7 +140,9 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
                                     <div className="flex-1 space-y-1">
                                         <div className="flex items-center gap-2">
                                             <h4 className="font-bold text-lg">{vendor.name}</h4>
-                                            <Badge variant="outline" className="capitalize">{vendor.category}</Badge>
+                                            {matchedServices[0]?.event_services?.name && (
+                                                <Badge variant="outline">{matchedServices[0].event_services.name}</Badge>
+                                            )}
                                         </div>
                                         <div className="flex flex-wrap gap-2 mt-2">
                                             {reasons.map((reason: string, idx: number) => (
@@ -140,6 +152,11 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
                                                 </span>
                                             ))}
                                         </div>
+                                        {matchedServices.length > 1 && (
+                                            <div className="text-xs text-gray-500 mt-2">
+                                                Also matches: {matchedServices.slice(1).map((service: any) => service.event_services?.name).filter(Boolean).join(", ")}
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex items-center gap-6">
@@ -157,8 +174,8 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
                                         </div>
 
                                         <Button
-                                            onClick={() => addVendorToEvent(vendor)}
-                                            disabled={isSubmitting === vendor.id}
+                                            onClick={() => addVendorToEvent(vendor, defaultServiceId)}
+                                            disabled={isSubmitting === vendor.id || !defaultServiceId}
                                             size="sm"
                                         >
                                             {isSubmitting === vendor.id ? "Adding..." : "Add to Event"}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,7 +23,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Vendor, Venue } from "@/lib/types";
+import { Checkbox } from "@/components/ui/checkbox";
+import { EventService, Vendor, Venue } from "@/lib/types";
 
 // Explicitly define the form values type to avoid 'unknown' issues
 const vendorFormWithVenueSchema = vendorFormSchema.extend({
@@ -40,12 +41,15 @@ interface VendorFormProps {
 }
 
 export function VendorForm({ initialData, venues, onSubmit, isLoading = false }: VendorFormProps) {
+    const [eventServices, setEventServices] = useState<EventService[]>([]);
+    const [isLoadingServices, setIsLoadingServices] = useState(true);
+
     const form = useForm<VendorFormValues>({
         resolver: zodResolver(vendorFormWithVenueSchema) as any, // Cast to any to bypass the complex type mismatch
         defaultValues: {
             venue_id: initialData?.venue_id || "",
             name: initialData?.name || "",
-            category: initialData?.category || "",
+            event_service_ids: (initialData as any)?.vendor_services?.map((service: any) => service.event_service_id) || [],
             contact_name: initialData?.contact_name || "",
             contact_email: initialData?.contact_email || "",
             contact_phone: initialData?.contact_phone || "",
@@ -55,6 +59,23 @@ export function VendorForm({ initialData, venues, onSubmit, isLoading = false }:
             notes: initialData?.notes || "",
         },
     });
+
+    useEffect(() => {
+        const fetchServices = async () => {
+            setIsLoadingServices(true);
+            try {
+                const res = await fetch("/api/event-services");
+                if (!res.ok) throw new Error("Failed to fetch services");
+                const data = await res.json();
+                setEventServices(data);
+            } catch (error) {
+                console.error(error);
+            } finally {
+                setIsLoadingServices(false);
+            }
+        };
+        fetchServices();
+    }, []);
 
     return (
         <Form {...form}>
@@ -101,26 +122,39 @@ export function VendorForm({ initialData, venues, onSubmit, isLoading = false }:
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <FormField
                         control={form.control}
-                        name="category"
+                        name="event_service_ids"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Category</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select category" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="catering">Catering</SelectItem>
-                                        <SelectItem value="av">A/V</SelectItem>
-                                        <SelectItem value="florals">Florals</SelectItem>
-                                        <SelectItem value="parking">Parking</SelectItem>
-                                        <SelectItem value="security">Security</SelectItem>
-                                        <SelectItem value="entertainment">Entertainment</SelectItem>
-                                        <SelectItem value="other">Other</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <FormLabel>Services Offered</FormLabel>
+                                {isLoadingServices ? (
+                                    <div className="text-sm text-muted-foreground">Loading services...</div>
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {eventServices.map((service) => {
+                                            const isChecked = field.value?.includes(service.id);
+                                            return (
+                                                <div key={service.id} className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id={`service-${service.id}`}
+                                                        checked={isChecked}
+                                                        onCheckedChange={(checked) => {
+                                                            const next = checked
+                                                                ? [...(field.value || []), service.id]
+                                                                : (field.value || []).filter((id) => id !== service.id);
+                                                            field.onChange(next);
+                                                        }}
+                                                    />
+                                                    <label
+                                                        htmlFor={`service-${service.id}`}
+                                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                                    >
+                                                        {service.name}
+                                                    </label>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                                 <FormMessage />
                             </FormItem>
                         )}

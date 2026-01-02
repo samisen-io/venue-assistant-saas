@@ -29,8 +29,18 @@ export async function POST(
       .from('vendor_quotes')
       .select(`
         *,
-        vendor:vendors(id, name, category),
-        event:events(id, venue:venues(owner_id))
+        vendor:vendors(
+          id,
+          name,
+          vendor_services (
+            event_service_id
+          )
+        ),
+        event:events(
+          id,
+          venue:venues(owner_id),
+          event_service_requirements (event_service_id)
+        )
       `)
       .eq('id', quoteId)
       .single()
@@ -73,7 +83,19 @@ export async function POST(
       .select('id')
       .eq('event_id', quote.event_id)
       .eq('vendor_id', quote.vendor_id)
+      .eq('event_service_id', eventServiceId)
       .single()
+
+    const requiredServices = quote.event?.event_service_requirements || []
+    const vendorServices = quote.vendor?.vendor_services || []
+    const overlappingService = requiredServices.find((req: any) =>
+      vendorServices.some((service: any) => service.event_service_id === req.event_service_id)
+    )
+    const eventServiceId = overlappingService?.event_service_id || vendorServices[0]?.event_service_id
+
+    if (!eventServiceId) {
+      return NextResponse.json({ error: 'No matching service found for this vendor' }, { status: 400 })
+    }
 
     let eventVendorId = existingAssignment?.id
 
@@ -84,7 +106,7 @@ export async function POST(
         .insert({
           event_id: quote.event_id,
           vendor_id: quote.vendor_id,
-          category: quote.vendor.category,
+          event_service_id: eventServiceId,
           assignment_type: 'primary',
           quoted_cost: quote.total_cost,
           confirmed: true,

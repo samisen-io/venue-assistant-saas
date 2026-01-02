@@ -6,7 +6,7 @@ import { EventForm } from "@/components/events/EventForm";
 import NaturalLanguageEventForm from "@/components/events/NaturalLanguageEventForm";
 import EventExtractionPreview from "@/components/events/EventExtractionPreview";
 import { useToast } from "@/hooks/use-toast";
-import { Space } from "@/lib/types";
+import { EventService, Space } from "@/lib/types";
 import { Loading } from "@/components/shared/Loading";
 import { ErrorMessage } from "@/components/shared/ErrorMessage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,6 +16,7 @@ export default function NewEventPage() {
     const router = useRouter();
     const { toast } = useToast();
     const [spaces, setSpaces] = useState<Space[]>([]);
+    const [eventServices, setEventServices] = useState<EventService[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
@@ -30,6 +31,13 @@ export default function NewEventPage() {
                 if (!spacesRes.ok) throw new Error("Failed to fetch spaces");
                 const spacesData = await spacesRes.json();
                 setSpaces(spacesData);
+
+                // Fetch event services
+                const servicesRes = await fetch("/api/event-services");
+                if (servicesRes.ok) {
+                    const servicesData = await servicesRes.json();
+                    setEventServices(servicesData);
+                }
 
                 // Check if NL event creation is enabled
                 const nlRes = await fetch("/api/ai/extract-event");
@@ -51,6 +59,15 @@ export default function NewEventPage() {
     };
 
     const handleConfirmExtraction = async (editedData: any) => {
+        const serviceIdBySlug = new Map(eventServices.map((service) => [service.slug, service.id]));
+        const event_service_requirements = (editedData.needed_categories || [])
+            .map((slug: string) => {
+                const serviceId = serviceIdBySlug.get(slug);
+                if (!serviceId) return null;
+                return { event_service_id: serviceId, budget_amount: 0 };
+            })
+            .filter(Boolean);
+
         // Convert extracted data to event form values
         const eventData = {
             event_name: editedData.event_name,
@@ -62,6 +79,7 @@ export default function NewEventPage() {
             description: editedData.description || '',
             special_requirements: editedData.special_requirements || '',
             space_id: spaces[0]?.id, // Default to first space, user can change in form
+            event_service_requirements,
         };
 
         await handleSubmit(eventData);

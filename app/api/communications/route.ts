@@ -28,7 +28,15 @@ export async function GET(request: NextRequest) {
     // Build query
     let query = (supabase as any).from('vendor_communications').select(`
       *,
-      vendor:vendors(id, name, contact_email, category),
+      vendor:vendors(
+        id,
+        name,
+        contact_email,
+        vendor_services (
+          event_service_id,
+          event_services (id, name, slug)
+        )
+      ),
       event:events(id, event_name, event_date, venue:venues(owner_id))
     `)
 

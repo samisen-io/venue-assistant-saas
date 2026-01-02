@@ -33,7 +33,6 @@ CREATE TABLE vendors (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   venue_id UUID REFERENCES venues(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
-  category TEXT NOT NULL, -- catering, av, florals, parking, security, entertainment
   contact_name TEXT,
   contact_email TEXT NOT NULL,
   contact_phone TEXT,
@@ -52,6 +51,27 @@ CREATE TABLE vendors (
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Event Services (catalog per venue)
+CREATE TABLE event_services (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  venue_id UUID REFERENCES venues(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  description TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(venue_id, slug)
+);
+
+-- Vendor Services (many-to-many)
+CREATE TABLE vendor_services (
+  vendor_id UUID REFERENCES vendors(id) ON DELETE CASCADE NOT NULL,
+  event_service_id UUID REFERENCES event_services(id) ON DELETE CASCADE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  PRIMARY KEY (vendor_id, event_service_id)
 );
 
 -- Events
@@ -82,13 +102,25 @@ CREATE TABLE events (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Event Service Requirements (many-to-many with budget)
+CREATE TABLE event_service_requirements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id UUID REFERENCES events(id) ON DELETE CASCADE NOT NULL,
+  event_service_id UUID REFERENCES event_services(id) ON DELETE CASCADE NOT NULL,
+  budget_amount DECIMAL(10,2),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(event_id, event_service_id)
+);
+
 -- Event-Vendor Assignments (many-to-many)
 CREATE TABLE event_vendors (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id UUID REFERENCES events(id) ON DELETE CASCADE NOT NULL,
   vendor_id UUID REFERENCES vendors(id) ON DELETE CASCADE NOT NULL,
   
-  category TEXT NOT NULL, -- catering, av, etc.
+  event_service_id UUID REFERENCES event_services(id) ON DELETE CASCADE NOT NULL,
   assignment_type TEXT DEFAULT 'primary', -- primary, backup
   
   -- Costs for this specific assignment
@@ -101,7 +133,7 @@ CREATE TABLE event_vendors (
   
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   
-  UNIQUE(event_id, vendor_id)
+  UNIQUE(event_id, vendor_id, event_service_id)
 );
 
 -- Vendor Performance Reviews (post-event)
@@ -127,17 +159,25 @@ CREATE TABLE vendor_reviews (
 -- Indexes for performance
 CREATE INDEX idx_venues_owner ON venues(owner_id);
 CREATE INDEX idx_vendors_venue ON vendors(venue_id);
-CREATE INDEX idx_vendors_category ON vendors(venue_id, category);
+CREATE INDEX idx_event_services_venue ON event_services(venue_id);
+CREATE INDEX idx_vendor_services_vendor ON vendor_services(vendor_id);
+CREATE INDEX idx_vendor_services_service ON vendor_services(event_service_id);
 CREATE INDEX idx_events_venue ON events(venue_id);
 CREATE INDEX idx_events_date ON events(event_date);
+CREATE INDEX idx_event_service_requirements_event ON event_service_requirements(event_id);
+CREATE INDEX idx_event_service_requirements_service ON event_service_requirements(event_service_id);
 CREATE INDEX idx_event_vendors_event ON event_vendors(event_id);
 CREATE INDEX idx_event_vendors_vendor ON event_vendors(vendor_id);
+CREATE INDEX idx_event_vendors_service ON event_vendors(event_service_id);
 
 -- Row Level Security (RLS) Policies
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE venues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vendors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE event_services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vendor_services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE event_service_requirements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_vendors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vendor_reviews ENABLE ROW LEVEL SECURITY;
 
@@ -191,6 +231,75 @@ CREATE POLICY "Users can delete vendors for own venues" ON vendors
     )
   );
 
+-- Event Services: Users can manage services for their venues
+CREATE POLICY "Users can view event_services for own venues" ON event_services
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM venues
+      WHERE venues.id = event_services.venue_id
+      AND venues.owner_id = auth.uid()
+    )
+  );
+CREATE POLICY "Users can insert event_services for own venues" ON event_services
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM venues
+      WHERE venues.id = event_services.venue_id
+      AND venues.owner_id = auth.uid()
+    )
+  );
+CREATE POLICY "Users can update event_services for own venues" ON event_services
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM venues
+      WHERE venues.id = event_services.venue_id
+      AND venues.owner_id = auth.uid()
+    )
+  );
+CREATE POLICY "Users can delete event_services for own venues" ON event_services
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM venues
+      WHERE venues.id = event_services.venue_id
+      AND venues.owner_id = auth.uid()
+    )
+  );
+
+-- Vendor Services: Users can manage vendor services for their venues
+CREATE POLICY "Users can view vendor_services for own venues" ON vendor_services
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM vendors
+      JOIN venues ON venues.id = vendors.venue_id
+      WHERE vendors.id = vendor_services.vendor_id
+      AND venues.owner_id = auth.uid()
+    )
+  );
+CREATE POLICY "Users can insert vendor_services for own venues" ON vendor_services
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM vendors
+      JOIN venues ON venues.id = vendors.venue_id
+      WHERE vendors.id = vendor_services.vendor_id
+      AND venues.owner_id = auth.uid()
+    )
+    AND EXISTS (
+      SELECT 1 FROM event_services
+      JOIN venues ON venues.id = event_services.venue_id
+      WHERE event_services.id = vendor_services.event_service_id
+      AND venues.owner_id = auth.uid()
+    )
+  );
+CREATE POLICY "Users can delete vendor_services for own venues" ON vendor_services
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM vendors
+      JOIN venues ON venues.id = vendors.venue_id
+      WHERE vendors.id = vendor_services.vendor_id
+      AND venues.owner_id = auth.uid()
+    )
+  );
+
 -- Events: Users can only access events for their venues
 CREATE POLICY "Users can view events for own venues" ON events
   FOR SELECT USING (
@@ -221,6 +330,44 @@ CREATE POLICY "Users can delete events for own venues" ON events
     EXISTS (
       SELECT 1 FROM venues 
       WHERE venues.id = events.venue_id 
+      AND venues.owner_id = auth.uid()
+    )
+  );
+
+-- Event Service Requirements: Users can manage services for their events
+CREATE POLICY "Users can view event_service_requirements for own venues" ON event_service_requirements
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM events
+      JOIN venues ON venues.id = events.venue_id
+      WHERE events.id = event_service_requirements.event_id
+      AND venues.owner_id = auth.uid()
+    )
+  );
+CREATE POLICY "Users can insert event_service_requirements for own venues" ON event_service_requirements
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM events
+      JOIN venues ON venues.id = events.venue_id
+      WHERE events.id = event_service_requirements.event_id
+      AND venues.owner_id = auth.uid()
+    )
+  );
+CREATE POLICY "Users can update event_service_requirements for own venues" ON event_service_requirements
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM events
+      JOIN venues ON venues.id = events.venue_id
+      WHERE events.id = event_service_requirements.event_id
+      AND venues.owner_id = auth.uid()
+    )
+  );
+CREATE POLICY "Users can delete event_service_requirements for own venues" ON event_service_requirements
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM events
+      JOIN venues ON venues.id = events.venue_id
+      WHERE events.id = event_service_requirements.event_id
       AND venues.owner_id = auth.uid()
     )
   );

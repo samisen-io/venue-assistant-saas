@@ -2,16 +2,18 @@ import { Vendor, Event, VendorMatchResult } from '../types'
 
 export function calculateMatchScore(
     vendor: Vendor,
-    event: Event
+    event: Event,
+    requiredServiceIds: string[] = [],
+    vendorServiceIds: string[] = []
 ): { score: number; reasons: string[] } {
     let score = 0;
     const reasons: string[] = [];
 
-    // Reliability factor (40% weight)
+    // Reliability factor (30% weight)
     const reliability = vendor.reliability_score || 0;
     if (reliability >= 90) reasons.push("Top-rated reliability");
 
-    // Cost fit (30% weight)
+    // Cost fit (25% weight)
     let costFit = 0;
     if (vendor.cost_per_unit && event.budget_total) {
         const estimatedCost = vendor.cost_per_unit * event.guest_count;
@@ -37,11 +39,24 @@ export function calculateMatchScore(
     const onTime = vendor.on_time_percentage || 50;
     if (onTime >= 95) reasons.push("Excellent punctuality");
 
+    // Service overlap (15% weight)
+    let serviceOverlapScore = 0;
+    if (requiredServiceIds.length > 0) {
+        const overlap = requiredServiceIds.filter(id => vendorServiceIds.includes(id));
+        serviceOverlapScore = Math.round((overlap.length / requiredServiceIds.length) * 100);
+        if (overlap.length === requiredServiceIds.length) {
+            reasons.push("Covers all required services");
+        } else if (overlap.length > 0) {
+            reasons.push(`Matches ${overlap.length} of ${requiredServiceIds.length} services`);
+        }
+    }
+
     score = Math.round(
-        (reliability * 0.4) +
-        (costFit * 0.3) +
+        (reliability * 0.3) +
+        (costFit * 0.25) +
         (experience * 0.2) +
-        (onTime * 0.1)
+        (onTime * 0.1) +
+        (serviceOverlapScore * 0.15)
     );
 
     return { score, reasons };
@@ -49,11 +64,14 @@ export function calculateMatchScore(
 
 export function rankVendorsByMatch(
     event: Event,
-    vendors: Vendor[]
+    vendors: Vendor[],
+    requiredServiceIds: string[] = [],
+    vendorServicesById: Record<string, string[]> = {}
 ): VendorMatchResult[] {
     return vendors
         .map(vendor => {
-            const { score, reasons } = calculateMatchScore(vendor, event);
+            const vendorServiceIds = vendorServicesById[vendor.id] || [];
+            const { score, reasons } = calculateMatchScore(vendor, event, requiredServiceIds, vendorServiceIds);
             return {
                 vendor,
                 score,

@@ -26,6 +26,10 @@ export function generateOutreachSubject(data: VendorOutreachTemplateData): strin
  */
 export function generateOutreachHTML(data: VendorOutreachTemplateData): string {
   const { event, vendor, venueName, venueContact, customMessage } = data
+  const vendorServices = ((vendor as any).vendor_services || [])
+    .map((service: any) => service.event_services?.name)
+    .filter(Boolean)
+    .join(', ') || 'their services'
 
   const eventDate = formatDate(event.event_date)
   const guestCount = event.guest_count || 'TBD'
@@ -115,7 +119,7 @@ export function generateOutreachHTML(data: VendorOutreachTemplateData): string {
   <div class="content">
     <p>Hello ${vendor.contact_name || vendor.name} Team,</p>
 
-    <p>We're reaching out on behalf of <strong>${venueName}</strong> regarding an upcoming event that matches your expertise in <strong>${vendor.category}</strong> services.</p>
+    <p>We're reaching out on behalf of <strong>${venueName}</strong> regarding an upcoming event that matches your expertise in <strong>${vendorServices}</strong>.</p>
 
     ${customMessage ? `<p>${customMessage}</p>` : ''}
 
@@ -169,7 +173,7 @@ export function generateOutreachHTML(data: VendorOutreachTemplateData): string {
 
     <p><strong>We would appreciate a quote that includes:</strong></p>
     <ul>
-      <li>Detailed pricing breakdown for your ${vendor.category} services</li>
+      <li>Detailed pricing breakdown for your ${vendorServices}</li>
       <li>Package options (if available)</li>
       <li>Availability confirmation for ${eventDate}</li>
       <li>Terms and conditions</li>
@@ -202,6 +206,10 @@ export function generateOutreachHTML(data: VendorOutreachTemplateData): string {
  */
 export function generateOutreachPlainText(data: VendorOutreachTemplateData): string {
   const { event, vendor, venueName, venueContact, customMessage } = data
+  const vendorServices = ((vendor as any).vendor_services || [])
+    .map((service: any) => service.event_services?.name)
+    .filter(Boolean)
+    .join(', ') || 'their services'
 
   const eventDate = formatDate(event.event_date)
   const guestCount = event.guest_count || 'TBD'
@@ -212,7 +220,7 @@ QUOTE REQUEST from ${venueName}
 
 Hello ${vendor.contact_name || vendor.name} Team,
 
-We're reaching out on behalf of ${venueName} regarding an upcoming event that matches your expertise in ${vendor.category} services.
+We're reaching out on behalf of ${venueName} regarding an upcoming event that matches your expertise in ${vendorServices}.
 
 ${customMessage ? customMessage + '\n' : ''}
 EVENT DETAILS:
@@ -225,7 +233,7 @@ Venue: ${venueName}
 ${event.special_requirements ? `Special Requirements: ${event.special_requirements}\n` : ''}Budget Range: ${budget}
 
 WE WOULD APPRECIATE A QUOTE THAT INCLUDES:
-- Detailed pricing breakdown for your ${vendor.category} services
+- Detailed pricing breakdown for your ${vendorServices}
 - Package options (if available)
 - Availability confirmation for ${eventDate}
 - Terms and conditions

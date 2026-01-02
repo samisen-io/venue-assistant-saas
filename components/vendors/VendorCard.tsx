@@ -24,9 +24,18 @@ export function VendorCard({ vendor }: VendorCardProps) {
                     <div className="flex items-start justify-between">
                         <div className="space-y-1">
                             <CardTitle className="text-xl hover:text-blue-600 transition-colors">{vendor.name}</CardTitle>
-                            <Badge variant="secondary" className="capitalize">
-                                {vendor.category}
-                            </Badge>
+                            <div className="flex flex-wrap gap-1">
+                                {((vendor as any).vendor_services || []).slice(0, 2).map((service: any) => (
+                                    <Badge key={service.event_service_id} variant="secondary">
+                                        {service.event_services?.name || "Service"}
+                                    </Badge>
+                                ))}
+                                {((vendor as any).vendor_services || []).length > 2 && (
+                                    <Badge variant="secondary">
+                                        +{((vendor as any).vendor_services || []).length - 2} more
+                                    </Badge>
+                                )}
+                            </div>
                         </div>
                         <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded text-yellow-700 font-medium text-sm border border-yellow-100">
                             <Star className="h-4 w-4 fill-current" />

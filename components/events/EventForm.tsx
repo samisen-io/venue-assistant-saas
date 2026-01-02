@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -25,7 +25,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Event, Space, VendorCategory } from "@/lib/types";
+import { Event, EventService, Space } from "@/lib/types";
 import { X } from "lucide-react";
 
 // Schema extension to include space_id which isn't in base event schema but needed for creation
@@ -40,29 +40,20 @@ interface EventFormProps {
     isLoading?: boolean;
 }
 
-// Service category options with display names
-const SERVICE_CATEGORIES: { value: VendorCategory; label: string }[] = [
-    { value: "catering", label: "Catering" },
-    { value: "av", label: "AV Equipment" },
-    { value: "florals", label: "Florals & Decor" },
-    { value: "photography", label: "Photography" },
-    { value: "entertainment", label: "Entertainment" },
-    { value: "parking", label: "Parking" },
-    { value: "security", label: "Security" },
-    { value: "other", label: "Other Services" },
-];
-
 type ServiceBudget = {
-    category: VendorCategory;
+    event_service_id: string;
+    name: string;
     amount: number;
 };
 
 export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: EventFormProps) {
-    // Parse existing budget_breakdown into service budgets
-    const initialServiceBudgets: ServiceBudget[] = initialData?.budget_breakdown
-        ? Object.entries(initialData.budget_breakdown as Record<string, number>).map(([category, amount]) => ({
-            category: category as VendorCategory,
-            amount,
+    const [eventServices, setEventServices] = useState<EventService[]>([]);
+    const [isLoadingServices, setIsLoadingServices] = useState(true);
+    const initialServiceBudgets: ServiceBudget[] = (initialData as any)?.event_service_requirements
+        ? (initialData as any).event_service_requirements.map((requirement: any) => ({
+            event_service_id: requirement.event_service_id,
+            name: requirement.event_services?.name || "Service",
+            amount: requirement.budget_amount || 0,
         }))
         : [];
 
@@ -94,39 +85,54 @@ export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: 
         },
     });
 
+    useEffect(() => {
+        const fetchServices = async () => {
+            setIsLoadingServices(true);
+            try {
+                const res = await fetch("/api/event-services");
+                if (!res.ok) throw new Error("Failed to fetch services");
+                const data = await res.json();
+                setEventServices(data);
+            } catch (error) {
+                console.error(error);
+            } finally {
+                setIsLoadingServices(false);
+            }
+        };
+        fetchServices();
+    }, []);
+
     // Helper functions for service management
-    const toggleService = (category: VendorCategory) => {
-        const exists = serviceBudgets.find(s => s.category === category);
+    const toggleService = (service: EventService) => {
+        const exists = serviceBudgets.find(s => s.event_service_id === service.id);
         if (exists) {
-            setServiceBudgets(serviceBudgets.filter(s => s.category !== category));
+            setServiceBudgets(serviceBudgets.filter(s => s.event_service_id !== service.id));
         } else {
-            setServiceBudgets([...serviceBudgets, { category, amount: 0 }]);
+            setServiceBudgets([...serviceBudgets, { event_service_id: service.id, name: service.name, amount: 0 }]);
         }
     };
 
-    const updateServiceBudget = (category: VendorCategory, amount: number) => {
+    const updateServiceBudget = (eventServiceId: string, amount: number) => {
         setServiceBudgets(serviceBudgets.map(s =>
-            s.category === category ? { ...s, amount } : s
+            s.event_service_id === eventServiceId ? { ...s, amount } : s
         ));
     };
 
-    const removeService = (category: VendorCategory) => {
-        setServiceBudgets(serviceBudgets.filter(s => s.category !== category));
+    const removeService = (eventServiceId: string) => {
+        setServiceBudgets(serviceBudgets.filter(s => s.event_service_id !== eventServiceId));
     };
 
     // Calculate total allocated budget
     const totalAllocated = serviceBudgets.reduce((sum, s) => sum + s.amount, 0);
 
-    // Wrap onSubmit to include budget_breakdown
+    // Wrap onSubmit to include event_service_requirements
     const handleFormSubmit = async (values: any) => {
-        const budget_breakdown = serviceBudgets.reduce((acc, s) => {
-            acc[s.category] = s.amount;
-            return acc;
-        }, {} as Record<string, number>);
-
         await onSubmit({
             ...values,
-            budget_breakdown,
+            event_service_requirements: serviceBudgets.map((service) => ({
+                event_service_id: service.event_service_id,
+                budget_amount: service.amount,
+            })),
         });
     };
 
@@ -266,37 +272,40 @@ export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: 
                     </div>
 
                     {/* Service Selection Checkboxes */}
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-                        {SERVICE_CATEGORIES.map((service) => {
-                            const isSelected = serviceBudgets.some(s => s.category === service.value);
-                            return (
-                                <div key={service.value} className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id={service.value}
-                                        checked={isSelected}
-                                        onCheckedChange={() => toggleService(service.value)}
-                                    />
-                                    <label
-                                        htmlFor={service.value}
-                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                    >
-                                        {service.label}
-                                    </label>
-                                </div>
-                            );
-                        })}
-                    </div>
+                    {isLoadingServices ? (
+                        <div className="text-sm text-muted-foreground">Loading services...</div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                            {eventServices.map((service) => {
+                                const isSelected = serviceBudgets.some(s => s.event_service_id === service.id);
+                                return (
+                                    <div key={service.id} className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id={service.id}
+                                            checked={isSelected}
+                                            onCheckedChange={() => toggleService(service)}
+                                        />
+                                        <label
+                                            htmlFor={service.id}
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                        >
+                                            {service.name}
+                                        </label>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
 
                     {/* Budget Allocation for Selected Services */}
                     {serviceBudgets.length > 0 && (
                         <div className="space-y-3 mt-4">
                             <div className="text-sm font-medium">Budget Allocation</div>
                             {serviceBudgets.map((service) => {
-                                const serviceLabel = SERVICE_CATEGORIES.find(s => s.category === service.category)?.label || service.category;
                                 return (
-                                    <div key={service.category} className="flex items-center gap-3">
+                                    <div key={service.event_service_id} className="flex items-center gap-3">
                                         <div className="flex-1 flex items-center gap-2">
-                                            <label className="text-sm min-w-[120px]">{serviceLabel}</label>
+                                            <label className="text-sm min-w-[120px]">{service.name}</label>
                                             <div className="relative flex-1">
                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
                                                 <Input
@@ -304,7 +313,7 @@ export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: 
                                                     step="0.01"
                                                     min="0"
                                                     value={service.amount || ""}
-                                                    onChange={(e) => updateServiceBudget(service.category, parseFloat(e.target.value) || 0)}
+                                                    onChange={(e) => updateServiceBudget(service.event_service_id, parseFloat(e.target.value) || 0)}
                                                     className="pl-7"
                                                     placeholder="0.00"
                                                 />
@@ -314,7 +323,7 @@ export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: 
                                             type="button"
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => removeService(service.category)}
+                                            onClick={() => removeService(service.event_service_id)}
                                             className="h-9 w-9 p-0"
                                         >
                                             <X className="h-4 w-4" />

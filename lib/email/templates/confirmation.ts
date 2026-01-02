@@ -25,7 +25,11 @@ export interface ConfirmationTemplateData {
  */
 export function generateConfirmationSubject(data: ConfirmationTemplateData): string {
   const { event, vendor } = data
-  return `Confirmed: ${vendor.category} Services for ${event.event_name}`
+  const vendorServices = ((vendor as any).vendor_services || [])
+    .map((service: any) => service.event_services?.name)
+    .filter(Boolean)
+    .join(', ') || 'Services'
+  return `Confirmed: ${vendorServices} for ${event.event_name}`
 }
 
 /**
@@ -33,6 +37,10 @@ export function generateConfirmationSubject(data: ConfirmationTemplateData): str
  */
 export function generateConfirmationHTML(data: ConfirmationTemplateData): string {
   const { event, vendor, venueName, venueContact, quotedCost, quoteDetails, nextSteps, customMessage } = data
+  const vendorServices = ((vendor as any).vendor_services || [])
+    .map((service: any) => service.event_services?.name)
+    .filter(Boolean)
+    .join(', ') || 'their services'
 
   const eventDate = formatDate(event.event_date)
 
@@ -160,7 +168,7 @@ export function generateConfirmationHTML(data: ConfirmationTemplateData): string
     <p>Hello ${vendor.contact_name || vendor.name} Team,</p>
 
     <div class="success-box">
-      <strong>🎉 Great news!</strong> We're excited to confirm that we've selected your ${vendor.category} services for our upcoming event.
+      <strong>🎉 Great news!</strong> We're excited to confirm that we've selected your ${vendorServices} services for our upcoming event.
     </div>
 
     <p>Thank you for your quote and availability. We're looking forward to working with you to make this event a success!</p>
@@ -206,7 +214,7 @@ export function generateConfirmationHTML(data: ConfirmationTemplateData): string
 
       <div class="detail-row">
         <div class="detail-label">Service Category:</div>
-        <div class="detail-value">${vendor.category}</div>
+        <div class="detail-value">${vendorServices}</div>
       </div>
 
       ${quotedCost ? `
@@ -293,6 +301,10 @@ export function generateConfirmationHTML(data: ConfirmationTemplateData): string
  */
 export function generateConfirmationPlainText(data: ConfirmationTemplateData): string {
   const { event, vendor, venueName, venueContact, quotedCost, quoteDetails, nextSteps, customMessage } = data
+  const vendorServices = ((vendor as any).vendor_services || [])
+    .map((service: any) => service.event_services?.name)
+    .filter(Boolean)
+    .join(', ') || 'their services'
 
   const eventDate = formatDate(event.event_date)
 
@@ -301,7 +313,7 @@ export function generateConfirmationPlainText(data: ConfirmationTemplateData): s
 
 Hello ${vendor.contact_name || vendor.name} Team,
 
-🎉 Great news! We're excited to confirm that we've selected your ${vendor.category} services for our upcoming event.
+🎉 Great news! We're excited to confirm that we've selected your ${vendorServices} services for our upcoming event.
 
 Thank you for your quote and availability. We're looking forward to working with you to make this event a success!
 
@@ -312,7 +324,7 @@ Event Name: ${event.event_name}
 Event Type: ${event.event_type}
 Date: ${eventDate}
 ${event.event_time ? `Time: ${event.event_time}\n` : ''}${event.guest_count ? `Expected Guests: ${event.guest_count}\n` : ''}Venue: ${venueName}
-Service Category: ${vendor.category}
+Service Category: ${vendorServices}
 ${quotedCost ? `Quoted Cost: ${formatCurrency(quotedCost)}\n` : ''}
 ${quotedCost && quoteDetails ? `
 QUOTE SUMMARY:

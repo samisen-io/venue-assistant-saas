@@ -16,13 +16,17 @@ export async function GET(request: Request) {
 
         const { searchParams } = new URL(request.url)
         const venueId = searchParams.get('venueId')
-        const category = searchParams.get('category')
+        const serviceId = searchParams.get('serviceId')
 
         let query = supabase
             .from('vendors')
             .select(`
                 *,
-                venues (name)
+                venues (name),
+                vendor_services (
+                    event_service_id,
+                    event_services (id, name, slug)
+                )
             `)
             .eq('is_active', true)
             .order('name', { ascending: true })
@@ -31,8 +35,8 @@ export async function GET(request: Request) {
             query = query.eq('venue_id', venueId)
         }
 
-        if (category) {
-            query = query.eq('category', category)
+        if (serviceId) {
+            query = query.eq('vendor_services.event_service_id', serviceId)
         }
 
         const { data: vendors, error } = await query
@@ -74,8 +78,10 @@ export async function POST(request: Request) {
 
         const body = vendorFormSchema.parse(vendorData)
 
+        const { event_service_ids, ...vendorFields } = body
+
         const insertData: VendorInsert = {
-            ...body,
+            ...vendorFields,
             venue_id: venue.id, // Use user's venue
             is_active: true,
             total_events: 0,
@@ -90,6 +96,17 @@ export async function POST(request: Request) {
             .single()
 
         if (error) throw error
+
+        const vendorServices = event_service_ids.map((eventServiceId: string) => ({
+            vendor_id: vendor.id,
+            event_service_id: eventServiceId
+        }))
+
+        const { error: vendorServicesError } = await supabase
+            .from('vendor_services')
+            .insert(vendorServices)
+
+        if (vendorServicesError) throw vendorServicesError
 
         return NextResponse.json(vendor)
     } catch (error) {

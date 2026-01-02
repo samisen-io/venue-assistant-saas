@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { CalendarDays, DollarSign, Edit, MapPin, Users, Settings, Send, CheckCircle2 } from "lucide-react";
 
-import { Event, Venue, EventVendor, VendorCategory } from "@/lib/types";
+import { Event, EventServiceRequirement, EventVendor, Venue } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,7 @@ import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 type EventDetailData = Event & {
     venues: Venue;
     event_vendors: EventVendor[];
+    event_service_requirements?: EventServiceRequirement[];
 };
 
 export default function EventDetailsPage({ params }: { params: Promise<{ eventId: string }> }) {
@@ -97,28 +98,11 @@ export default function EventDetailsPage({ params }: { params: Promise<{ eventId
         }
     };
 
-    const getCategoryLabel = (category: VendorCategory): string => {
-        const labels: Record<VendorCategory, string> = {
-            catering: "Catering",
-            av: "AV Equipment",
-            florals: "Florals & Decor",
-            photography: "Photography",
-            entertainment: "Entertainment",
-            parking: "Parking",
-            security: "Security",
-            other: "Other Services",
-        };
-        return labels[category] || category;
-    };
-
-    // Extract services needed from budget_breakdown
-    const servicesNeeded = event?.budget_breakdown
-        ? Object.keys(event.budget_breakdown as Record<string, number>) as VendorCategory[]
-        : [];
+    const servicesNeeded = event?.event_service_requirements || [];
 
     // Check which services have vendors assigned
     const assignedCategories = new Set(
-        event?.event_vendors?.map(ev => ev.category) || []
+        event?.event_vendors?.map(ev => ev.event_service_id) || []
     );
 
     if (isLoading) return <Loading />;
@@ -235,12 +219,12 @@ export default function EventDetailsPage({ params }: { params: Promise<{ eventId
                             </CardHeader>
                             <CardContent>
                                 <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                                    {servicesNeeded.map((category) => {
-                                        const isAssigned = assignedCategories.has(category);
-                                        const budgetAmount = (event.budget_breakdown as Record<string, number>)?.[category] || 0;
+                    {servicesNeeded.map((service) => {
+                                        const isAssigned = assignedCategories.has(service.event_service_id);
+                                        const budgetAmount = service.budget_amount || 0;
                                         return (
                                             <div
-                                                key={category}
+                                                key={service.event_service_id}
                                                 className={`flex items-center justify-between p-3 rounded-lg border ${
                                                     isAssigned ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
                                                 }`}
@@ -250,7 +234,7 @@ export default function EventDetailsPage({ params }: { params: Promise<{ eventId
                                                         <CheckCircle2 className="h-4 w-4 text-green-600" />
                                                     )}
                                                     <div>
-                                                        <div className="text-sm font-medium">{getCategoryLabel(category)}</div>
+                                                        <div className="text-sm font-medium">{(service as any).event_services?.name || "Service"}</div>
                                                         <div className="text-xs text-gray-500">{formatCurrency(budgetAmount)}</div>
                                                     </div>
                                                 </div>

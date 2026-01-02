@@ -14,20 +14,10 @@ export async function POST(
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
-        const { vendor_id, category, quoted_cost } = await request.json()
+        const { vendor_id, event_service_id, quoted_cost } = await request.json()
 
-        if (!vendor_id) {
-            return new NextResponse('Vendor ID is required', { status: 400 })
-        }
-
-        let finalCategory = category;
-        if (!finalCategory) {
-            const { data: vendor } = await supabase
-                .from('vendors')
-                .select('category')
-                .eq('id', vendor_id)
-                .single();
-            finalCategory = vendor?.category || 'other';
+        if (!vendor_id || !event_service_id) {
+            return new NextResponse('Vendor ID and event service are required', { status: 400 })
         }
 
         const { data: association, error } = await supabase
@@ -35,7 +25,7 @@ export async function POST(
             .insert({
                 event_id: eventId,
                 vendor_id: vendor_id,
-                category: finalCategory,
+                event_service_id: event_service_id,
                 quoted_cost: quoted_cost || 0,
                 confirmed: false
             } as any)
@@ -73,7 +63,8 @@ export async function GET(
             .from('event_vendors')
             .select(`
         *,
-        vendors (*)
+        vendors (*),
+        event_services (*)
       `)
             .eq('event_id', eventId)
 

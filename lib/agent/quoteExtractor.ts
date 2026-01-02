@@ -27,7 +27,7 @@ export interface AnalyzeVendorReplyInput {
 export interface ExtractQuoteInput {
   emailBody: string
   vendorName: string
-  vendorCategory: string
+  vendorServices: string
   eventDetails: {
     eventName: string
     eventDate: string
@@ -228,7 +228,7 @@ export function validateQuote(quote: ExtractedQuoteData): {
 }
 
 /**
- * Compare multiple quotes for the same category
+ * Compare multiple quotes for the same service
  */
 export function compareQuotes(quotes: Array<{ vendorName: string; quote: ExtractedQuoteData }>) {
   if (quotes.length === 0) {

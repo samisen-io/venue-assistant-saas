@@ -19,7 +19,10 @@ interface EventVendorsListProps {
     refreshKey: number;
 }
 
-type EventVendorWithData = EventVendor & { vendors: Vendor | null };
+type EventVendorWithData = EventVendor & {
+    vendors: Vendor | null;
+    event_services?: { name: string } | null;
+};
 
 export function EventVendorsList({ eventId, refreshKey }: EventVendorsListProps) {
     const [eventVendors, setEventVendors] = useState<EventVendorWithData[]>([]);
@@ -93,7 +96,9 @@ export function EventVendorsList({ eventId, refreshKey }: EventVendorsListProps)
                                         </div>
                                         <div>
                                             <h4 className="font-bold">{association.vendors.name}</h4>
-                                            <p className="text-sm text-gray-500 capitalize">{association.vendors.category}</p>
+                                            <p className="text-sm text-gray-500">
+                                                {association.event_services?.name || "Service"}
+                                            </p>
                                             <div className="flex gap-4 mt-2 text-xs text-gray-400">
                                                 <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {association.vendors.contact_email}</span>
                                                 {association.vendors.contact_phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {association.vendors.contact_phone}</span>}

@@ -38,7 +38,7 @@ Please extract the following information from this description:
 6. **budget_total**: The total budget in dollars (if mentioned, extract just the number)
 7. **description**: A brief description of the event
 8. **special_requirements**: Any special requirements mentioned
-9. **needed_categories**: Array of vendor categories needed (catering, av, florals, parking, security, entertainment)
+9. **needed_categories**: Array of vendor services needed (catering, av, florals, photography, parking, security, entertainment, other)
 10. **confidence**: Your confidence in the extraction (0.0 to 1.0)
 
 IMPORTANT RULES:

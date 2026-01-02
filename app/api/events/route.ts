@@ -64,7 +64,7 @@ export async function POST(request: Request) {
 
         const json = await request.json()
         // Expect space_id in the request body
-        const { space_id, ...eventData } = json
+        const { space_id, event_service_requirements, ...eventData } = json
 
         if (!space_id) {
             return new NextResponse('Space ID is required', { status: 400 })
@@ -96,6 +96,20 @@ export async function POST(request: Request) {
             .single()
 
         if (error) throw error
+
+        if (event_service_requirements && event_service_requirements.length > 0) {
+            const requirements = event_service_requirements.map((requirement: any) => ({
+                event_id: event.id,
+                event_service_id: requirement.event_service_id,
+                budget_amount: requirement.budget_amount || 0,
+            }))
+
+            const { error: requirementsError } = await supabase
+                .from('event_service_requirements')
+                .insert(requirements)
+
+            if (requirementsError) throw requirementsError
+        }
 
         return NextResponse.json(event)
     } catch (error) {
