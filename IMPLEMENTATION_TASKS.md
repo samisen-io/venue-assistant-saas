@@ -859,22 +859,333 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 
 ---
 
-## PHASE 23: PERFORMANCE OPTIMIZATION
+## PHASE 23: SUBSCRIPTION & BILLING
 
-### Task 23.1: Database Optimization
+> **Note**: This phase implements a monetization layer with tiered subscriptions using Stripe. Users must subscribe to access the application beyond a trial period.
+
+### Pricing Tiers
+- **Starter**: $49/mo (1 space, 10 events/month, 50 vendors)
+- **Professional**: $149/mo (3 spaces, 50 events/month, unlimited vendors)
+- **Enterprise**: $299/mo (unlimited spaces, unlimited events, API access)
+
+### Task 23.1: Stripe Account Setup
+- [ ] Create Stripe account at https://stripe.com
+- [ ] Get Stripe API keys (publishable and secret)
+- [ ] Set up webhook endpoint in Stripe dashboard
+- [ ] Get webhook signing secret
+- [ ] Add to `.env.local`:
+  - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxxxx`
+  - `STRIPE_SECRET_KEY=sk_test_xxxxx`
+  - `STRIPE_WEBHOOK_SECRET=whsec_xxxxx`
+  - `STRIPE_STARTER_PRICE_ID=price_xxxxx`
+  - `STRIPE_PROFESSIONAL_PRICE_ID=price_xxxxx`
+  - `STRIPE_ENTERPRISE_PRICE_ID=price_xxxxx`
+- [ ] Update `.env.example` with placeholder values
+
+### Task 23.2: Install Stripe Dependencies
+- [ ] Install Stripe packages: `npm install stripe @stripe/stripe-js`
+- [ ] Verify installation successful
+
+### Task 23.3: Create Stripe Products & Prices
+- [ ] Create "Starter" product in Stripe Dashboard
+  - Set price: $49/month recurring
+  - Add metadata: `max_spaces=1, max_events_per_month=10, max_vendors=50`
+  - Copy Price ID to environment variable
+- [ ] Create "Professional" product in Stripe Dashboard
+  - Set price: $149/month recurring
+  - Add metadata: `max_spaces=3, max_events_per_month=50, max_vendors=unlimited`
+  - Copy Price ID to environment variable
+- [ ] Create "Enterprise" product in Stripe Dashboard
+  - Set price: $299/month recurring
+  - Add metadata: `max_spaces=unlimited, max_events_per_month=unlimited, max_vendors=unlimited, api_access=true`
+  - Copy Price ID to environment variable
+- [ ] Test products visible in Stripe Dashboard
+
+### Task 23.4: Create Subscription Database Schema
+- [ ] Create `subscriptions` table in Supabase:
+  ```sql
+  CREATE TABLE subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL UNIQUE,
+    stripe_customer_id TEXT UNIQUE NOT NULL,
+    stripe_subscription_id TEXT UNIQUE,
+    plan_tier TEXT NOT NULL CHECK (plan_tier IN ('starter', 'professional', 'enterprise', 'trial')),
+    status TEXT NOT NULL CHECK (status IN ('active', 'canceled', 'past_due', 'trialing', 'incomplete')),
+    current_period_start TIMESTAMP WITH TIME ZONE,
+    current_period_end TIMESTAMP WITH TIME ZONE,
+    cancel_at_period_end BOOLEAN DEFAULT false,
+    trial_ends_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  );
+  ```
+- [ ] Create `usage_tracking` table:
+  ```sql
+  CREATE TABLE usage_tracking (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+    month DATE NOT NULL,
+    spaces_created INTEGER DEFAULT 0,
+    events_created INTEGER DEFAULT 0,
+    vendors_created INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, month)
+  );
+  ```
+- [ ] Create indexes:
+  - `CREATE INDEX idx_subscriptions_user_id ON subscriptions(user_id);`
+  - `CREATE INDEX idx_subscriptions_status ON subscriptions(status);`
+  - `CREATE INDEX idx_usage_tracking_user_month ON usage_tracking(user_id, month);`
+- [ ] Enable RLS on both tables
+- [ ] Create RLS policies for `subscriptions`:
+  - "Users can view own subscription"
+  - "Users can update own subscription"
+- [ ] Create RLS policies for `usage_tracking`:
+  - "Users can view own usage"
+- [ ] Regenerate TypeScript types
+
+### Task 23.5: Create Stripe Client Utilities
+- [ ] Create `lib/stripe/client.ts`:
+  - Export `stripe` server-side client
+  - Add error handling
+- [ ] Create `lib/stripe/config.ts`:
+  - Export plan configurations
+  - Export plan limits
+  - Export price IDs
+- [ ] Test Stripe client connection
+
+### Task 23.6: Create Subscription Utilities
+- [ ] Create `lib/subscription/limits.ts`:
+  - `getPlanLimits(tier: string): PlanLimits`
+  - `checkSpaceLimit(userId: string): boolean`
+  - `checkEventLimit(userId: string): boolean`
+  - `checkVendorLimit(userId: string): boolean`
+  - `canCreateSpace(userId: string): Promise<boolean>`
+  - `canCreateEvent(userId: string): Promise<boolean>`
+  - `canCreateVendor(userId: string): Promise<boolean>`
+- [ ] Create `lib/subscription/usage.ts`:
+  - `trackSpaceCreation(userId: string): Promise<void>`
+  - `trackEventCreation(userId: string): Promise<void>`
+  - `trackVendorCreation(userId: string): Promise<void>`
+  - `getCurrentUsage(userId: string): Promise<Usage>`
+  - `resetMonthlyUsage()`: Run monthly via cron
+- [ ] Test utility functions
+
+### Task 23.7: Create Subscription API Routes
+- [ ] Create `app/api/subscription/route.ts`:
+  - `GET /api/subscription`: Fetch current user's subscription
+  - `POST /api/subscription`: Create subscription (redirect to Stripe Checkout)
+- [ ] Create `app/api/subscription/portal/route.ts`:
+  - `POST /api/subscription/portal`: Create Stripe Customer Portal session
+- [ ] Create `app/api/subscription/usage/route.ts`:
+  - `GET /api/subscription/usage`: Get current month's usage
+- [ ] Test all endpoints
+
+### Task 23.8: Create Stripe Webhook Handler
+- [ ] Create `app/api/webhooks/stripe/route.ts`:
+  - Verify webhook signature
+  - Handle `customer.subscription.created`
+  - Handle `customer.subscription.updated`
+  - Handle `customer.subscription.deleted`
+  - Handle `invoice.payment_succeeded`
+  - Handle `invoice.payment_failed`
+  - Update `subscriptions` table accordingly
+  - Log all events
+- [ ] Test webhook locally with Stripe CLI: `stripe listen --forward-to localhost:3000/api/webhooks/stripe`
+- [ ] Verify webhook updates database correctly
+
+### Task 23.9: Create Subscription Components
+- [ ] Create `components/subscription/PricingCard.tsx`:
+  - Display plan name, price, features
+  - "Subscribe" button
+  - Highlight current plan
+- [ ] Create `components/subscription/PricingTable.tsx`:
+  - Display all three pricing tiers
+  - Feature comparison
+  - CTAs for each tier
+- [ ] Create `components/subscription/SubscriptionBadge.tsx`:
+  - Show current plan tier
+  - Show status (active, trial, etc.)
+- [ ] Create `components/subscription/UsageBar.tsx`:
+  - Show current usage vs limit
+  - Progress bar visualization
+  - Warning when approaching limit
+- [ ] Create `components/subscription/UpgradePrompt.tsx`:
+  - Modal prompting upgrade when limit reached
+  - Link to pricing page
+- [ ] Test all components
+
+### Task 23.10: Create Pricing Page
+- [ ] Create `app/(marketing)/pricing/page.tsx`:
+  - Display PricingTable component
+  - Add FAQ section
+  - Add testimonials (optional)
+  - CTA to sign up
+- [ ] Create marketing layout if needed
+- [ ] Test page rendering and styling
+
+### Task 23.11: Create Subscription Management Page
+- [ ] Create `app/(dashboard)/settings/subscription/page.tsx`:
+  - Display current plan and status
+  - Show billing cycle dates
+  - Display current usage with UsageBar components
+  - "Manage Subscription" button (opens Stripe Customer Portal)
+  - "Upgrade Plan" button
+  - "Cancel Subscription" button (with confirmation)
+- [ ] Test subscription management flow
+
+### Task 23.12: Implement Trial Logic
+- [ ] Update signup flow in `app/(auth)/signup/page.tsx`:
+  - Create Stripe customer on signup
+  - Create subscription record with status='trialing'
+  - Set trial_ends_at to 14 days from signup
+  - Store in subscriptions table
+- [ ] Create `lib/subscription/trial.ts`:
+  - `isTrialActive(userId: string): Promise<boolean>`
+  - `getDaysRemainingInTrial(userId: string): Promise<number>`
+  - `hasTrialExpired(userId: string): Promise<boolean>`
+- [ ] Add trial banner to dashboard showing days remaining
+- [ ] Test trial creation on signup
+
+### Task 23.13: Add Subscription Checks to API Routes
+- [ ] Update `app/api/venues/route.ts`:
+  - Check `canCreateSpace()` before POST
+  - Return 403 with upgrade message if limit reached
+- [ ] Update `app/api/events/route.ts`:
+  - Check `canCreateEvent()` before POST
+  - Return 403 with upgrade message if limit reached
+- [ ] Update `app/api/vendors/route.ts`:
+  - Check `canCreateVendor()` before POST
+  - Return 403 with upgrade message if limit reached
+- [ ] Create middleware to check subscription status on all protected routes
+- [ ] Redirect to pricing page if subscription expired
+- [ ] Test all limit checks
+
+### Task 23.14: Add Usage Tracking
+- [ ] Update `app/api/venues/route.ts` POST:
+  - Call `trackSpaceCreation()` after successful creation
+- [ ] Update `app/api/events/route.ts` POST:
+  - Call `trackEventCreation()` after successful creation
+- [ ] Update `app/api/vendors/route.ts` POST:
+  - Call `trackVendorCreation()` after successful creation
+- [ ] Test usage tracking increments correctly
+
+### Task 23.15: Add Upgrade Prompts to UI
+- [ ] Update `app/(dashboard)/venues/new/page.tsx`:
+  - Show UpgradePrompt modal if space limit reached
+  - Disable form if limit reached
+- [ ] Update `app/(dashboard)/events/new/page.tsx`:
+  - Show UpgradePrompt modal if event limit reached
+  - Disable form if limit reached
+- [ ] Update `app/(dashboard)/vendors/new/page.tsx`:
+  - Show UpgradePrompt modal if vendor limit reached
+  - Disable form if limit reached
+- [ ] Add "Upgrade" link to sidebar for trial/starter users
+- [ ] Test upgrade prompts display correctly
+
+### Task 23.16: Implement Checkout Flow
+- [ ] Create `app/(dashboard)/checkout/page.tsx`:
+  - Accept `priceId` as query parameter
+  - Create Stripe Checkout session
+  - Redirect to Stripe hosted checkout
+  - Handle success/cancel URLs
+- [ ] Create `app/(dashboard)/checkout/success/page.tsx`:
+  - Display success message
+  - Fetch updated subscription
+  - Redirect to dashboard after 3 seconds
+- [ ] Create `app/(dashboard)/checkout/cancel/page.tsx`:
+  - Display cancellation message
+  - Link back to pricing page
+- [ ] Test complete checkout flow with test card (4242 4242 4242 4242)
+
+### Task 23.17: Add Subscription Hooks
+- [ ] Create `hooks/useSubscription.ts`:
+  - `useSubscription()`: Fetch current subscription
+  - `useUsage()`: Fetch current usage
+  - `useCanCreate(resource: 'space' | 'event' | 'vendor')`: Check limits
+  - Handle loading and error states
+- [ ] Test hooks in components
+
+### Task 23.18: Update Dashboard with Subscription Info
+- [ ] Update `app/(dashboard)/dashboard/page.tsx`:
+  - Show subscription badge
+  - Show usage statistics
+  - Show trial countdown if in trial
+  - Show upgrade CTA if on starter plan
+- [ ] Update `components/layout/Sidebar.tsx`:
+  - Show current plan tier
+  - Show upgrade button for non-enterprise users
+- [ ] Test dashboard displays subscription info correctly
+
+### Task 23.19: Implement Downgrade/Cancellation Logic
+- [ ] Handle subscription downgrades:
+  - If downgrading from Professional to Starter with 3 spaces, show warning
+  - Mark extra spaces as "inactive" or prompt user to delete
+  - Implement grace period for compliance
+- [ ] Handle subscription cancellation:
+  - Set `cancel_at_period_end = true`
+  - Allow access until period end
+  - Show "Reactivate" button
+  - Implement reactivation flow
+- [ ] Test downgrade scenarios
+
+### Task 23.20: Add API Access for Enterprise
+- [ ] Create `api_keys` table:
+  ```sql
+  CREATE TABLE api_keys (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+    key_hash TEXT NOT NULL UNIQUE,
+    key_prefix TEXT NOT NULL,
+    name TEXT NOT NULL,
+    last_used_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    revoked_at TIMESTAMP WITH TIME ZONE
+  );
+  ```
+- [ ] Create API key generation utility
+- [ ] Create `app/(dashboard)/settings/api-keys/page.tsx` (Enterprise only)
+- [ ] Implement API authentication middleware
+- [ ] Create API documentation page
+- [ ] Test API key creation and usage
+
+### Task 23.21: Test Subscription Features
+- [ ] Test trial signup → trial expires → forced to choose plan
+- [ ] Test starter plan → hit space limit → upgrade prompt
+- [ ] Test professional plan → hit event limit → upgrade prompt
+- [ ] Test enterprise plan → unlimited usage
+- [ ] Test payment failure → subscription status updates
+- [ ] Test plan upgrades (prorated billing)
+- [ ] Test plan downgrades (credit applied)
+- [ ] Test cancellation → reactivation
+- [ ] Test webhook reliability
+- [ ] Test usage tracking accuracy
+- [ ] Test API key generation (Enterprise)
+
+### Task 23.22: Add Subscription to Seed Data (Optional)
+- [ ] Update seed script to create trial subscription for test user
+- [ ] Add sample usage data
+- [ ] Test seed data includes subscription
+
+---
+
+## PHASE 24: PERFORMANCE OPTIMIZATION
+
+### Task 24.1: Database Optimization
 - [ ] Review and add database indexes for common queries
 - [ ] Optimize complex queries (vendor matching, budget calculations)
 - [ ] Add composite indexes where needed
 - [ ] Test query performance with large datasets
 
-### Task 23.2: Frontend Optimization
+### Task 24.2: Frontend Optimization
 - [ ] Optimize API routes (reduce unnecessary queries)
 - [ ] Add caching where appropriate (React Query or SWR)
 - [ ] Lazy load components if needed
 - [ ] Optimize images (if any)
 - [ ] Code splitting for large pages
 
-### Task 23.3: Performance Testing
+### Task 24.3: Performance Testing
 - [ ] Test page load times (target < 2 seconds)
 - [ ] Test API response times (target < 500ms)
 - [ ] Test with slow 3G network
@@ -882,9 +1193,9 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 
 ---
 
-## PHASE 24: SECURITY & DEPLOYMENT PREPARATION
+## PHASE 25: SECURITY & DEPLOYMENT PREPARATION
 
-### Task 24.1: Security Review
+### Task 25.1: Security Review
 - [ ] Review RLS policies thoroughly (including AI tables)
 - [ ] Ensure no service role key exposed to client
 - [ ] Ensure no AI API keys exposed to client
@@ -896,7 +1207,7 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 - [ ] Verify password requirements
 - [ ] Verify webhook signature validation
 
-### Task 24.2: Environment Configuration
+### Task 25.2: Environment Configuration
 - [ ] Create production Supabase project (if separate from dev)
 - [ ] Set up production environment variables (including AI keys)
 - [ ] Configure Supabase auth for production URLs
@@ -904,7 +1215,7 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 - [ ] Set up domain and SSL
 - [ ] Configure webhook endpoints
 
-### Task 24.3: SEO & Metadata
+### Task 25.3: SEO & Metadata
 - [ ] Add proper page titles for all pages
 - [ ] Add meta descriptions
 - [ ] Add Open Graph tags
@@ -912,7 +1223,7 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 - [ ] Add robots.txt
 - [ ] Add sitemap.xml
 
-### Task 24.4: Error Tracking & Monitoring
+### Task 25.4: Error Tracking & Monitoring
 - [ ] Set up error tracking (Sentry, LogRocket, or similar) - optional
 - [ ] Add error boundaries
 - [ ] Log errors to console in dev, to service in prod
@@ -921,9 +1232,9 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 
 ---
 
-## PHASE 25: DEPLOYMENT
+## PHASE 26: DEPLOYMENT
 
-### Task 25.1: Pre-Deployment Checklist
+### Task 26.1: Pre-Deployment Checklist
 - [ ] Remove "Refresh Demo Data" button (production)
 - [ ] Verify all environment variables set correctly
 - [ ] Test with production Supabase project
@@ -932,7 +1243,7 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 - [ ] Ensure no console.log in production code
 - [ ] Verify AI feature flags set appropriately
 
-### Task 25.2: Deploy to Vercel
+### Task 26.2: Deploy to Vercel
 - [ ] Create Vercel account (if needed)
 - [ ] Connect GitHub repository
 - [ ] Configure environment variables in Vercel
@@ -940,7 +1251,7 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 - [ ] Verify deployment successful
 - [ ] Test custom domain (if applicable)
 
-### Task 25.3: Post-Deployment Testing
+### Task 26.3: Post-Deployment Testing
 - [ ] Test signup/login on production
 - [ ] Test creating venues, vendors, events
 - [ ] Test vendor matching
@@ -952,7 +1263,7 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 - [ ] Verify RLS working in production (all tables)
 - [ ] Test all major workflows end-to-end
 
-### Task 25.4: Monitor & Fix Issues
+### Task 26.4: Monitor & Fix Issues
 - [ ] Monitor application logs
 - [ ] Monitor AI API usage and costs
 - [ ] Fix any production-specific bugs
@@ -963,9 +1274,9 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 
 ---
 
-## PHASE 26: DOCUMENTATION & HANDOFF
+## PHASE 27: DOCUMENTATION & HANDOFF
 
-### Task 26.1: Update Documentation
+### Task 27.1: Update Documentation
 - [ ] Update README.md with:
   - Project overview
   - Features list (including AI features)
@@ -986,7 +1297,7 @@ This is a comprehensive, sequential task list for implementing the complete Venu
 - [ ] Document AI features usage
 - [ ] Create video walkthrough (optional)
 
-### Task 26.3: Developer Handoff
+### Task 27.3: Developer Handoff
 - [ ] Create developer onboarding guide
 - [ ] Document code architecture
 - [ ] Document deployment process
