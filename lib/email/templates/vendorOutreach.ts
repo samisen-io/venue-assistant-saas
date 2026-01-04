@@ -193,7 +193,7 @@ export function generateOutreachHTML(data: VendorOutreachTemplateData): string {
   </div>
 
   <div class="footer">
-    <p style="margin: 0;">This is an automated message from VenueAssistant on behalf of ${venueName}.</p>
+    <p style="margin: 0;">This is an automated message from VenueManager on behalf of ${venueName}.</p>
     <p style="margin: 10px 0 0 0;">Please reply directly to this email to provide your quote.</p>
   </div>
 </body>
@@ -249,7 +249,7 @@ Email: ${venueContact.email}
 ${venueContact.phone ? `Phone: ${venueContact.phone}` : ''}
 
 ---
-This is an automated message from VenueAssistant on behalf of ${venueName}.
+This is an automated message from VenueManager on behalf of ${venueName}.
 Please reply directly to this email to provide your quote.
   `.trim()
 }

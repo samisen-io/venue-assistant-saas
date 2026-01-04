@@ -288,7 +288,7 @@ export function generateConfirmationHTML(data: ConfirmationTemplateData): string
   </div>
 
   <div class="footer">
-    <p style="margin: 0;">This confirmation was sent via VenueAssistant on behalf of ${venueName}.</p>
+    <p style="margin: 0;">This confirmation was sent via VenueManager on behalf of ${venueName}.</p>
     <p style="margin: 10px 0 0 0;">We look forward to working with you!</p>
   </div>
 </body>
@@ -349,7 +349,7 @@ Email: ${venueContact.email}
 ${venueContact.phone ? `Phone: ${venueContact.phone}` : ''}
 
 ---
-This confirmation was sent via VenueAssistant on behalf of ${venueName}.
+This confirmation was sent via VenueManager on behalf of ${venueName}.
 We look forward to working with you!
   `.trim()
 }

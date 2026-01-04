@@ -1,8 +1,8 @@
-# CLAUDE.MD - Venue Assistant SaaS
+# CLAUDE.MD - Venue Manager SaaS
 
 ## Project Overview
 
-**Venue Assistant** is a Micro-SaaS web application for event venue managers to streamline vendor coordination, budget tracking, and performance management. Target users are managers of hotels, banquet halls, and conference centers.
+**Venue Manager** is a Micro-SaaS web application for event venue managers to streamline vendor coordination, budget tracking, and performance management. Target users are managers of hotels, banquet halls, and conference centers.
 
 ## Tech Stack
 
@@ -186,7 +186,7 @@ The following are planned for future releases:
 
 ## Documentation
 
-**Primary Reference**: `VenueAssistant_MicroSaaS_PRD.md` (1,170 lines)
+**Primary Reference**: `VenueManager_MicroSaaS_PRD.md` (1,170 lines)
 
 This comprehensive PRD contains:
 - Complete database schema with RLS policies
@@ -200,7 +200,7 @@ This comprehensive PRD contains:
 
 ### When Working on This Project:
 
-1. **Always check the PRD first** - The PRD (`VenueAssistant_MicroSaaS_PRD.md`) is the source of truth for requirements and specifications.
+1. **Always check the PRD first** - The PRD (`VenueManager_MicroSaaS_PRD.md`) is the source of truth for requirements and specifications.
 
 2. **Respect the phased approach** - This is MVP/Phase 1. Don't add Phase 2 features unless explicitly requested.
 

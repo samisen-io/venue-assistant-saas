@@ -68,7 +68,7 @@ export async function sendVendorOutreach(
     // Create email draft
     const emailDraft: EmailDraft = {
       to: input.vendor.contact_email,
-      from: process.env.RESEND_FROM_EMAIL || 'noreply@venueassistant.com',
+      from: process.env.RESEND_FROM_EMAIL || 'noreply@VenueManager.com',
       subject: buildEmailSubject(input.event.event_name, input.event.event_date, 'outreach'),
       body: emailBody,
       metadata: {
@@ -201,7 +201,7 @@ export async function sendFollowUpEmail(input: {
     // Create email draft
     const emailDraft: EmailDraft = {
       to: input.vendor.contact_email,
-      from: process.env.RESEND_FROM_EMAIL || 'noreply@venueassistant.com',
+      from: process.env.RESEND_FROM_EMAIL || 'noreply@VenueManager.com',
       subject: buildEmailSubject(input.event.event_name, input.event.event_date, 'followup'),
       body: emailBody,
       threadId,
@@ -291,7 +291,7 @@ export async function sendConfirmationEmail(input: {
     // Create email draft
     const emailDraft: EmailDraft = {
       to: input.vendor.contact_email,
-      from: process.env.RESEND_FROM_EMAIL || 'noreply@venueassistant.com',
+      from: process.env.RESEND_FROM_EMAIL || 'noreply@VenueManager.com',
       subject: buildEmailSubject(input.event.event_name, input.event.event_date, 'confirmation'),
       body: emailBody,
       metadata: {

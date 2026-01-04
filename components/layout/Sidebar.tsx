@@ -101,7 +101,7 @@ export function Sidebar() {
             <div className="flex h-14 items-center border-b px-6">
                 <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
                     <Store className="h-6 w-6" />
-                    <span className="">VenueAssistant</span>
+                    <span className="">VenueManager</span>
                 </Link>
             </div>
             <div className="flex-1 overflow-auto py-4">

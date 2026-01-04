@@ -6,8 +6,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "VenueAssistant | Event Management Example",
-  description: "Streamline your venue operations with VenueAssistant",
+  title: "VenueManager | Event Management Example",
+  description: "Streamline your venue operations with VenueManager",
 };
 
 export default function RootLayout({

@@ -1,6 +1,6 @@
 # Resend Webhook Setup Guide
 
-This guide walks you through setting up webhooks in Resend to track email delivery status for the VenueAssistant AI features.
+This guide walks you through setting up webhooks in Resend to track email delivery status for the VenueManager AI features.
 
 ## Prerequisites
 
@@ -23,7 +23,7 @@ This guide walks you through setting up webhooks in Resend to track email delive
 
 1. Log into your Resend dashboard at [resend.com/api-keys](https://resend.com/api-keys)
 2. Click "Create API Key"
-3. Give it a name (e.g., "VenueAssistant Production")
+3. Give it a name (e.g., "VenueManager Production")
 4. Select the appropriate permissions (Full Access recommended)
 5. Click "Create"
 6. **Copy the API key immediately** (you won't be able to see it again)
@@ -39,22 +39,22 @@ This guide walks you through setting up webhooks in Resend to track email delive
 ### For Production:
 1. Go to [resend.com/domains](https://resend.com/domains)
 2. Click "Add Domain"
-3. Enter your domain (e.g., `venueassistant.com`)
+3. Enter your domain (e.g., `VenueManager.com`)
 4. Follow the DNS setup instructions:
    - Add the provided DNS records to your domain registrar
    - Wait for DNS propagation (can take up to 48 hours)
 5. Verify the domain in Resend dashboard
 6. Update your `.env.local`:
    ```
-   RESEND_FROM_EMAIL=noreply@venueassistant.com
-   RESEND_FROM_NAME=VenueAssistant
+   RESEND_FROM_EMAIL=noreply@VenueManager.com
+   RESEND_FROM_NAME=VenueManager
    ```
 
 ### For Development/Testing:
 You can use Resend's test domain:
 ```
 RESEND_FROM_EMAIL=onboarding@resend.dev
-RESEND_FROM_NAME=VenueAssistant Test
+RESEND_FROM_NAME=VenueManager Test
 ```
 
 ---
@@ -170,8 +170,8 @@ CLAUDE_MODEL=claude-sonnet-4-20250514
 # AI Features - Resend Email Service
 RESEND_API_KEY=re_your_actual_key_here
 RESEND_WEBHOOK_SECRET=whsec_your_actual_secret_here
-RESEND_FROM_EMAIL=noreply@venueassistant.com
-RESEND_FROM_NAME=VenueAssistant
+RESEND_FROM_EMAIL=noreply@VenueManager.com
+RESEND_FROM_NAME=VenueManager
 
 # AI Agent Configuration
 AGENT_MAX_RETRIES=3

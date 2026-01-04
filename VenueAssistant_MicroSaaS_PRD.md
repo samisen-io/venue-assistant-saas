@@ -1,11 +1,11 @@
-# VenueAssistant Micro-SaaS - Product Requirements Document
+# VenueManager Micro-SaaS - Product Requirements Document
 ## For Claude Code Implementation
 
 ---
 
 ## PROJECT OVERVIEW
 
-**Product Name**: VenueAssistant  
+**Product Name**: VenueManager  
 **Type**: Micro-SaaS Web Application  
 **Target Users**: Event venue managers (hotels, banquet halls, conference centers)  
 **Core Value**: Streamline vendor coordination, budget tracking, and performance management for venue events
@@ -1162,7 +1162,7 @@ Not in MVP, but noted for later:
 
 ---
 
-This document should give Claude Code everything it needs to build VenueAssistant MVP. Focus on getting the core workflow functional:
+This document should give Claude Code everything it needs to build VenueManager MVP. Focus on getting the core workflow functional:
 
 **Event Creation → Vendor Matching → Budget Tracking → Performance Review**
 

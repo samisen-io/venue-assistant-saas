@@ -1,5 +1,5 @@
 -- =====================================================
--- VENUE ASSISTANT SAAS - COMPLETE DATABASE SETUP
+-- Venue Manager SAAS - COMPLETE DATABASE SETUP
 -- =====================================================
 -- This file contains the complete database schema setup
 -- Run this in Supabase SQL Editor for first-time setup

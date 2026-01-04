@@ -15,8 +15,8 @@ const getResendClient = () => {
 // Get email configuration from environment
 export const getEmailConfig = () => {
   return {
-    fromEmail: process.env.RESEND_FROM_EMAIL || 'noreply@venueassistant.com',
-    fromName: process.env.RESEND_FROM_NAME || 'VenueAssistant',
+    fromEmail: process.env.RESEND_FROM_EMAIL || 'noreply@VenueManager.com',
+    fromName: process.env.RESEND_FROM_NAME || 'VenueManager',
     webhookSecret: process.env.RESEND_WEBHOOK_SECRET,
   }
 }
@@ -206,7 +206,7 @@ export class ResendEmailClient {
       const result = await this.sendEmail({
         to: this.config.fromEmail,
         from: this.config.fromEmail,
-        subject: 'VenueAssistant - Email Service Test',
+        subject: 'VenueManager - Email Service Test',
         body: 'This is a test email to verify Resend integration is working correctly.',
       })
 

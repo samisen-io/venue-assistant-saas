@@ -1,4 +1,4 @@
-# Venue Assistant SaaS
+# Venue Manager SaaS
 
 A Micro-SaaS web application for event venue managers to streamline vendor coordination, budget tracking, and performance management.
 
@@ -95,7 +95,7 @@ lib/
 ## Documentation
 
 - **[CLAUDE.md](CLAUDE.md)** - Project overview and AI assistant instructions
-- **[VenueAssistant_MicroSaaS_PRD.md](VenueAssistant_MicroSaaS_PRD.md)** - Complete product requirements document
+- **[VenueManager_MicroSaaS_PRD.md](VenueManager_MicroSaaS_PRD.md)** - Complete product requirements document
 - **[setup-database.sql](setup-database.sql)** - Database schema setup script
 
 ## Development Workflow

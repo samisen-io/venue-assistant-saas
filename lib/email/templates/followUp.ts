@@ -204,7 +204,7 @@ export function generateFollowUpHTML(data: FollowUpTemplateData): string {
   </div>
 
   <div class="footer">
-    <p style="margin: 0;">This is an automated follow-up from VenueAssistant on behalf of ${venueName}.</p>
+    <p style="margin: 0;">This is an automated follow-up from VenueManager on behalf of ${venueName}.</p>
     <p style="margin: 10px 0 0 0;">Reply directly to this email to connect with ${venueContact.name}.</p>
   </div>
 </body>
@@ -261,7 +261,7 @@ Email: ${venueContact.email}
 ${venueContact.phone ? `Phone: ${venueContact.phone}` : ''}
 
 ---
-This is an automated follow-up from VenueAssistant on behalf of ${venueName}.
+This is an automated follow-up from VenueManager on behalf of ${venueName}.
 Reply directly to this email to connect with ${venueContact.name}.
   `.trim()
 }

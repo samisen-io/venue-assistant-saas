@@ -1,11 +1,11 @@
-# VenueAssistant PRD Update Instructions
+# VenueManager PRD Update Instructions
 ## Adding AI Agent Features for Vendor Communication
 
 ---
 
 ## OVERVIEW
 
-This document provides instructions to update the existing VenueAssistant PRD to include three new AI-powered features:
+This document provides instructions to update the existing VenueManager PRD to include three new AI-powered features:
 
 1. **Natural Language Event Creation** - Users can type event requirements in plain text
 2. **AI Vendor Communication Agent** - Automated email outreach and negotiation with vendors
@@ -1189,8 +1189,8 @@ CLAUDE_MODEL=claude-sonnet-4-20250514  # Specific model version
 # NEW: Email Service (Resend)
 RESEND_API_KEY=re_xxxxx  # Required for sending emails
 RESEND_WEBHOOK_SECRET=whsec_xxxxx  # For verifying webhook signatures
-RESEND_FROM_EMAIL=noreply@venueassistant.com  # Sender email address
-RESEND_FROM_NAME=VenueAssistant  # Sender display name
+RESEND_FROM_EMAIL=noreply@VenueManager.com  # Sender email address
+RESEND_FROM_NAME=VenueManager  # Sender display name
 
 # NEW: Agent Configuration
 AGENT_MAX_RETRIES=3  # Max email send retries
@@ -1422,7 +1422,7 @@ Thank you for your consideration. Please feel free to reach out with
 any questions.
 
 Best regards,
-VenueAssistant Team
+VenueManager Team
 on behalf of [Venue Name]
 ```
 
