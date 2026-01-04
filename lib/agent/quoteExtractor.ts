@@ -184,7 +184,7 @@ export function validateQuote(quote: ExtractedQuoteData): {
   }
 
   // Check confidence level
-  if (quote.confidence < 0.5) {
+  if (quote.confidence !== undefined && quote.confidence < 0.5) {
     warnings.push('Low confidence in extracted data - manual review recommended')
   }
 
@@ -276,5 +276,5 @@ function calculateQuoteScore(
 
   // Combine with confidence (higher is better)
   // Weight: 60% price, 40% confidence
-  return costScore * 0.6 + quote.confidence * 0.4
+  return costScore * 0.6 + (quote.confidence ?? 0.5) * 0.4
 }

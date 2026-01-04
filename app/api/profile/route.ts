@@ -10,7 +10,7 @@ export async function GET() {
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
-        const { data: profile, error } = await supabase
+        const { data: profile, error } = await (supabase as any)
             .from('profiles')
             .select('*')
             .eq('id', user.id)
@@ -37,14 +37,14 @@ export async function PUT(request: Request) {
         const json = await request.json()
         const { full_name, company_name, phone } = json
 
-        const { data: profile, error } = await supabase
+        const { data: profile, error } = await (supabase as any)
             .from('profiles')
             .update({
                 full_name,
                 company_name,
                 phone,
                 updated_at: new Date().toISOString()
-            } as any)
+            })
             .eq('id', user.id)
             .select()
             .single()

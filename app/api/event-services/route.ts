@@ -10,7 +10,7 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 })
     }
 
-    const { data: venue, error: venueError } = await supabase
+    const { data: venue, error: venueError } = await (supabase as any)
       .from('venues')
       .select('id')
       .eq('owner_id', user.id)
@@ -20,7 +20,7 @@ export async function GET() {
       return NextResponse.json([])
     }
 
-    const { data: services, error } = await supabase
+    const { data: services, error } = await (supabase as any)
       .from('event_services')
       .select('*')
       .eq('venue_id', venue.id)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { getAgentOrchestrator } from '@/lib/agent/orchestrator'
 
 /**
@@ -7,7 +7,7 @@ import { getAgentOrchestrator } from '@/lib/agent/orchestrator'
  * Get status of an agent run
  */
 export async function GET(request: NextRequest) {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   try {
     // Check if AI agent is enabled
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify agent run exists and belongs to user
-    const { data: agentRun, error: agentError } = await supabase
+    const { data: agentRun, error: agentError } = await (supabase as any)
       .from('agent_runs')
       .select('*, event:events(id, event_name, venue:venues(owner_id))')
       .eq('id', agentRunId)
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check ownership
-    if (agentRun.event?.venue?.owner_id !== user.id) {
+    if ((agentRun as any).event?.venue?.owner_id !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
  * Update agent run status (pause, resume, cancel)
  */
 export async function POST(request: NextRequest) {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   try {
     // Check authentication
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify agent run exists and belongs to user
-    const { data: agentRun, error: agentError } = await supabase
+    const { data: agentRun, error: agentError } = await (supabase as any)
       .from('agent_runs')
       .select('id, event:events(venue:venues(owner_id))')
       .eq('id', agentRunId)
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check ownership
-    if (agentRun.event?.venue?.owner_id !== user.id) {
+    if ((agentRun as any).event?.venue?.owner_id !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the agent run
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from('agent_runs')
       .update({
         status: newStatus,

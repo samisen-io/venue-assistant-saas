@@ -15,7 +15,7 @@ export async function GET(
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
-        const { data: venue, error } = await supabase
+        const { data: venue, error } = await (supabase as any)
             .from('venues')
             .select('*')
             .eq('id', venueId)
@@ -46,7 +46,7 @@ export async function PUT(
         const json = await request.json()
         const body = venueFormSchema.parse(json)
 
-        const { data: venue, error } = await supabase
+        const { data: venue, error } = await (supabase as any)
             .from('venues')
             .update(body)
             .eq('id', venueId)
@@ -75,7 +75,7 @@ export async function DELETE(
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
-        const { error } = await supabase
+        const { error } = await (supabase as any)
             .from('venues')
             .delete()
             .eq('id', venueId)

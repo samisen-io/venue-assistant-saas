@@ -18,7 +18,7 @@ export async function GET(request: Request) {
         const venueId = searchParams.get('venueId')
         const serviceId = searchParams.get('serviceId')
 
-        let query = supabase
+        let query = (supabase as any)
             .from('vendors')
             .select(`
                 *,
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
         const vendorData = json
 
         // Get user's venue (single venue per user now)
-        const { data: venue, error: venueError } = await supabase
+        const { data: venue, error: venueError } = await (supabase as any)
             .from('venues')
             .select('id')
             .eq('owner_id', user.id)
@@ -89,9 +89,9 @@ export async function POST(request: Request) {
             reliability_score: 100
         }
 
-        const { data: vendor, error } = await supabase
+        const { data: vendor, error } = await (supabase as any)
             .from('vendors')
-            .insert(insertData as any) // Explicit cast to any to avoid the 'never' issue if TS is confused
+            .insert(insertData)
             .select()
             .single()
 
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
             event_service_id: eventServiceId
         }))
 
-        const { error: vendorServicesError } = await supabase
+        const { error: vendorServicesError } = await (supabase as any)
             .from('vendor_services')
             .insert(vendorServices)
 

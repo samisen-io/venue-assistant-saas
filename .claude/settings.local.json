@@ -6,7 +6,13 @@
       "Bash(npx shadcn@latest add:*)",
       "Bash(dir:*)",
       "Bash(powershell.exe -ExecutionPolicy Bypass -File move-to-root.ps1)",
-      "Bash(del bash.exe.stackdump)"
+      "Bash(del bash.exe.stackdump)",
+      "Bash(npm run build:*)",
+      "Bash(powershell.exe -Command \"Remove-Item -Path ''app\\\\api\\\\vendors\\\\ [vendorId]'' -Recurse -Force\")",
+      "Bash(cmd.exe /c \"rmdir /s /q \"\"app\\\\api\\\\vendors\\\\ [vendorId]\"\"\")",
+      "Bash(python:*)",
+      "Bash(cmd.exe /c \"npm run build\")",
+      "Bash(powershell.exe -Command \"npm run build\")"
     ]
   }
 }

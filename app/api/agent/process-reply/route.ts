@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { getAgentOrchestrator } from '@/lib/agent/orchestrator'
 
 /**
@@ -7,7 +7,7 @@ import { getAgentOrchestrator } from '@/lib/agent/orchestrator'
  * Process vendor replies for an agent run
  */
 export async function POST(request: NextRequest) {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   try {
     // Check if AI agent is enabled
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify agent run exists and belongs to user
-    const { data: agentRun, error: agentError } = await supabase
+    const { data: agentRun, error: agentError } = await (supabase as any)
       .from('agent_runs')
       .select('id, event:events(venue:venues(owner_id))')
       .eq('id', agentRunId)
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check ownership
-    if (agentRun.event?.venue?.owner_id !== user.id) {
+    if ((agentRun as any).event?.venue?.owner_id !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

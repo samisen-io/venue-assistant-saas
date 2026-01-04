@@ -196,7 +196,7 @@ export async function sendFollowUpEmail(input: {
     const emailBody = await draftFollowUpEmail(input)
 
     // Get thread ID from previous communications
-    const threadId = input.previousCommunications.find(c => c.thread_id)?.thread_id
+    const threadId = input.previousCommunications.find(c => c.thread_id)?.thread_id ?? undefined
 
     // Create email draft
     const emailDraft: EmailDraft = {

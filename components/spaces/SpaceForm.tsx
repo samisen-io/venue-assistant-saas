@@ -32,8 +32,8 @@ interface SpaceFormProps {
 }
 
 export function SpaceForm({ initialData, onSubmit, isLoading = false }: SpaceFormProps) {
-    const form = useForm<z.infer<typeof spaceFormSchema>>({
-        resolver: zodResolver(spaceFormSchema),
+    const form = useForm({
+        resolver: zodResolver(spaceFormSchema) as any,
         mode: "onBlur",
         defaultValues: initialData ? {
             name: initialData.name,
@@ -52,7 +52,7 @@ export function SpaceForm({ initialData, onSubmit, isLoading = false }: SpaceFor
             hourly_rate: 0,
             notes: "",
         },
-    });
+    }) as any;
 
     return (
         <Form {...form}>

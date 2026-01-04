@@ -12,7 +12,7 @@ export async function GET(request: Request) {
         }
 
         // Get user's venue first
-        const { data: venue } = await supabase
+        const { data: venue } = await (supabase as any)
             .from('venues')
             .select('id')
             .eq('owner_id', user.id)
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
         }
 
         // RLS will handle filtering, but we query by venue_id for clarity
-        const { data: spaces, error } = await supabase
+        const { data: spaces, error } = await (supabase as any)
             .from('spaces')
             .select('*')
             .eq('venue_id', venue.id)
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
         }
 
         // Get user's venue
-        const { data: venue, error: venueError } = await supabase
+        const { data: venue, error: venueError } = await (supabase as any)
             .from('venues')
             .select('id')
             .eq('owner_id', user.id)
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
         const json = await request.json()
         const body = spaceFormSchema.parse(json)
 
-        const { data: space, error } = await supabase
+        const { data: space, error } = await (supabase as any)
             .from('spaces')
             .insert({
                 ...body,

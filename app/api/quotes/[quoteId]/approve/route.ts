@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server'
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { quoteId: string } }
+  { params }: { params: Promise<{ quoteId: string }> }
 ) {
   const supabase = await createClient()
 
@@ -22,7 +22,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { quoteId } = params
+    const { quoteId } = await params
 
     // Get the quote with vendor and event details
     const { data: quote, error: quoteError } = await (supabase as any)
@@ -77,15 +77,7 @@ export async function POST(
       throw updateError
     }
 
-    // Check if vendor is already assigned to this event
-    const { data: existingAssignment } = await (supabase as any)
-      .from('event_vendors')
-      .select('id')
-      .eq('event_id', quote.event_id)
-      .eq('vendor_id', quote.vendor_id)
-      .eq('event_service_id', eventServiceId)
-      .single()
-
+    // Determine the event service ID first
     const requiredServices = quote.event?.event_service_requirements || []
     const vendorServices = quote.vendor?.vendor_services || []
     const overlappingService = requiredServices.find((req: any) =>
@@ -96,6 +88,15 @@ export async function POST(
     if (!eventServiceId) {
       return NextResponse.json({ error: 'No matching service found for this vendor' }, { status: 400 })
     }
+
+    // Check if vendor is already assigned to this event
+    const { data: existingAssignment } = await (supabase as any)
+      .from('event_vendors')
+      .select('id')
+      .eq('event_id', quote.event_id)
+      .eq('vendor_id', quote.vendor_id)
+      .eq('event_service_id', eventServiceId)
+      .single()
 
     let eventVendorId = existingAssignment?.id
 

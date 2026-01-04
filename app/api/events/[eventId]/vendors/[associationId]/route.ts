@@ -16,9 +16,9 @@ export async function PUT(
 
         const body = await request.json()
 
-        const { data: association, error } = await supabase
+        const { data: association, error } = await (supabase as any)
             .from('event_vendors')
-            .update(body as any)
+            .update(body)
             .eq('id', associationId)
             .select()
             .single()
@@ -45,7 +45,7 @@ export async function DELETE(
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
-        const { error } = await supabase
+        const { error } = await (supabase as any)
             .from('event_vendors')
             .delete()
             .eq('id', associationId)

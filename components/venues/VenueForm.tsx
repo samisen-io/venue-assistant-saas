@@ -43,7 +43,6 @@ export function VenueForm({ initialData, onSubmit, isLoading = false }: VenueFor
             zip_code: initialData.zip_code || "",
             phone: initialData.phone || "",
             email: initialData.email || "",
-            capacity: initialData.capacity || 0,
             venue_type: initialData.venue_type || "",
         } : {
             name: "",
@@ -53,7 +52,6 @@ export function VenueForm({ initialData, onSubmit, isLoading = false }: VenueFor
             zip_code: "",
             phone: "",
             email: "",
-            capacity: 0,
             venue_type: "",
         },
     });
@@ -75,46 +73,30 @@ export function VenueForm({ initialData, onSubmit, isLoading = false }: VenueFor
                     )}
                 />
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <FormField
-                        control={form.control}
-                        name="venue_type"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Venue Type</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select type" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="hotel">Hotel</SelectItem>
-                                        <SelectItem value="banquet_hall">Banquet Hall</SelectItem>
-                                        <SelectItem value="conference_center">Conference Center</SelectItem>
-                                        <SelectItem value="restaurant">Restaurant</SelectItem>
-                                        <SelectItem value="other">Other</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="capacity"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Capacity</FormLabel>
+                <FormField
+                    control={form.control}
+                    name="venue_type"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Venue Type</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
-                                    <Input type="number" placeholder="200" {...field} />
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select type" />
+                                    </SelectTrigger>
                                 </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
+                                <SelectContent>
+                                    <SelectItem value="hotel">Hotel</SelectItem>
+                                    <SelectItem value="banquet_hall">Banquet Hall</SelectItem>
+                                    <SelectItem value="conference_center">Conference Center</SelectItem>
+                                    <SelectItem value="restaurant">Restaurant</SelectItem>
+                                    <SelectItem value="other">Other</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
                 <FormField
                     control={form.control}

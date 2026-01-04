@@ -54,7 +54,7 @@ export default function VenueSetupPage() {
             const { data: userData, error: userError } = await supabase.auth.getUser();
             if (userError || !userData.user) throw new Error("User not found");
 
-            const { error } = await supabase.from("venues").insert({
+            const { error } = await (supabase as any).from("venues").insert({
                 name: values.name,
                 address: values.address,
                 city: values.city,
@@ -62,7 +62,6 @@ export default function VenueSetupPage() {
                 zip_code: values.zip_code,
                 phone: values.phone,
                 email: values.email,
-                capacity: values.capacity,
                 venue_type: values.venue_type,
                 owner_id: userData.user.id,
             });
@@ -109,46 +108,30 @@ export default function VenueSetupPage() {
                             )}
                         />
 
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <FormField
-                                control={form.control}
-                                name="venue_type"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Venue Type</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select type" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="hotel">Hotel</SelectItem>
-                                                <SelectItem value="banquet_hall">Banquet Hall</SelectItem>
-                                                <SelectItem value="conference_center">Conference Center</SelectItem>
-                                                <SelectItem value="restaurant">Restaurant</SelectItem>
-                                                <SelectItem value="other">Other</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="capacity"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Capacity</FormLabel>
+                        <FormField
+                            control={form.control}
+                            name="venue_type"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Venue Type</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
-                                            <Input type="number" placeholder="200" {...field} />
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select type" />
+                                            </SelectTrigger>
                                         </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
+                                        <SelectContent>
+                                            <SelectItem value="hotel">Hotel</SelectItem>
+                                            <SelectItem value="banquet_hall">Banquet Hall</SelectItem>
+                                            <SelectItem value="conference_center">Conference Center</SelectItem>
+                                            <SelectItem value="restaurant">Restaurant</SelectItem>
+                                            <SelectItem value="other">Other</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
 
                         <FormField
                             control={form.control}

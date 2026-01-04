@@ -15,7 +15,7 @@ export async function GET(
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
-        const { data: vendor, error } = await supabase
+        const { data: vendor, error } = await (supabase as any)
             .from('vendors')
             .select(`
         *,
@@ -54,9 +54,9 @@ export async function PUT(
         const body = vendorFormSchema.partial().parse(json)
         const { event_service_ids, ...vendorFields } = body
 
-        const { data: vendor, error } = await supabase
+        const { data: vendor, error } = await (supabase as any)
             .from('vendors')
-            .update(vendorFields as any)
+            .update(vendorFields)
             .eq('id', vendorId)
             .select()
             .single()
@@ -64,7 +64,7 @@ export async function PUT(
         if (error) throw error
 
         if (event_service_ids) {
-            await supabase
+            await (supabase as any)
                 .from('vendor_services')
                 .delete()
                 .eq('vendor_id', vendorId)
@@ -75,7 +75,7 @@ export async function PUT(
                     event_service_id: eventServiceId
                 }))
 
-                const { error: vendorServicesError } = await supabase
+                const { error: vendorServicesError } = await (supabase as any)
                     .from('vendor_services')
                     .insert(vendorServices)
 
@@ -104,9 +104,9 @@ export async function DELETE(
         }
 
         // Soft delete by setting is_active to false
-        const { error } = await supabase
+        const { error } = await (supabase as any)
             .from('vendors')
-            .update({ is_active: false } as any)
+            .update({ is_active: false })
             .eq('id', vendorId)
 
         if (error) throw error

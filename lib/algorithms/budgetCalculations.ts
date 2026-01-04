@@ -20,23 +20,23 @@ export function calculateCategoryBreakdown(
     assignments: EventVendor[]
 ): BudgetBreakdown[] {
     const requirements = (event as any).event_service_requirements || [];
-    const budgetMap = new Map(
+    const budgetMap = new Map<string, number>(
         requirements.map((req: any) => [req.event_service_id, req.budget_amount || 0])
     );
-    const nameMap = new Map(
+    const nameMap = new Map<string, string>(
         requirements.map((req: any) => [req.event_service_id, req.event_services?.name || 'Service'])
     );
 
     // Group assignments by service
-    const serviceIds = new Set([
+    const serviceIds = new Set<string>([
         ...Array.from(budgetMap.keys()),
         ...assignments.map(a => a.event_service_id)
     ]);
 
     const breakdown: BudgetBreakdown[] = [];
 
-    serviceIds.forEach(serviceId => {
-        const budgeted = budgetMap.get(serviceId) || 0;
+    serviceIds.forEach((serviceId: string) => {
+        const budgeted: number = budgetMap.get(serviceId) ?? 0;
 
         // Sum costs for this service
         const categoryAssignments = assignments.filter(a => a.event_service_id === serviceId);
@@ -54,7 +54,7 @@ export function calculateCategoryBreakdown(
 
         // Use actual if available (event done), otherwise quoted
         const spent = actual > 0 ? actual : quoted;
-        const variance = budgeted - spent; // Positive = Under budget (Good), Negative = Over budget
+        const variance: number = budgeted - spent; // Positive = Under budget (Good), Negative = Over budget
 
         breakdown.push({
             event_service_id: serviceId,

@@ -16,7 +16,7 @@ export async function GET(
         }
 
         // RLS will ensure user can only access their own spaces
-        const { data: space, error } = await supabase
+        const { data: space, error } = await (supabase as any)
             .from('spaces')
             .select('*')
             .eq('id', spaceId)
@@ -48,7 +48,7 @@ export async function PATCH(
         const body = spaceFormSchema.parse(json)
 
         // RLS will ensure user can only update their own spaces
-        const { data: space, error } = await supabase
+        const { data: space, error } = await (supabase as any)
             .from('spaces')
             .update({
                 ...body,
@@ -84,7 +84,7 @@ export async function DELETE(
         }
 
         // RLS will ensure user can only delete their own spaces
-        const { error } = await supabase
+        const { error } = await (supabase as any)
             .from('spaces')
             .delete()
             .eq('id', spaceId)

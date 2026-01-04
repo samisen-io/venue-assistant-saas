@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server'
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { quoteId: string } }
+  { params }: { params: Promise<{ quoteId: string }> }
 ) {
   const supabase = await createClient()
 
@@ -22,7 +22,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { quoteId } = params
+    const { quoteId } = await params
 
     // Parse request body for rejection reason
     const body = await request.json()

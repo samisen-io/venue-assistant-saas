@@ -28,7 +28,7 @@ export async function GET(request: Request) {
             query = query.eq('space_id', spaceId)
         } else {
             // Get user's venue
-            const { data: venue } = await supabase
+            const { data: venue } = await (supabase as any)
                 .from('venues')
                 .select('id')
                 .eq('owner_id', user.id)
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
         const body = eventFormSchema.parse(eventData)
 
         // Get the space to find its venue_id
-        const { data: space, error: spaceError } = await supabase
+        const { data: space, error: spaceError } = await (supabase as any)
             .from('spaces')
             .select('venue_id')
             .eq('id', space_id)
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
             return new NextResponse('Invalid space ID', { status: 400 })
         }
 
-        const { data: event, error } = await supabase
+        const { data: event, error } = await (supabase as any)
             .from('events')
             .insert({
                 ...body,
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
                 budget_amount: requirement.budget_amount || 0,
             }))
 
-            const { error: requirementsError } = await supabase
+            const { error: requirementsError } = await (supabase as any)
                 .from('event_service_requirements')
                 .insert(requirements)
 

@@ -59,8 +59,8 @@ export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: 
 
     const [serviceBudgets, setServiceBudgets] = useState<ServiceBudget[]>(initialServiceBudgets);
 
-    const form = useForm<z.infer<typeof eventFormWithSpaceSchema>>({
-        resolver: zodResolver(eventFormWithSpaceSchema),
+    const form = useForm({
+        resolver: zodResolver(eventFormWithSpaceSchema) as any,
         mode: "onBlur", // Enable inline validation
         defaultValues: initialData ? {
             space_id: (initialData as any).space_id || "",
@@ -83,7 +83,7 @@ export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: 
             description: "",
             special_requirements: "",
         },
-    });
+    }) as any;
 
     useEffect(() => {
         const fetchServices = async () => {

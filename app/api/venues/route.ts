@@ -12,7 +12,7 @@ export async function GET(request: Request) {
         }
 
         // RLS will handle filtering for current user
-        const { data: venues, error } = await supabase
+        const { data: venues, error } = await (supabase as any)
             .from('venues')
             .select('*')
             .order('created_at', { ascending: false })
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         const json = await request.json()
         const body = venueFormSchema.parse(json)
 
-        const { data: venue, error } = await supabase
+        const { data: venue, error } = await (supabase as any)
             .from('venues')
             .insert({
                 ...body,

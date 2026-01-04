@@ -15,7 +15,7 @@ export async function GET(
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
-        const { data: event, error } = await supabase
+        const { data: event, error } = await (supabase as any)
             .from('events')
             .select(`
         *,
@@ -59,7 +59,7 @@ export async function PUT(
         // Separate update logic if needed, but for now reuse schema
         const body = eventFormSchema.partial().parse(eventData)
 
-        const { data: event, error } = await supabase
+        const { data: event, error } = await (supabase as any)
             .from('events')
             .update(body)
             .eq('id', eventId)
@@ -69,7 +69,7 @@ export async function PUT(
         if (error) throw error
 
         if (event_service_requirements) {
-            await supabase
+            await (supabase as any)
                 .from('event_service_requirements')
                 .delete()
                 .eq('event_id', eventId)
@@ -81,7 +81,7 @@ export async function PUT(
                     budget_amount: requirement.budget_amount || 0,
                 }))
 
-                const { error: requirementsError } = await supabase
+                const { error: requirementsError } = await (supabase as any)
                     .from('event_service_requirements')
                     .insert(requirements)
 
@@ -109,7 +109,7 @@ export async function DELETE(
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
-        const { error } = await supabase
+        const { error } = await (supabase as any)
             .from('events')
             .delete()
             .eq('id', eventId)
