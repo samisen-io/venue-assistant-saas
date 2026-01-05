@@ -205,6 +205,7 @@ export class AgentOrchestrator {
             },
           })
         } else {
+          console.error(`❌ Failed to contact vendor ${vendor.name}:`, result.error)
           await this.addLog(agentRunId, {
             timestamp: new Date().toISOString(),
             level: 'error',
@@ -219,10 +220,19 @@ export class AgentOrchestrator {
         // Add small delay between emails to avoid rate limits
         await new Promise(resolve => setTimeout(resolve, 1000))
       } catch (error: any) {
+        console.error(`❌ Exception contacting vendor:`, {
+          message: error.message,
+          stack: error.stack,
+          vendor: mv.vendor?.name
+        })
         await this.addLog(agentRunId, {
           timestamp: new Date().toISOString(),
           level: 'error',
           message: `Error contacting vendor: ${error.message}`,
+          details: {
+            vendorName: mv.vendor?.name,
+            errorStack: error.stack,
+          }
         })
       }
     }

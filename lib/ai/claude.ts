@@ -47,6 +47,7 @@ export class ClaudeClient {
     }
   ): Promise<string> {
     try {
+      console.log('🤖 Claude API: Sending request to model:', getClaudeModel())
       const response = await this.client.messages.create({
         model: getClaudeModel(),
         max_tokens: options?.maxTokens || 4096,
@@ -60,6 +61,8 @@ export class ClaudeClient {
         ],
       })
 
+      console.log('🤖 Claude API: Received response, tokens:', response.usage)
+
       // Extract text from response
       const content = response.content[0]
       if (content.type === 'text') {
@@ -68,6 +71,7 @@ export class ClaudeClient {
 
       throw new Error('Unexpected response type from Claude')
     } catch (error) {
+      console.error('❌ Claude API Error:', error)
       return this.handleError(error)
     }
   }

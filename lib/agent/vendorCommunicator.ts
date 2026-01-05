@@ -33,6 +33,7 @@ export interface VendorOutreachResult {
  */
 export async function draftOutreachEmail(input: VendorOutreachInput): Promise<string> {
   try {
+    console.log('🤖 Drafting email with Claude AI...')
     const prompt = buildVendorOutreachPrompt({
       vendor: input.vendor,
       event: input.event,
@@ -40,15 +41,22 @@ export async function draftOutreachEmail(input: VendorOutreachInput): Promise<st
       purpose: 'outreach',
     })
 
+    console.log('🤖 Sending prompt to Claude API...')
     const emailBody = await askClaude(prompt, {
       systemPrompt: 'You are a professional event coordinator drafting vendor outreach emails.',
       maxTokens: 1024,
       temperature: 0.7,
     })
 
+    console.log('🤖 Email drafted successfully, length:', emailBody.length)
     return emailBody.trim()
   } catch (error: any) {
-    console.error('Error drafting outreach email:', error)
+    console.error('❌ Error drafting outreach email:', {
+      message: error.message,
+      stack: error.stack,
+      vendor: input.vendor.name,
+      event: input.event.event_name
+    })
     throw new Error(`Failed to draft email: ${error.message}`)
   }
 }
