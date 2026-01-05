@@ -11,7 +11,7 @@ interface AgentRunLogsProps {
 }
 
 export function AgentRunLogs({ agentRun }: AgentRunLogsProps) {
-  const logs = (agentRun.logs as AgentLogEntry[]) || []
+  const logs = (Array.isArray(agentRun.logs) ? agentRun.logs : []) as unknown as AgentLogEntry[]
 
   const getLogIcon = (level: string) => {
     switch (level) {

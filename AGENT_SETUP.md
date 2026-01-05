@@ -37,7 +37,7 @@ This guide will help you complete the setup for the AI-powered vendor outreach a
 1. Go to [Resend Inbound](https://resend.com/inbound)
 2. Click "Add Inbound Route"
 3. Configure:
-   - **Email Address**: `replies@venuemanager.pro` (or any address on your verified domain)
+   - **Email Address**: `assistant@venuemanager.pro` (or any address on your verified domain)
    - **Forward to URL**: `https://your-domain.vercel.app/api/webhooks/email/inbound`
 4. Enable the route
 
@@ -73,7 +73,7 @@ Go to your Vercel project settings → Environment Variables and add:
 ANTHROPIC_API_KEY=sk-ant-api03-...
 RESEND_API_KEY=re_...
 RESEND_WEBHOOK_SECRET=whsec_...
-RESEND_FROM_EMAIL=aibot@venuemanager.pro
+RESEND_FROM_EMAIL=assistant@venuemanager.pro
 RESEND_FROM_NAME="Venue Manager AI"
 
 # Security
@@ -115,7 +115,7 @@ Vercel will automatically deploy your changes.
 #### B. Test Email Webhook (Inbound)
 Send a test email from a vendor's email address to your configured inbound route:
 ```
-To: replies@venuemanager.pro
+To: assistant@venuemanager.pro
 From: vendor@example.com
 Subject: Re: Event Quote Request
 
