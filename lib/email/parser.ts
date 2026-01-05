@@ -33,6 +33,9 @@ export function parseVendorEmail(rawEmail: string | any): ParsedEmail {
   }
 }
 
+// Alias for backward compatibility
+export const parseEmail = parseVendorEmail
+
 /**
  * Extract email body from various formats
  */
