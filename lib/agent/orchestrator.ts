@@ -25,8 +25,10 @@ export class AgentOrchestrator {
 
     try {
       const { eventId, triggerType = 'manual', vendorIds } = payload
+      console.log('🚀 Starting agent for event:', eventId)
 
       // Validate event exists
+      console.log('📋 Fetching event data...')
       const { data: event, error: eventError} = await (supabase as any)
         .from('events')
         .select(`
@@ -41,13 +43,16 @@ export class AgentOrchestrator {
         .single()
 
       if (eventError || !event) {
+        console.error('❌ Event fetch error:', eventError)
         return {
           success: false,
           error: 'Event not found',
         }
       }
+      console.log('✅ Event fetched:', event.event_name)
 
       // Get vendors for the venue
+      console.log('🏢 Fetching vendors for venue:', event.venue.id)
       const { data: allVendors, error: vendorsError } = await (supabase as any)
         .from('vendors')
         .select(`
@@ -60,11 +65,13 @@ export class AgentOrchestrator {
         .eq('venue_id', event.venue.id)
 
       if (vendorsError) {
+        console.error('❌ Vendors fetch error:', vendorsError)
         return {
           success: false,
           error: 'Failed to fetch vendors',
         }
       }
+      console.log('✅ Vendors fetched:', allVendors?.length || 0)
 
       // Filter vendors if specific IDs provided, otherwise use all vendors
       const requiredServiceIds = (event.event_service_requirements || []).map((req: any) => req.event_service_id)
@@ -78,6 +85,7 @@ export class AgentOrchestrator {
       }
 
       if (targetVendors.length === 0) {
+        console.warn('⚠️ No vendors found for this event')
         return {
           success: false,
           error: 'No vendors available for this venue',
@@ -86,8 +94,10 @@ export class AgentOrchestrator {
 
       // Wrap vendors in the expected format (agent expects vendor property)
       targetVendors = targetVendors.map((v: any) => ({ vendor: v }))
+      console.log('🎯 Target vendors selected:', targetVendors.length)
 
       // Create agent run
+      console.log('📝 Creating agent run record...')
       const agentRun: AgentRunInsert = {
         event_id: eventId,
         trigger_type: triggerType,
@@ -106,11 +116,13 @@ export class AgentOrchestrator {
         .single()
 
       if (createError || !createdRun) {
+        console.error('❌ Agent run creation error:', createError)
         return {
           success: false,
           error: 'Failed to create agent run',
         }
       }
+      console.log('✅ Agent run created:', createdRun.id)
 
       // Log agent start
       await this.addLog(createdRun.id, {
@@ -124,18 +136,31 @@ export class AgentOrchestrator {
       })
 
       // Start contacting vendors (don't await - run in background)
+      console.log('📧 Initiating vendor contact (background)...')
       this.contactVendors(createdRun.id, event, targetVendors).catch(error => {
-        console.error('Error in contactVendors:', error)
+        console.error('❌ Error in contactVendors background process:', {
+          message: error.message,
+          stack: error.stack,
+          agentRunId: createdRun.id,
+        })
         this.handleAgentError(createdRun.id, error)
       })
 
+      console.log('✅ Agent started successfully')
       return {
         success: true,
         agentRunId: createdRun.id,
         message: `Agent started successfully. Contacting ${targetVendors.length} vendors.`,
       }
     } catch (error: any) {
-      console.error('Error starting agent:', error)
+      console.error('❌ ORCHESTRATOR ERROR in startAgent:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        timestamp: new Date().toISOString(),
+        eventId: payload.eventId,
+        triggerType: payload.triggerType,
+      })
       return {
         success: false,
         error: error.message || 'Failed to start agent',
@@ -151,11 +176,13 @@ export class AgentOrchestrator {
     event: any,
     matchedVendors: any[]
   ): Promise<void> {
+    console.log(`📧 Starting contactVendors for ${matchedVendors.length} vendors`)
     let contactedCount = 0
 
     for (const mv of matchedVendors) {
       try {
         const vendor = mv.vendor as Vendor
+        console.log(`📤 Sending outreach to vendor: ${vendor.name} (${vendor.id})`)
 
         // Send outreach email
         const result = await sendVendorOutreach({
@@ -164,6 +191,7 @@ export class AgentOrchestrator {
           venueName: event.venue.name,
           agentRunId,
         })
+        console.log(`📬 Outreach result for ${vendor.name}:`, result.success ? 'SUCCESS' : 'FAILED')
 
         if (result.success) {
           contactedCount++

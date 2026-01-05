@@ -8,6 +8,7 @@ import { getAgentOrchestrator } from '@/lib/agent/orchestrator'
  */
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
+  let user: any = null
 
   try {
     // Check if AI agent is enabled
@@ -20,9 +21,10 @@ export async function POST(request: NextRequest) {
 
     // Check authentication
     const {
-      data: { user },
+      data: { user: authenticatedUser },
       error: authError,
     } = await supabase.auth.getUser()
+    user = authenticatedUser
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -74,9 +76,22 @@ export async function POST(request: NextRequest) {
       message: result.message,
     })
   } catch (error: any) {
-    console.error('Error starting agent:', error)
+    // Comprehensive error logging
+    console.error('❌ CRITICAL ERROR in /api/agent/start:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      timestamp: new Date().toISOString(),
+      requestBody: await request.clone().json().catch(() => null),
+      userId: user?.id || 'unknown',
+    })
+
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      {
+        error: error.message || 'Internal server error',
+        errorType: error.name,
+        timestamp: new Date().toISOString()
+      },
       { status: 500 }
     )
   }
