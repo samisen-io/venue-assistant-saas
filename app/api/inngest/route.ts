@@ -5,6 +5,7 @@ import {
   processVendorReply,
   sendFollowUp,
 } from '@/lib/inngest/functions/agent-monitor'
+import { startVendorOutreach } from '@/lib/inngest/functions/agent-outreach'
 
 /**
  * Inngest API Route
@@ -21,5 +22,6 @@ export const { GET, POST, PUT } = serve({
     agentMonitor,
     processVendorReply,
     sendFollowUp,
+    startVendorOutreach,
   ],
 })

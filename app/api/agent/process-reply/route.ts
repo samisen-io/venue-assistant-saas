@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     // Process vendor replies
     const orchestrator = getAgentOrchestrator()
-    await orchestrator.processVendorReplies(agentRunId)
+    await orchestrator.processVendorReplies(agentRunId, supabase)
 
     return NextResponse.json({
       success: true,

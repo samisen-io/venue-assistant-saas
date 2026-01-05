@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
 
     // Check status and potentially trigger follow-ups
     const orchestrator = getAgentOrchestrator()
-    const updatedRun = await orchestrator.checkAgentStatus(agentRunId)
+    const updatedRun = await orchestrator.checkAgentStatus(agentRunId, supabase)
 
     return NextResponse.json({
       success: true,

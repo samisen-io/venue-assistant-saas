@@ -1,6 +1,6 @@
 import { inngest } from '../client'
 import { getAgentOrchestrator } from '@/lib/agent/orchestrator'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 /**
  * Agent Monitor Function
@@ -21,7 +21,7 @@ export const agentMonitor = inngest.createFunction(
 
     // Step 1: Get all active agent runs
     const activeRuns = await step.run('get-active-agent-runs', async () => {
-      const supabase = await createClient()
+      const supabase = createAdminClient()
       const { data: runs } = await (supabase as any)
         .from('agent_runs')
         .select('id, event_id, started_at, status')
@@ -37,14 +37,15 @@ export const agentMonitor = inngest.createFunction(
 
     // Step 2: Process each active run
     const results = []
+    const supabase = createAdminClient()
     for (const run of activeRuns) {
       const result = await step.run(`process-agent-run-${run.id}`, async () => {
         try {
           // Check agent status and send follow-ups if needed
-          await orchestrator.checkAgentStatus(run.id)
+          await orchestrator.checkAgentStatus(run.id, supabase)
 
           // Process any new vendor replies
-          await orchestrator.processVendorReplies(run.id)
+          await orchestrator.processVendorReplies(run.id, supabase)
 
           return {
             agentRunId: run.id,
@@ -90,9 +91,10 @@ export const processVendorReply = inngest.createFunction(
     }
 
     const orchestrator = getAgentOrchestrator()
+    const supabase = createAdminClient()
 
     await step.run('process-reply', async () => {
-      await orchestrator.processVendorReplies(agentRunId)
+      await orchestrator.processVendorReplies(agentRunId, supabase)
     })
 
     return {
@@ -121,9 +123,10 @@ export const sendFollowUp = inngest.createFunction(
     await step.sleep('wait-for-followup-delay', `${delayHours}h`)
 
     const orchestrator = getAgentOrchestrator()
+    const supabase = createAdminClient()
 
     await step.run('check-and-send-followup', async () => {
-      await orchestrator.checkAgentStatus(agentRunId)
+      await orchestrator.checkAgentStatus(agentRunId, supabase)
     })
 
     return {

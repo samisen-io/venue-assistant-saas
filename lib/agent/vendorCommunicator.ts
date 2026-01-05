@@ -65,9 +65,10 @@ export async function draftOutreachEmail(input: VendorOutreachInput): Promise<st
  * Send outreach email to a vendor
  */
 export async function sendVendorOutreach(
-  input: VendorOutreachInput
+  input: VendorOutreachInput,
+  supabaseClient?: any
 ): Promise<VendorOutreachResult> {
-  const supabase = await createClient()
+  const supabase = supabaseClient || await createClient()
 
   try {
     console.log('📧 sendVendorOutreach - Starting for vendor:', input.vendor.name)
@@ -199,16 +200,19 @@ export async function draftFollowUpEmail(input: {
 /**
  * Send follow-up email to a vendor
  */
-export async function sendFollowUpEmail(input: {
-  vendor: Vendor
-  event: Event
-  venueName: string
-  previousCommunications: VendorCommunication[]
-  agentRunId?: string
-  reason?: 'no_response' | 'incomplete_quote' | 'clarification_needed' | 'deadline_reminder'
-  specificQuestions?: string[]
-}): Promise<VendorOutreachResult> {
-  const supabase = await createClient()
+export async function sendFollowUpEmail(
+  input: {
+    vendor: Vendor
+    event: Event
+    venueName: string
+    previousCommunications: VendorCommunication[]
+    agentRunId?: string
+    reason?: 'no_response' | 'incomplete_quote' | 'clarification_needed' | 'deadline_reminder'
+    specificQuestions?: string[]
+  },
+  supabaseClient?: any
+): Promise<VendorOutreachResult> {
+  const supabase = supabaseClient || await createClient()
 
   try {
     // Draft the follow-up email
@@ -283,16 +287,19 @@ export async function sendFollowUpEmail(input: {
 /**
  * Send confirmation email to a vendor (after quote approval)
  */
-export async function sendConfirmationEmail(input: {
-  vendor: Vendor
-  event: Event
-  venueName: string
-  quoteDetails: {
-    totalCost: number
-    approvedAt: string
-  }
-}): Promise<VendorOutreachResult> {
-  const supabase = await createClient()
+export async function sendConfirmationEmail(
+  input: {
+    vendor: Vendor
+    event: Event
+    venueName: string
+    quoteDetails: {
+      totalCost: number
+      approvedAt: string
+    }
+  },
+  supabaseClient?: any
+): Promise<VendorOutreachResult> {
+  const supabase = supabaseClient || await createClient()
 
   try {
     const prompt = buildVendorOutreachPrompt({

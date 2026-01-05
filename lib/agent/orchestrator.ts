@@ -11,6 +11,8 @@ import { Vendor } from '@/lib/types'
 import { sendVendorOutreach, sendFollowUpEmail } from './vendorCommunicator'
 import { analyzeVendorReply, extractQuoteFromReply } from './quoteExtractor'
 import { getVendorState, canSendFollowUp } from './stateMachine'
+import { inngest } from '../inngest/client'
+import { createAdminClient } from '../supabase/admin'
 
 /**
  * Main Agent Orchestrator
@@ -29,7 +31,7 @@ export class AgentOrchestrator {
 
       // Validate event exists
       console.log('📋 Fetching event data...')
-      const { data: event, error: eventError} = await (supabase as any)
+      const { data: event, error: eventError } = await (supabase as any)
         .from('events')
         .select(`
           *,
@@ -135,22 +137,22 @@ export class AgentOrchestrator {
         },
       })
 
-      // Start contacting vendors (don't await - run in background)
-      console.log('📧 Initiating vendor contact (background)...')
-      this.contactVendors(createdRun.id, event, targetVendors).catch(error => {
-        console.error('❌ Error in contactVendors background process:', {
-          message: error.message,
-          stack: error.stack,
+      // Start contacting vendors via Inngest (reliable background processing)
+      console.log('📧 Triggering vendor outreach via Inngest...')
+      await inngest.send({
+        name: 'agent/outreach.started',
+        data: {
           agentRunId: createdRun.id,
-        })
-        this.handleAgentError(createdRun.id, error)
+          eventId: eventId,
+          vendorIds: vendorIds,
+        },
       })
 
-      console.log('✅ Agent started successfully')
+      console.log('✅ Agent started successfully and event sent to Inngest')
       return {
         success: true,
         agentRunId: createdRun.id,
-        message: `Agent started successfully. Contacting ${targetVendors.length} vendors.`,
+        message: `Agent started successfully. Contacting ${targetVendors.length} vendors in background.`,
       }
     } catch (error: any) {
       console.error('❌ ORCHESTRATOR ERROR in startAgent:', {
@@ -169,71 +171,87 @@ export class AgentOrchestrator {
   }
 
   /**
+   * Contact a single vendor (used by Inngest)
+   */
+  async contactSingleVendor(
+    agentRunId: string,
+    event: any,
+    vendor: Vendor,
+    supabaseClient?: any
+  ): Promise<any> {
+    const supabase = supabaseClient || createAdminClient()
+
+    try {
+      console.log(`📤 [Single] Sending outreach to vendor: ${vendor.name} (${vendor.id})`)
+
+      // Send outreach email
+      const result = await sendVendorOutreach({
+        vendor,
+        event,
+        venueName: event.venue?.name || '',
+        agentRunId,
+      }, supabase)
+
+      console.log(`📬 [Single] Outreach result for ${vendor.name}:`, result.success ? 'SUCCESS' : 'FAILED')
+
+      if (result.success) {
+        await this.addLog(agentRunId, {
+          timestamp: new Date().toISOString(),
+          level: 'success',
+          message: `Contacted vendor: ${vendor.name}`,
+          details: {
+            vendorId: vendor.id,
+            communicationId: result.communicationId,
+          },
+        }, supabase)
+        return { success: true, communicationId: result.communicationId }
+      } else {
+        console.error(`❌ [Single] Failed to contact vendor ${vendor.name}:`, result.error)
+        await this.addLog(agentRunId, {
+          timestamp: new Date().toISOString(),
+          level: 'error',
+          message: `Failed to contact vendor: ${vendor.name}`,
+          details: {
+            vendorId: vendor.id,
+            error: result.error,
+          },
+        }, supabase)
+        return { success: false, error: result.error }
+      }
+    } catch (error: any) {
+      console.error(`❌ [Single] Exception contacting vendor:`, error)
+      await this.addLog(agentRunId, {
+        timestamp: new Date().toISOString(),
+        level: 'error',
+        message: `Error contacting vendor ${vendor.name}: ${error.message}`,
+        details: { error: error.message }
+      }, supabase)
+      return { success: false, error: error.message }
+    }
+  }
+
+  /**
    * Contact vendors for an agent run
+   * @deprecated Used trigger Inngest event instead
    */
   private async contactVendors(
     agentRunId: string,
     event: any,
     matchedVendors: any[]
   ): Promise<void> {
-    console.log(`📧 Starting contactVendors for ${matchedVendors.length} vendors`)
+    console.log(`📧 Starting contactVendors (legacy) for ${matchedVendors.length} vendors`)
+    const supabase = createAdminClient()
     let contactedCount = 0
 
     for (const mv of matchedVendors) {
       try {
         const vendor = mv.vendor as Vendor
-        console.log(`📤 Sending outreach to vendor: ${vendor.name} (${vendor.id})`)
+        const result = await this.contactSingleVendor(agentRunId, event, vendor, supabase)
+        if (result.success) contactedCount++
 
-        // Send outreach email
-        const result = await sendVendorOutreach({
-          vendor,
-          event,
-          venueName: event.venue.name,
-          agentRunId,
-        })
-        console.log(`📬 Outreach result for ${vendor.name}:`, result.success ? 'SUCCESS' : 'FAILED')
-
-        if (result.success) {
-          contactedCount++
-          await this.addLog(agentRunId, {
-            timestamp: new Date().toISOString(),
-            level: 'success',
-            message: `Contacted vendor: ${vendor.name}`,
-            details: {
-              vendorId: vendor.id,
-              communicationId: result.communicationId,
-            },
-          })
-        } else {
-          console.error(`❌ Failed to contact vendor ${vendor.name}:`, result.error)
-          await this.addLog(agentRunId, {
-            timestamp: new Date().toISOString(),
-            level: 'error',
-            message: `Failed to contact vendor: ${vendor.name}`,
-            details: {
-              vendorId: vendor.id,
-              error: result.error,
-            },
-          })
-        }
-
-        // Add small delay between emails to avoid rate limits
         await new Promise(resolve => setTimeout(resolve, 1000))
       } catch (error: any) {
-        console.error(`❌ Exception contacting vendor:`, {
-          message: error.message,
-          stack: error.stack,
-          vendor: mv.vendor?.name
-        })
-        await this.addLog(agentRunId, {
-          timestamp: new Date().toISOString(),
-          level: 'error',
-          message: `Error contacting vendor: ${error.message}`,
-          details: {
-            vendorName: mv.vendor?.name,
-            errorStack: error.stack,
-          }
-        })
+        console.error(`❌ Exception in legacy contactVendors:`, error)
       }
     }
 
@@ -241,20 +259,20 @@ export class AgentOrchestrator {
     await this.updateAgentRun(agentRunId, {
       vendors_contacted: contactedCount,
       last_activity_at: new Date().toISOString(),
-    })
+    }, supabase)
 
     await this.addLog(agentRunId, {
       timestamp: new Date().toISOString(),
       level: 'info',
-      message: `Completed initial outreach. Contacted ${contactedCount} of ${matchedVendors.length} vendors.`,
-    })
+      message: `Completed initial outreach (legacy). Contacted ${contactedCount} of ${matchedVendors.length} vendors.`,
+    }, supabase)
   }
 
   /**
    * Process vendor replies
    */
-  async processVendorReplies(agentRunId: string): Promise<void> {
-    const supabase = await createClient()
+  async processVendorReplies(agentRunId: string, supabaseClient?: any): Promise<void> {
+    const supabase = supabaseClient || await createClient()
 
     try {
       // Get agent run details
@@ -358,7 +376,7 @@ export class AgentOrchestrator {
         vendors_responded: (agentRun.vendors_responded || 0) + respondedCount,
         quotes_received: (agentRun.quotes_received || 0) + quotesReceived,
         last_activity_at: new Date().toISOString(),
-      })
+      }, supabase)
     } catch (error) {
       console.error('Error processing vendor replies:', error)
       throw error
@@ -368,8 +386,8 @@ export class AgentOrchestrator {
   /**
    * Check agent status and determine if follow-ups are needed
    */
-  async checkAgentStatus(agentRunId: string): Promise<AgentRun | null> {
-    const supabase = await createClient()
+  async checkAgentStatus(agentRunId: string, supabaseClient?: any): Promise<AgentRun | null> {
+    const supabase = supabaseClient || await createClient()
 
     try {
       const { data: agentRun } = await (supabase as any)
@@ -422,14 +440,14 @@ export class AgentOrchestrator {
             venueName: agentRun.event.venue?.name || '',
             previousCommunications: comms as any,
             agentRunId,
-          })
+          }, supabase)
 
           await this.addLog(agentRunId, {
             timestamp: new Date().toISOString(),
             level: 'info',
             message: `Sent follow-up to ${vendor.name}`,
             details: { vendorId, state },
-          })
+          }, supabase)
         }
       }
 
@@ -440,7 +458,7 @@ export class AgentOrchestrator {
       const hoursSinceStart = (Date.now() - startedAt.getTime()) / (1000 * 60 * 60)
 
       if (hoursSinceStart > timeoutHours) {
-        await this.completeAgentRun(agentRunId, 'Timeout reached')
+        await this.completeAgentRun(agentRunId, 'Timeout reached', supabase)
       }
 
       return agentRun
@@ -453,23 +471,25 @@ export class AgentOrchestrator {
   /**
    * Complete an agent run
    */
-  private async completeAgentRun(agentRunId: string, reason: string): Promise<void> {
+  private async completeAgentRun(agentRunId: string, reason: string, supabaseClient?: any): Promise<void> {
+    const supabase = supabaseClient || await createClient()
     await this.updateAgentRun(agentRunId, {
       status: 'completed',
       completed_at: new Date().toISOString(),
-    })
+    }, supabase)
 
     await this.addLog(agentRunId, {
       timestamp: new Date().toISOString(),
       level: 'info',
       message: `Agent run completed: ${reason}`,
-    })
+    }, supabase)
   }
 
   /**
    * Handle agent error
    */
-  private async handleAgentError(agentRunId: string, error: any): Promise<void> {
+  private async handleAgentError(agentRunId: string, error: any, supabaseClient?: any): Promise<void> {
+    const supabase = supabaseClient || createAdminClient()
     const errorMessage = error.message || 'Unknown error'
 
     await this.updateAgentRun(agentRunId, {
@@ -477,28 +497,28 @@ export class AgentOrchestrator {
       error_count: 1,
       last_error_message: errorMessage,
       last_error_at: new Date().toISOString(),
-    })
+    }, supabase)
 
     await this.addLog(agentRunId, {
       timestamp: new Date().toISOString(),
       level: 'error',
       message: `Agent run failed: ${errorMessage}`,
-    })
+    }, supabase)
   }
 
   /**
    * Update agent run
    */
-  private async updateAgentRun(agentRunId: string, update: AgentRunUpdate): Promise<void> {
-    const supabase = await createClient()
+  private async updateAgentRun(agentRunId: string, update: AgentRunUpdate, supabaseClient?: any): Promise<void> {
+    const supabase = supabaseClient || await createClient()
     await (supabase as any).from('agent_runs').update(update).eq('id', agentRunId)
   }
 
   /**
    * Add log entry to agent run
    */
-  private async addLog(agentRunId: string, logEntry: AgentLogEntry): Promise<void> {
-    const supabase = await createClient()
+  private async addLog(agentRunId: string, logEntry: AgentLogEntry, supabaseClient?: any): Promise<void> {
+    const supabase = supabaseClient || await createClient()
 
     // Get current logs
     const { data: agentRun } = await (supabase as any)
