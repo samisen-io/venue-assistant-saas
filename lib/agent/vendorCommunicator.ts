@@ -62,8 +62,12 @@ export async function sendVendorOutreach(
   const supabase = await createClient()
 
   try {
+    console.log('📧 sendVendorOutreach - Starting for vendor:', input.vendor.name)
+    console.log('📧 Agent Run ID:', input.agentRunId)
+
     // Draft the email body
     const emailBody = await draftOutreachEmail(input)
+    console.log('📧 Email body drafted, length:', emailBody.length)
 
     // Create email draft
     const emailDraft: EmailDraft = {
@@ -79,9 +83,12 @@ export async function sendVendorOutreach(
     }
 
     // Send the email
+    console.log('📧 Sending email to:', emailDraft.to)
     const sendResult = await sendEmail(emailDraft)
+    console.log('📧 Email send result:', sendResult.success ? 'SUCCESS' : 'FAILED', sendResult.error || '')
 
     if (!sendResult.success) {
+      console.error('📧 Failed to send email:', sendResult.error)
       return {
         success: false,
         error: sendResult.error,
@@ -89,9 +96,11 @@ export async function sendVendorOutreach(
     }
 
     // Save communication record
+    console.log('📧 Saving communication record to database...')
     const { data: communication, error: dbError } = await (supabase as any)
       .from('vendor_communications')
       .insert({
+        agent_run_id: input.agentRunId || null,
         event_id: input.event.id,
         vendor_id: input.vendor.id,
         direction: 'outbound',
@@ -108,7 +117,9 @@ export async function sendVendorOutreach(
       .single()
 
     if (dbError) {
-      console.error('Error saving communication record:', dbError)
+      console.error('❌ Error saving communication record:', dbError)
+    } else {
+      console.log('✅ Communication record saved with ID:', communication?.id)
     }
 
     return {
@@ -117,7 +128,7 @@ export async function sendVendorOutreach(
       messageId: sendResult.messageId,
     }
   } catch (error: any) {
-    console.error('Error sending vendor outreach:', error)
+    console.error('❌ Error sending vendor outreach:', error)
     return {
       success: false,
       error: error.message || 'Failed to send outreach email',
@@ -226,6 +237,7 @@ export async function sendFollowUpEmail(input: {
     const { data: communication, error: dbError } = await (supabase as any)
       .from('vendor_communications')
       .insert({
+        agent_run_id: input.agentRunId || null,
         event_id: input.event.id,
         vendor_id: input.vendor.id,
         thread_id: threadId || null,
