@@ -227,15 +227,21 @@ CREATE TABLE agent_runs (
 CREATE TABLE vendor_communications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   agent_run_id UUID REFERENCES agent_runs(id) ON DELETE CASCADE,
-  event_id UUID REFERENCES events(id) ON DELETE CASCADE NOT NULL,
-  vendor_id UUID REFERENCES vendors(id) ON DELETE CASCADE NOT NULL,
+  event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+  vendor_id UUID REFERENCES vendors(id) ON DELETE CASCADE,
   direction TEXT NOT NULL, -- outbound, inbound
   subject TEXT,
   body TEXT,
+  from_email TEXT,
+  to_email TEXT,
   email_id TEXT,
   thread_id TEXT,
-  status TEXT DEFAULT 'sent', -- sent, delivered, bounced, replied
-  sent_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  status TEXT DEFAULT 'sent', -- sent, delivered, bounced, received, replied
+  sent_at TIMESTAMP WITH TIME ZONE, -- Set when venue manager sends email to vendor (outbound)
+  received_at TIMESTAMP WITH TIME ZONE, -- Set when vendor replies back (inbound)
+  read_at TIMESTAMP WITH TIME ZONE, -- Set when email is opened by recipient
+  processed BOOLEAN DEFAULT false, -- Whether the communication has been processed by the agent
+  requires_followup BOOLEAN DEFAULT false, -- Whether this communication needs follow-up action
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
