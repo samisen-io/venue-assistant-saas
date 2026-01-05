@@ -47,9 +47,14 @@ export class ClaudeClient {
     }
   ): Promise<string> {
     try {
-      console.log('🤖 Claude API: Sending request to model:', getClaudeModel())
+      const model = getClaudeModel()
+      console.log('🤖 Claude API: Sending request to model:', model)
+      console.log('🤖 Claude API: Prompt length:', prompt.length, 'characters')
+      console.log('🤖 Claude API: Max tokens:', options?.maxTokens || 4096)
+
+      const startTime = Date.now()
       const response = await this.client.messages.create({
-        model: getClaudeModel(),
+        model: model,
         max_tokens: options?.maxTokens || 4096,
         temperature: options?.temperature || 1.0,
         system: options?.systemPrompt,
@@ -60,8 +65,10 @@ export class ClaudeClient {
           },
         ],
       })
+      const elapsed = Date.now() - startTime
 
-      console.log('🤖 Claude API: Received response, tokens:', response.usage)
+      console.log('🤖 Claude API: Received response in', elapsed, 'ms')
+      console.log('🤖 Claude API: Tokens used:', response.usage)
 
       // Extract text from response
       const content = response.content[0]
@@ -70,8 +77,14 @@ export class ClaudeClient {
       }
 
       throw new Error('Unexpected response type from Claude')
-    } catch (error) {
-      console.error('❌ Claude API Error:', error)
+    } catch (error: any) {
+      console.error('❌ Claude API Error:', {
+        message: error.message,
+        status: error.status,
+        type: error.type,
+        name: error.name,
+        stack: error.stack
+      })
       return this.handleError(error)
     }
   }
