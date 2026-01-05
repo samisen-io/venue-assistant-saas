@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
         )
       ),
       event:events(id, event_name, event_date, budget_total, venue:venues(owner_id)),
-      communication:vendor_communications(id, subject, sent_at)
+      communication:vendor_communications(id, subject, received_at)
     `)
 
     // Filter by event
