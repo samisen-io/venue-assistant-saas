@@ -19,17 +19,17 @@ export const startVendorOutreach = inngest.createFunction(
         const { agentRunId, eventId, vendorIds } = event.data
         const orchestrator = getAgentOrchestrator()
 
+        console.log(`🤖 Inngest: Starting outreach for Agent Run ${agentRunId}`)
+
         // Step 1: Fetch event and target vendors
         const { eventData, targetVendors } = (await step.run('fetch-data', async () => {
+            console.log('📋 Inngest: Fetching event and vendor data...')
             const supabase = createAdminClient()
 
             // Fetch event data
             const { data: eventResult, error: eventError } = await supabase
                 .from('events')
-                .select(`
-          *,
-          venue:venues(*)
-        `)
+                .select('*, venue:venues(*)')
                 .eq('id', eventId)
                 .single()
 
@@ -40,13 +40,7 @@ export const startVendorOutreach = inngest.createFunction(
             // Fetch vendors for the venue
             const { data: allVendors, error: vendorsError } = await supabase
                 .from('vendors')
-                .select(`
-          *,
-          vendor_services (
-            event_service_id,
-            event_services (id, name, slug)
-          )
-        `)
+                .select('*, vendor_services (event_service_id, event_services (id, name, slug))')
                 .eq('venue_id', (eventResult as any).venue.id)
 
             if (vendorsError) {
@@ -68,36 +62,52 @@ export const startVendorOutreach = inngest.createFunction(
             }
         })) as any
 
+        console.log(`🎯 Inngest: Targeted ${targetVendors.length} vendors`)
+
         if (targetVendors.length === 0) {
             return { message: 'No vendors to contact' }
         }
 
         // Step 2: Contact each vendor
         const results = []
+        let contactedCount = 0
         const supabase = createAdminClient()
 
         for (const mv of targetVendors) {
-            const result = await step.run(`contact-vendor-${mv.vendor.id}`, async () => {
-                try {
-                    return await orchestrator.contactSingleVendor(
-                        agentRunId,
-                        eventData,
-                        mv.vendor,
-                        supabase
-                    )
-                } catch (error: any) {
-                    return { success: false, error: error.message }
-                }
+            const vendor = mv.vendor
+            console.log(`📤 Inngest: Contacting ${vendor.name}...`)
+
+            const result = await step.run(`contact-vendor-${vendor.id}`, async () => {
+                return await orchestrator.contactSingleVendor(
+                    agentRunId,
+                    eventData,
+                    vendor,
+                    supabase
+                )
             })
 
-            results.push({ vendorId: mv.vendor.id, ...result })
+            if (result.success) {
+                contactedCount++
+                // Update running count in DB for UI progress bar
+                await step.run(`update-progress-${vendor.id}`, async () => {
+                    await (supabase as any)
+                        .from('agent_runs')
+                        .update({
+                            vendors_contacted: contactedCount,
+                            last_activity_at: new Date().toISOString()
+                        })
+                        .eq('id', agentRunId)
+                })
+            }
 
-            // Add delay between vendors
-            await step.sleep(`delay-${mv.vendor.id}`, '1s')
+            results.push({ vendorId: vendor.id, ...result })
+
+            // Add delay between vendors to avoid rate limits
+            await step.sleep(`delay-${vendor.id}`, '1s')
         }
 
         return {
-            message: `Completed outreach for ${targetVendors.length} vendors`,
+            message: `Completed outreach for ${targetVendors.length} vendors. Successfully contacted ${contactedCount}.`,
             results
         }
     }
