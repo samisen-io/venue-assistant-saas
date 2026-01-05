@@ -6,7 +6,7 @@ Run the SQL files in this directory in your Supabase SQL Editor in the order the
 
 ## Available Migrations
 
-### `add_sent_at_received_at_columns.sql`
+### 1. `add_sent_at_received_at_columns.sql`
 
 **Purpose**: Fixes the vendor_communications table schema to properly track email timestamps.
 
@@ -32,9 +32,83 @@ Run the SQL files in this directory in your Supabase SQL Editor in the order the
 
 **Safe to run multiple times**: Yes, this migration checks if columns exist before adding them.
 
+---
+
+### 2. `add_agent_runs_columns.sql`
+
+**Purpose**: Adds missing columns to the agent_runs table to support AI agent functionality.
+
+**What it does**:
+1. Adds `trigger_type` - tracks how the agent was started (manual, webhook, scheduled)
+2. Adds progress tracking columns:
+   - `vendors_targeted` - number of vendors to contact
+   - `vendors_contacted` - number of initial emails sent
+   - `vendors_responded` - number of vendors who replied
+   - `quotes_received` - number of complete quotes extracted
+3. Adds timing column:
+   - `last_activity_at` - last activity timestamp
+4. Adds error tracking columns:
+   - `error_count` - number of errors
+   - `last_error_message` - most recent error
+   - `last_error_at` - when the last error occurred
+5. Adds `logs` - JSONB array to store agent activity logs
+6. Updates status constraint to include all valid states
+7. Creates performance indexes
+
+**Why this was needed**:
+- The original `agent_runs` table was a simplified version
+- The AI agent code requires detailed tracking of:
+  - Progress (how many vendors contacted/responded)
+  - Errors (for debugging and monitoring)
+  - Logs (activity history for each run)
+- These columns enable the agent dashboard and monitoring features
+
+**How to apply**:
+1. Open your Supabase SQL Editor
+2. Copy and paste the entire contents of `add_agent_runs_columns.sql`
+3. Run the migration
+4. Verify with: `\d agent_runs`
+
+**Safe to run multiple times**: Yes, this migration checks if columns exist before adding them.
+
 ## After Running Migrations
 
-The `vendor_communications` table will have the following structure:
+### Expected Table Structures
+
+**agent_runs** table:
+```sql
+CREATE TABLE agent_runs (
+  id UUID PRIMARY KEY,
+  event_id UUID NOT NULL,
+  trigger_type TEXT,                     -- 'manual', 'webhook', 'scheduled'
+  status TEXT DEFAULT 'running',         -- 'running', 'completed', 'failed', 'paused'
+
+  -- Timestamps
+  started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  completed_at TIMESTAMP WITH TIME ZONE,
+  last_activity_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+  -- Progress tracking
+  vendors_targeted INTEGER DEFAULT 0,
+  vendors_contacted INTEGER DEFAULT 0,
+  vendors_responded INTEGER DEFAULT 0,
+  quotes_received INTEGER DEFAULT 0,
+
+  -- Error tracking
+  error_count INTEGER DEFAULT 0,
+  last_error_message TEXT,
+  last_error_at TIMESTAMP WITH TIME ZONE,
+
+  -- Activity logs (JSONB array)
+  logs JSONB DEFAULT '[]',
+
+  -- Legacy fields
+  error_message TEXT,
+  metadata JSONB DEFAULT '{}'
+);
+```
+
+**vendor_communications** table will have the following structure:
 
 ```sql
 CREATE TABLE vendor_communications (
