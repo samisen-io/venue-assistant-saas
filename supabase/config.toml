@@ -1,0 +1,5 @@
+# Supabase Configuration File
+# Learn more: https://supabase.com/docs/guides/cli/config
+
+[functions.resend-webhook]
+verify_jwt = false  # Allow public access without authentication
