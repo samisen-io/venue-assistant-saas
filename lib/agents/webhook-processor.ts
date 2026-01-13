@@ -28,7 +28,7 @@ export async function processWebhookEvents() {
   const supabase = await createClient();
 
   // Fetch unprocessed webhook events
-  const { data: events, error } = await supabase
+  const { data: events, error } = await (supabase as any)
     .from('webhook_events')
     .select('*')
     .eq('processed', false)
@@ -56,7 +56,7 @@ export async function processWebhookEvents() {
       await processWebhookEvent(event as WebhookEvent);
 
       // Mark as processed
-      await supabase
+      await (supabase as any)
         .from('webhook_events')
         .update({
           processed: true,
@@ -69,7 +69,7 @@ export async function processWebhookEvents() {
       console.error(`[Webhook Processor] Error processing event ${event.id}:`, error);
 
       // Mark with error
-      await supabase
+      await (supabase as any)
         .from('webhook_events')
         .update({
           processing_error: error instanceof Error ? error.message : 'Unknown error',
@@ -137,7 +137,7 @@ async function handleEmailSent(data: any, eventId: string) {
   const supabase = await createClient();
 
   // Update most recent outbound communication to this email
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await (supabase as any)
     .from('vendor_communications')
     .update({
       status: 'sent',
@@ -157,7 +157,7 @@ async function handleEmailSent(data: any, eventId: string) {
 
   // Link webhook event to communication
   if (updated && updated.length > 0) {
-    await supabase
+    await (supabase as any)
       .from('webhook_events')
       .update({ vendor_communication_id: updated[0].id })
       .eq('id', eventId);
@@ -172,7 +172,7 @@ async function handleEmailDelivered(data: any, eventId: string) {
 
   const supabase = await createClient();
 
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await (supabase as any)
     .from('vendor_communications')
     .update({ status: 'delivered' })
     .eq('to_email', to)
@@ -187,7 +187,7 @@ async function handleEmailDelivered(data: any, eventId: string) {
   }
 
   if (updated && updated.length > 0) {
-    await supabase
+    await (supabase as any)
       .from('webhook_events')
       .update({ vendor_communication_id: updated[0].id })
       .eq('id', eventId);
@@ -202,7 +202,7 @@ async function handleEmailBounced(data: any, eventId: string) {
 
   const supabase = await createClient();
 
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await (supabase as any)
     .from('vendor_communications')
     .update({ status: 'bounced' })
     .eq('to_email', to)
@@ -217,7 +217,7 @@ async function handleEmailBounced(data: any, eventId: string) {
   }
 
   if (updated && updated.length > 0) {
-    await supabase
+    await (supabase as any)
       .from('webhook_events')
       .update({ vendor_communication_id: updated[0].id })
       .eq('id', eventId);
@@ -232,7 +232,7 @@ async function handleEmailOpened(data: any, eventId: string) {
 
   const supabase = await createClient();
 
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await (supabase as any)
     .from('vendor_communications')
     .update({ read_at: new Date().toISOString() })
     .eq('to_email', to)
@@ -248,7 +248,7 @@ async function handleEmailOpened(data: any, eventId: string) {
   }
 
   if (updated && updated.length > 0) {
-    await supabase
+    await (supabase as any)
       .from('webhook_events')
       .update({ vendor_communication_id: updated[0].id })
       .eq('id', eventId);
@@ -270,7 +270,7 @@ async function handleEmailComplained(data: any, eventId: string) {
   const supabase = await createClient();
 
   // Mark communication as complained/spam
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await (supabase as any)
     .from('vendor_communications')
     .update({ status: 'complained' })
     .eq('to_email', to)
@@ -285,7 +285,7 @@ async function handleEmailComplained(data: any, eventId: string) {
   }
 
   if (updated && updated.length > 0) {
-    await supabase
+    await (supabase as any)
       .from('webhook_events')
       .update({ vendor_communication_id: updated[0].id })
       .eq('id', eventId);

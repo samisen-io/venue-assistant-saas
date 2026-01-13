@@ -23,7 +23,6 @@ export async function GET(request: NextRequest) {
     console.log('[Process Webhooks] Job completed:', result);
 
     return NextResponse.json({
-      success: true,
       ...result,
       timestamp: new Date().toISOString(),
     });
