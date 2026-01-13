@@ -4,7 +4,7 @@
  * Processes webhook events from the database that were received via Supabase Edge Function
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 
 interface WebhookEvent {
   id: string;
@@ -25,7 +25,7 @@ interface WebhookEvent {
 export async function processWebhookEvents() {
   console.log('[Webhook Processor] Starting to process webhook events');
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   // Fetch unprocessed webhook events
   const { data: events, error } = await (supabase as any)
@@ -134,7 +134,7 @@ async function handleEmailSent(data: any, eventId: string) {
 
   if (!to) return;
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   // Update most recent outbound communication to this email
   const { data: updated, error } = await (supabase as any)
@@ -170,7 +170,7 @@ async function handleEmailDelivered(data: any, eventId: string) {
 
   if (!to) return;
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   const { data: updated, error } = await (supabase as any)
     .from('vendor_communications')
@@ -200,7 +200,7 @@ async function handleEmailBounced(data: any, eventId: string) {
 
   if (!to) return;
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   const { data: updated, error } = await (supabase as any)
     .from('vendor_communications')
@@ -230,7 +230,7 @@ async function handleEmailOpened(data: any, eventId: string) {
 
   if (!to) return;
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   const { data: updated, error } = await (supabase as any)
     .from('vendor_communications')
@@ -267,7 +267,7 @@ async function handleEmailComplained(data: any, eventId: string) {
 
   if (!to) return;
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   // Mark communication as complained/spam
   const { data: updated, error } = await (supabase as any)
