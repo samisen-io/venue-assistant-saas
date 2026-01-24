@@ -22,6 +22,9 @@ export * from './agent.types'
 export * from './communication.types'
 export * from './quote.types'
 
+// Re-export calendar types
+export * from './calendar.types'
+
 export type VendorMatchResult = {
     vendor: Vendor
     score: number

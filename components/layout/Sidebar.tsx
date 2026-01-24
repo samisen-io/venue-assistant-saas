@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
     CalendarDays,
+    Calendar,
     LayoutDashboard,
     Settings,
     Store,
@@ -24,6 +25,11 @@ const sidebarItems = [
         title: "Dashboard",
         href: "/dashboard",
         icon: LayoutDashboard,
+    },
+    {
+        title: "Calendar",
+        href: "/calendar",
+        icon: Calendar,
     },
     {
         title: "Events",
