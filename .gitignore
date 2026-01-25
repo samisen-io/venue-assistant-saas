@@ -50,3 +50,4 @@ supabase/.temp/
 supabase/temp/
 **/supabase/.branches/
 **/supabase/.temp/
+.env*.local
