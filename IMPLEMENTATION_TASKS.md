@@ -1752,6 +1752,7 @@ When implementing Phases 13-20 (AI features):
 **Pending**: Phases 22 (Mobile & Accessibility), 23 (Subscription & Billing), 24-27 (Performance, Security, Deployment, Documentation)
 
 **Latest Addition**: The Booking Calendar feature is now live! Access it from the sidebar to view events across all venues in day, week, or month views with filtering and color-coded statuses.
+**Next Up**: Phase 30 - Lightweight CRM (Clients & Booking Contacts)
 
 Good luck! 🚀
 
@@ -2214,3 +2215,230 @@ After completing Phase 29, verify the following:
 - [ ] Migration guide created for existing events
 - [ ] Space booking feature documented in CLAUDE.md
 - [ ] Code comments added for complex logic
+
+---
+
+## PHASE 30: LIGHTWEIGHT CRM (CLIENTS & BOOKING CONTACTS)
+
+> **Note**: This phase adds a lightweight client/contact management layer so venue managers can track who is booking events and maintain a communication audit trail. This is intentionally minimal — not a full CRM with pipelines or lead stages. The goal is to close the gap between "an event exists" and "who requested it."
+
+### Feature Overview
+- **Clients table**: Track companies or individuals who book events
+- **Event linkage**: Associate events with a client via `client_id` foreign key
+- **Communication log**: Simple audit trail of important messages sent to clients
+- **Notification preference**: Per-client flag for booking update notifications (actual sending deferred to Phase 2 email work)
+- **Booking history**: View all events for a given client
+
+### Task 30.1: Create Clients Database Migration
+- [ ] Create `migrations/add-clients-table.sql`:
+  ```sql
+  CREATE TABLE clients (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    venue_id UUID REFERENCES venues(id) ON DELETE CASCADE NOT NULL,
+    company_name TEXT,
+    contact_name TEXT NOT NULL,
+    email TEXT,
+    phone TEXT,
+    notes TEXT,
+    notify_on_booking_updates BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  );
+  ```
+- [ ] Create indexes:
+  - `CREATE INDEX idx_clients_venue_id ON clients(venue_id);`
+  - `CREATE INDEX idx_clients_email ON clients(email);`
+- [ ] Enable RLS on `clients` table
+- [ ] Create RLS policies:
+  - "Users can view own clients" (SELECT via venues.owner_id = auth.uid())
+  - "Users can insert own clients" (INSERT via venues.owner_id = auth.uid())
+  - "Users can update own clients" (UPDATE via venues.owner_id = auth.uid())
+  - "Users can delete own clients" (DELETE via venues.owner_id = auth.uid())
+- [ ] Test migration in Supabase SQL Editor
+
+### Task 30.2: Create Client Communications Log Table
+- [ ] Add to migration file or create `migrations/add-client-communications.sql`:
+  ```sql
+  CREATE TABLE client_communications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    client_id UUID REFERENCES clients(id) ON DELETE CASCADE NOT NULL,
+    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
+    message_type TEXT NOT NULL CHECK (message_type IN ('booking_confirmed', 'booking_updated', 'booking_cancelled', 'general', 'reminder')),
+    subject TEXT,
+    body TEXT,
+    sent_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    sent_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  );
+  ```
+- [ ] Create indexes:
+  - `CREATE INDEX idx_client_comms_client_id ON client_communications(client_id);`
+  - `CREATE INDEX idx_client_comms_event_id ON client_communications(event_id);`
+- [ ] Enable RLS on `client_communications` table
+- [ ] Create RLS policies (SELECT/INSERT via client → venue → owner_id chain)
+- [ ] Test migration
+
+### Task 30.3: Add client_id Foreign Key to Events Table
+- [ ] Create `migrations/add-client-id-to-events.sql`:
+  ```sql
+  ALTER TABLE events ADD COLUMN client_id UUID REFERENCES clients(id) ON DELETE SET NULL;
+  CREATE INDEX idx_events_client_id ON events(client_id);
+  ```
+- [ ] Test migration
+- [ ] Verify existing events unaffected (client_id is nullable)
+
+### Task 30.4: Define TypeScript Types
+- [ ] Create `lib/types/client.types.ts`:
+  - `Client` interface
+  - `ClientCommunication` interface
+  - `ClientWithEvents` interface (client + event count/list)
+  - `ClientFormInput` type (for create/edit forms)
+  - `CommunicationFormInput` type
+- [ ] Export types from `lib/types/index.ts`
+- [ ] Regenerate database types if using Supabase type generation
+
+### Task 30.5: Create Clients API Route
+- [ ] Create `app/api/clients/route.ts`:
+  - `GET /api/clients`: List all clients for user's venues
+    - Query params: `venueId`, `search` (search by name/company/email)
+    - Return clients with event count
+  - `POST /api/clients`: Create a new client
+    - Validate venue ownership
+    - Validate required fields (contact_name)
+    - Return created client
+- [ ] Create `app/api/clients/[clientId]/route.ts`:
+  - `GET /api/clients/[clientId]`: Get client details with booking history
+  - `PUT /api/clients/[clientId]`: Update client info
+  - `DELETE /api/clients/[clientId]`: Delete client (SET NULL on events)
+- [ ] Add authentication checks to all endpoints
+- [ ] Test all CRUD operations
+
+### Task 30.6: Create Client Communications API Route
+- [ ] Create `app/api/clients/[clientId]/communications/route.ts`:
+  - `GET`: List communications for a client (sorted by date desc)
+  - `POST`: Log a new communication entry
+- [ ] Test API endpoints
+
+### Task 30.7: Create useClients Hook
+- [ ] Create `hooks/useClients.ts`:
+  - `useClients(venueId?, search?)`: Fetch clients with filters
+  - `useClient(clientId)`: Fetch single client with booking history and comms log
+  - Handle loading, error states
+  - Implement refresh/refetch
+- [ ] Test hook
+
+### Task 30.8: Build Client List Component
+- [ ] Create `components/clients/ClientCard.tsx`:
+  - Display company name, contact name, email, phone
+  - Show event count badge
+  - Show notification preference indicator
+  - Edit/View buttons
+- [ ] Create `components/clients/ClientList.tsx`:
+  - List of ClientCard components
+  - Search bar
+  - Venue filter (if managing multiple venues)
+  - "Add Client" button
+  - Empty state for no clients
+- [ ] Test components
+
+### Task 30.9: Build Client Form Component
+- [ ] Create `components/clients/ClientForm.tsx`:
+  - Fields: company_name, contact_name, email, phone, notes, notify_on_booking_updates
+  - Validation: contact_name required, email format if provided
+  - Works for both create and edit modes
+  - Submit handler calls API
+- [ ] Add Zod schema for client form validation in `lib/utils/validation.ts`
+- [ ] Test form validation and submission
+
+### Task 30.10: Build Client Detail View
+- [ ] Create `components/clients/ClientDetail.tsx`:
+  - Client info header (name, company, contact details)
+  - Edit button
+  - **Booking History tab**: List of events linked to this client
+  - **Communications tab**: Log of messages sent to this client
+  - "Log Communication" button to manually add entries
+- [ ] Test component with mock data
+
+### Task 30.11: Add Clients Dashboard Page
+- [ ] Create `app/(dashboard)/clients/page.tsx`:
+  - Page title and metadata
+  - Integrate ClientList component
+  - "New Client" button → navigates to create page
+- [ ] Create `app/(dashboard)/clients/new/page.tsx`:
+  - ClientForm in create mode
+  - On success: redirect to client detail or clients list
+- [ ] Create `app/(dashboard)/clients/[clientId]/page.tsx`:
+  - ClientDetail component
+  - Breadcrumb navigation back to clients list
+- [ ] Create `app/(dashboard)/clients/[clientId]/edit/page.tsx`:
+  - ClientForm in edit mode
+  - On success: redirect to client detail
+- [ ] Test all page routes
+
+### Task 30.12: Add Client Selector to Event Form
+- [ ] Create `components/events/ClientSelector.tsx`:
+  - Searchable dropdown of existing clients
+  - "Create New Client" inline option (opens mini-form or redirects)
+  - Show selected client info
+  - Optional — can leave blank
+- [ ] Update `components/events/EventForm.tsx`:
+  - Add ClientSelector field
+  - Pass client_id when creating/updating event
+- [ ] Update event API routes to accept and save client_id
+- [ ] Test client selection in event creation flow
+
+### Task 30.13: Add Clients Link to Sidebar Navigation
+- [ ] Update `components/layout/Sidebar.tsx`:
+  - Add "Clients" navigation item with `Users` icon from lucide-react
+  - Position after "Vendors" in the navigation order
+  - Highlight when on clients pages
+- [ ] Test navigation
+
+### Task 30.14: Update Seed Data (Optional)
+- [ ] Update `lib/utils/seedData.ts`:
+  - Create 4-5 sample clients across venues
+  - Link some existing seed events to clients
+  - Add sample communication log entries
+- [ ] Test seed data generation includes clients
+
+### Task 30.15: Testing
+- [ ] Test complete flow: Create client → Create event with client → View client booking history
+- [ ] Test client CRUD operations
+- [ ] Test communication log entries
+- [ ] Test RLS isolation (multi-tenant)
+- [ ] Test deleting a client (events should keep client_id = NULL)
+- [ ] Test search and filtering
+- [ ] Test event form with and without client selection
+
+---
+
+## SUCCESS CRITERIA FOR PHASE 30
+
+After completing Phase 30, verify the following:
+
+### Core Client Management
+- [ ] Clients can be created, viewed, edited, and deleted
+- [ ] Clients belong to a venue (multi-tenant isolated via RLS)
+- [ ] Client has: company_name, contact_name, email, phone, notes, notification preference
+- [ ] Deleting a client sets event.client_id to NULL (does not delete events)
+
+### Event Integration
+- [ ] Events can optionally be linked to a client
+- [ ] Client selector appears on event create/edit forms
+- [ ] Client detail page shows booking history (linked events)
+
+### Communication Log
+- [ ] Communications can be logged against a client
+- [ ] Communication entries include type, subject, body, timestamp
+- [ ] Client detail page shows communication history
+
+### Navigation & UX
+- [ ] Clients page accessible from sidebar
+- [ ] Client list supports search and venue filtering
+- [ ] Empty states shown when no clients exist
+- [ ] Forms have proper validation and error handling
+
+### Data Integrity
+- [ ] RLS policies enforce tenant isolation for clients and communications
+- [ ] Foreign key constraints are correct (CASCADE on venue delete, SET NULL on client delete from events)
+- [ ] Indexes exist for common query patterns
