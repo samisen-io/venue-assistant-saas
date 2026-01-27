@@ -54,7 +54,25 @@ export default function EditEventPage({ params }: { params: Promise<{ eventId: s
                 body: JSON.stringify(values),
             });
 
-            if (!res.ok) throw new Error("Failed to update event");
+            if (res.status === 409) {
+                const data = await res.json();
+                const conflictNames = data.conflictingEvents
+                    ?.map((e: any) => e.event_name)
+                    .join(", ");
+                toast({
+                    title: "Space Conflict",
+                    description: conflictNames
+                        ? `This space is already booked by: ${conflictNames}. Please choose a different space or time.`
+                        : "This space is already booked for the selected time.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => null);
+                throw new Error(errorData?.error || "Failed to update event");
+            }
 
             toast({
                 title: "Success",

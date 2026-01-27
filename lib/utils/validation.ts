@@ -59,6 +59,7 @@ export const eventFormSchema = z.object({
         message: 'Event date must be in the future',
     }),
     event_time: z.string().optional(),
+    event_end_time: z.string().optional(),
     guest_count: z.coerce.number().min(1, 'Guest count must be at least 1').max(100000, 'Guest count seems too large'),
     budget_total: z.coerce.number().min(1, 'Budget must be greater than $0').max(10000000, 'Budget seems too large'),
     description: z.string().max(1000, 'Description must be less than 1000 characters').optional(),

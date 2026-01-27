@@ -254,12 +254,26 @@ export function convertToCalendarEvents(
     const start = new Date(eventDate)
     start.setHours(startHours, startMinutes, 0, 0)
 
-    // Default to 4 hours duration (no end time in schema)
-    const end = addHours(start, 4)
+    // Use event_end_time if available, otherwise default to 4 hours
+    let end: Date
+    const endTimeStr = (event as any).event_end_time
+    if (endTimeStr) {
+      const [endHours, endMinutes] = endTimeStr.split(':').map(Number)
+      end = new Date(eventDate)
+      end.setHours(endHours, endMinutes, 0, 0)
+    } else {
+      end = addHours(start, 4)
+    }
+
+    // Include space name in title for calendar display
+    const spaceName = event.space_name || (event.space as any)?.name
+    const title = spaceName
+      ? `${event.event_name} (${spaceName})`
+      : event.event_name
 
     return {
       id: event.id,
-      title: event.event_name,
+      title,
       start,
       end,
       resource: event,

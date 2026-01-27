@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { format } from "date-fns";
-import { CalendarDays, DollarSign, MapPin, Users } from "lucide-react";
+import { CalendarDays, DollarSign, MapPin, Users, Building2 } from "lucide-react";
 import { Event } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils/format";
@@ -14,7 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 interface EventCardProps {
-    event: Event & { venues?: { name: string } };
+    event: Event & { venues?: { name: string }; spaces?: { id: string; name: string; capacity?: number; space_type?: string } };
 }
 
 function getStatusColor(status: string | null) {
@@ -38,6 +38,13 @@ export function EventCard({ event }: EventCardProps) {
                             <MapPin className="h-3 w-3" />
                             {event.venues?.name || "Unknown Venue"}
                         </div>
+                        {event.spaces?.name && (
+                            <div className="text-sm text-gray-500 flex items-center gap-1">
+                                <Building2 className="h-3 w-3" />
+                                {event.spaces.name}
+                                {event.spaces.capacity && <span className="text-xs">({event.spaces.capacity} cap.)</span>}
+                            </div>
+                        )}
                     </div>
                     <Badge variant="outline" className={getStatusColor(event.status)}>
                         {event.status}

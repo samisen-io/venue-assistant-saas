@@ -94,6 +94,21 @@ export default function NewEventPage() {
                 body: JSON.stringify(values),
             });
 
+            if (res.status === 409) {
+                const data = await res.json();
+                const conflictNames = data.conflictingEvents
+                    ?.map((e: any) => e.event_name)
+                    .join(", ");
+                toast({
+                    title: "Space Conflict",
+                    description: conflictNames
+                        ? `This space is already booked by: ${conflictNames}. Please choose a different space or time.`
+                        : "This space is already booked for the selected time.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
             if (!res.ok) throw new Error("Failed to create event");
 
             toast({

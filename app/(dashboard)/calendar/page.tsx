@@ -7,7 +7,7 @@ import { CalendarToolbar } from '@/components/calendar/CalendarToolbar'
 import { EventQuickView } from '@/components/calendar/EventQuickView'
 import { useCalendarView } from '@/hooks/useCalendarView'
 import { useCalendarEvents } from '@/hooks/useCalendarEvents'
-import { CalendarEvent, CalendarEventWithVenue, EventStatus, Venue } from '@/lib/types'
+import { CalendarEvent, CalendarEventWithVenue, EventStatus, Venue, Space } from '@/lib/types'
 
 export default function CalendarPage() {
   const {
@@ -20,33 +20,43 @@ export default function CalendarPage() {
   } = useCalendarView('month')
 
   const [selectedVenueId, setSelectedVenueId] = useState<string>('all')
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string>('all')
   const [selectedStatuses, setSelectedStatuses] = useState<EventStatus[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [venues, setVenues] = useState<Venue[]>([])
+  const [spaces, setSpaces] = useState<Space[]>([])
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventWithVenue | null>(null)
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false)
 
-  // Fetch venues for filter
+  // Fetch venues and spaces for filters
   useEffect(() => {
-    const fetchVenues = async () => {
+    const fetchFilters = async () => {
       try {
-        const response = await fetch('/api/venues')
-        if (response.ok) {
-          const data = await response.json()
+        const [venuesRes, spacesRes] = await Promise.all([
+          fetch('/api/venues'),
+          fetch('/api/spaces'),
+        ])
+        if (venuesRes.ok) {
+          const data = await venuesRes.json()
           setVenues(data.venues || [])
         }
+        if (spacesRes.ok) {
+          const data = await spacesRes.json()
+          setSpaces(data || [])
+        }
       } catch (error) {
-        console.error('Error fetching venues:', error)
+        console.error('Error fetching filters:', error)
       }
     }
 
-    fetchVenues()
+    fetchFilters()
   }, [])
 
   // Fetch calendar events
   const { calendarEvents, isLoading, error, refetch } = useCalendarEvents({
     dateRange,
     venueId: selectedVenueId,
+    spaceId: selectedSpaceId,
     status: selectedStatuses.length > 0 ? selectedStatuses : undefined,
   })
 
@@ -89,6 +99,9 @@ export default function CalendarPage() {
         selectedVenueId={selectedVenueId}
         venues={venues.map(v => ({ id: v.id, venue_name: v.name }))}
         onVenueChange={setSelectedVenueId}
+        selectedSpaceId={selectedSpaceId}
+        spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+        onSpaceChange={setSelectedSpaceId}
       />
 
       {/* Toolbar with filters and search */}

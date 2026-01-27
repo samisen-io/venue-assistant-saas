@@ -13,7 +13,8 @@
       "Bash(python:*)",
       "Bash(cmd.exe /c \"npm run build\")",
       "Bash(powershell.exe -Command \"npm run build\")",
-      "Bash(powershell.exe -Command \"npx shadcn@latest add dialog\")"
+      "Bash(powershell.exe -Command \"npx shadcn@latest add dialog\")",
+      "Bash(npx next build:*)"
     ]
   }
 }

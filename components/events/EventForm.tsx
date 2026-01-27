@@ -27,6 +27,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Event, EventService, Space } from "@/lib/types";
 import { X } from "lucide-react";
+import { SpaceSelector } from "@/components/events/SpaceSelector";
 
 // Schema extension to include space_id which isn't in base event schema but needed for creation
 const eventFormWithSpaceSchema = eventFormSchema.extend({
@@ -35,7 +36,7 @@ const eventFormWithSpaceSchema = eventFormSchema.extend({
 
 interface EventFormProps {
     initialData?: Event;
-    spaces: Space[]; // Needed for space selection
+    spaces?: Space[]; // Optional — SpaceSelector fetches its own spaces
     onSubmit: (values: any) => Promise<void>;
     isLoading?: boolean;
 }
@@ -68,6 +69,7 @@ export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: 
             event_type: initialData.event_type,
             event_date: initialData.event_date.split('T')[0], // simplistic date handling
             event_time: initialData.event_time || "",
+            event_end_time: (initialData as any).event_end_time || "",
             guest_count: initialData.guest_count,
             budget_total: initialData.budget_total,
             description: initialData.description || "",
@@ -78,6 +80,7 @@ export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: 
             event_type: "",
             event_date: "",
             event_time: "",
+            event_end_time: "",
             guest_count: 0,
             budget_total: 0,
             description: "",
@@ -145,20 +148,16 @@ export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: 
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Space</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!initialData}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select space" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {spaces.map((space) => (
-                                        <SelectItem key={space.id} value={space.id}>
-                                            {space.name} {space.capacity && `(${space.capacity} guests)`}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <FormControl>
+                                <SpaceSelector
+                                    selectedSpaceId={field.value}
+                                    onSelect={field.onChange}
+                                    date={form.watch("event_date")}
+                                    startTime={form.watch("event_time")}
+                                    endTime={form.watch("event_end_time")}
+                                    excludeEventId={initialData?.id}
+                                />
+                            </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -219,7 +218,7 @@ export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: 
                     />
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <FormField
                         control={form.control}
                         name="event_date"
@@ -238,7 +237,20 @@ export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: 
                         name="event_time"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Time</FormLabel>
+                                <FormLabel>Start Time</FormLabel>
+                                <FormControl>
+                                    <Input type="time" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="event_end_time"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>End Time</FormLabel>
                                 <FormControl>
                                     <Input type="time" {...field} />
                                 </FormControl>

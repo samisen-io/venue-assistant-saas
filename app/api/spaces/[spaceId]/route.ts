@@ -83,6 +83,26 @@ export async function DELETE(
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
+        // Check if space has any active (non-cancelled) events
+        const { count, error: countError } = await (supabase as any)
+            .from('events')
+            .select('*', { count: 'exact', head: true })
+            .eq('space_id', spaceId)
+            .neq('status', 'cancelled')
+
+        if (countError) throw countError
+
+        if (count && count > 0) {
+            return NextResponse.json(
+                {
+                    error: `Cannot delete this space. It has ${count} active event${count > 1 ? 's' : ''} assigned to it. Cancel or reassign those events first.`,
+                    code: 'SPACE_HAS_EVENTS',
+                    activeEventCount: count,
+                },
+                { status: 409 }
+            )
+        }
+
         // RLS will ensure user can only delete their own spaces
         const { error } = await (supabase as any)
             .from('spaces')

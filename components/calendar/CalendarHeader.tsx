@@ -20,6 +20,9 @@ interface CalendarHeaderProps {
   selectedVenueId?: string
   venues?: Array<{ id: string; venue_name: string }>
   onVenueChange?: (venueId: string) => void
+  selectedSpaceId?: string
+  spaces?: Array<{ id: string; name: string }>
+  onSpaceChange?: (spaceId: string) => void
 }
 
 export function CalendarHeader({
@@ -30,6 +33,9 @@ export function CalendarHeader({
   selectedVenueId,
   venues = [],
   onVenueChange,
+  selectedSpaceId,
+  spaces = [],
+  onSpaceChange,
 }: CalendarHeaderProps) {
   // Format the date range display based on view
   const getDateRangeText = () => {
@@ -93,6 +99,23 @@ export function CalendarHeader({
               {venues.map((venue) => (
                 <SelectItem key={venue.id} value={venue.id}>
                   {venue.venue_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {/* Space filter */}
+        {spaces.length > 0 && onSpaceChange && (
+          <Select value={selectedSpaceId || 'all'} onValueChange={onSpaceChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="All Spaces" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Spaces</SelectItem>
+              {spaces.map((space) => (
+                <SelectItem key={space.id} value={space.id}>
+                  {space.name}
                 </SelectItem>
               ))}
             </SelectContent>

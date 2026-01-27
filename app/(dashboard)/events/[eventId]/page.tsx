@@ -4,7 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { CalendarDays, DollarSign, Edit, MapPin, Users, Settings, Send, CheckCircle2 } from "lucide-react";
+import { CalendarDays, DollarSign, Edit, MapPin, Users, Settings, Send, CheckCircle2, Building2, XCircle } from "lucide-react";
 
 import { Event, EventServiceRequirement, EventVendor, Venue } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -136,6 +136,12 @@ export default function EventDetailsPage({ params }: { params: Promise<{ eventId
                             <MapPin className="h-4 w-4" />
                             <span>{event.venues?.name}</span>
                         </div>
+                        {(event as any).spaces?.name && (
+                            <div className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4" />
+                                <span>{(event as any).spaces.name}</span>
+                            </div>
+                        )}
                         <div className="flex items-center gap-2">
                             <Users className="h-4 w-4" />
                             <span>{event.guest_count} Guests</span>
@@ -153,7 +159,7 @@ export default function EventDetailsPage({ params }: { params: Promise<{ eventId
                             {isStartingAgent ? "Starting..." : "Contact Vendors with AI"}
                         </Button>
                     )}
-                    {event.status !== "completed" && (
+                    {event.status !== "completed" && event.status !== "cancelled" && (
                         <Button
                             onClick={async () => {
                                 if (!confirm("Is this event over? You will be directed to review your vendors.")) return;
@@ -166,6 +172,29 @@ export default function EventDetailsPage({ params }: { params: Promise<{ eventId
                             }}
                         >
                             Complete Event
+                        </Button>
+                    )}
+                    {event.status !== "completed" && event.status !== "cancelled" && (
+                        <Button
+                            variant="destructive"
+                            onClick={async () => {
+                                if (!confirm("Are you sure you want to cancel this event? This will release the space booking.")) return;
+                                try {
+                                    const res = await fetch(`/api/events/${eventId}/cancel`, {
+                                        method: 'POST',
+                                    });
+                                    if (!res.ok) {
+                                        const data = await res.json().catch(() => null);
+                                        throw new Error(data?.error || 'Failed to cancel event');
+                                    }
+                                    fetchEventDetails();
+                                } catch (err: any) {
+                                    alert(err.message);
+                                }
+                            }}
+                        >
+                            <XCircle className="mr-2 h-4 w-4" />
+                            Cancel Event
                         </Button>
                     )}
                     <Button variant="outline" asChild>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Edit, Users, MapPin, DollarSign, Maximize } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Users, MapPin, DollarSign, Maximize } from "lucide-react";
 import { Space } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -79,12 +79,35 @@ export default function SpaceDetailPage() {
                         <p className="text-gray-500 mt-1">Space Details</p>
                     </div>
                 </div>
-                <Button asChild>
-                    <Link href={`/spaces/${space.id}/edit`}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Space
-                    </Link>
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button asChild>
+                        <Link href={`/spaces/${space.id}/edit`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Space
+                        </Link>
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        onClick={async () => {
+                            if (!confirm("Are you sure you want to delete this space? This cannot be undone.")) return;
+                            try {
+                                const res = await fetch(`/api/spaces/${space.id}`, { method: 'DELETE' });
+                                if (res.status === 409) {
+                                    const data = await res.json();
+                                    alert(data.error || "Cannot delete space with active events.");
+                                    return;
+                                }
+                                if (!res.ok) throw new Error("Failed to delete space");
+                                router.push("/spaces");
+                            } catch (err: any) {
+                                alert(err.message);
+                            }
+                        }}
+                    >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Space
+                    </Button>
+                </div>
             </div>
 
             {/* Space Information */}

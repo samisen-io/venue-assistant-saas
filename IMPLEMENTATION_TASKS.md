@@ -1754,3 +1754,463 @@ When implementing Phases 13-20 (AI features):
 **Latest Addition**: The Booking Calendar feature is now live! Access it from the sidebar to view events across all venues in day, week, or month views with filtering and color-coded statuses.
 
 Good luck! 🚀
+
+---
+
+## PHASE 29: SPACE BOOKING MANAGEMENT
+
+> **Note**: This phase implements robust space booking management to prevent double-bookings, automatic space release on event cancellation, and space-based calendar filtering. This ensures proper resource management across all venues.
+
+### Current Status Summary
+
+**✅ ALREADY IMPLEMENTED (Database)**:
+- Spaces table fully defined in setup-database.sql (lines 87-103)
+- Events table has space_id foreign key (NOT NULL)
+- RLS policies for spaces (view, insert, update, delete)
+- Basic indexes (idx_spaces_venue_id, idx_events_space_id)
+- All database types generated in lib/types/database.types.ts
+
+**✅ PARTIALLY IMPLEMENTED**:
+- Basic space CRUD API routes (app/api/spaces/route.ts, app/api/spaces/[spaceId]/route.ts)
+- SpaceCard and SpaceForm components (components/spaces/)
+- Basic Space type exported from lib/types/index.ts
+
+**❌ NOT YET IMPLEMENTED**:
+- event_end_time field in events table (needed for accurate conflict detection)
+- Database trigger/constraint for double-booking prevention
+- Space availability algorithm (lib/algorithms/space-availability.ts)
+- Space availability checking API (/api/spaces/availability)
+- Event API validation for space conflicts
+- useSpaces and useSpaceAvailability hooks
+- SpaceSelector component (for event forms with real-time availability)
+- SpaceManager/list page for space CRUD
+- Calendar space filtering
+- Space information display on calendar events
+- Double-booking error handling UI
+- Space utilization dashboard
+- All testing
+
+### Feature Overview
+Space booking management provides venue managers with:
+- **Double-booking prevention**: Database-level constraints and API validation to prevent overlapping bookings
+- **Automatic space release**: When events are cancelled or deleted, spaces become available immediately
+- **Space-based filtering**: Calendar filter to view availability and bookings by specific space
+- **Visual conflict detection**: Real-time indicators showing when spaces are unavailable
+- **Multi-space venues**: Support for venues with multiple bookable spaces (rooms, halls, etc.)
+- **Space capacity tracking**: Track guest count against space capacity
+
+### Task 29.1: Review Current Database Schema ✅
+- [x] Review `venues` table structure in Supabase
+- [x] Check if spaces/rooms are currently modeled as separate entities or part of venues
+- [x] Review `events` table to see if space assignment exists
+- [x] Document current state and identify required changes
+- [x] Review RLS policies on related tables
+
+**STATUS**: ✅ COMPLETED - Schema reviewed. Spaces table exists with all fields (id, venue_id, name, capacity, space_type, floor_level, square_footage, hourly_rate, setup_time_minutes, cleanup_time_minutes, amenities[], notes, is_active). Events table has space_id foreign key (NOT NULL). RLS policies exist for spaces.
+
+### Task 29.2: Design Space Booking Database Schema ✅
+**STATUS**: ✅ SKIPPED - Already implemented in setup-database.sql. Spaces table includes all required fields plus additional ones (floor_level, square_footage, setup_time_minutes, cleanup_time_minutes). See lines 87-103 in setup-database.sql.
+
+### Task 29.3: Create Database Migration for Spaces Table ✅
+**STATUS**: ✅ COMPLETED - Spaces table already created with:
+- Foreign key to venues with CASCADE delete
+- Index on venue_id (idx_spaces_venue_id)
+- RLS policies for all CRUD operations
+- All constraints in place
+
+### Task 29.4: Add Missing Database Fields for Booking Management
+- [ ] Add `event_end_time` column to `events` table (TIME, nullable) - needed for conflict detection
+- [ ] Add composite index on `(space_id, event_date, event_time, event_end_time)` for efficient conflict queries
+- [ ] Verify space_id index exists (should already exist as idx_events_space_id)
+- [ ] Test querying events by space and date range
+
+### Task 29.5: Implement Double-Booking Prevention
+- [ ] Create database function `check_space_availability`:
+  - Input: space_id, event_date, start_time, end_time, event_id (for updates)
+  - Check for overlapping bookings
+  - Return boolean indicating availability
+- [ ] Create database trigger `prevent_double_booking`:
+  - Trigger BEFORE INSERT OR UPDATE on events
+  - No overlapping bookings for same space
+  - Exclude cancelled events from conflict check
+  - Allow updating existing event without triggering conflict with itself
+  - Raise exception with helpful error message if conflict detected
+- [ ] Test trigger with various booking scenarios
+- [ ] Document booking rules and edge cases
+
+### Task 29.6: Create RLS Policies for Spaces Table ✅
+**STATUS**: ✅ COMPLETED - RLS already enabled with policies:
+- "Users can view own spaces" - SELECT policy (line 322)
+- "Users can insert own spaces" - INSERT policy (line 324)
+- "Users can update own spaces" - UPDATE policy (line 326)
+- "Users can delete own spaces" - DELETE policy (line 328)
+All policies join to venues table to check owner_id = auth.uid(). See lines 321-329 in setup-database.sql.
+
+### Task 29.7: Build Space Availability Algorithm
+- [ ] Create `lib/algorithms/space-availability.ts`:
+  - `checkSpaceAvailability(spaceId, date, startTime, endTime, excludeEventId?)`: Promise<boolean>
+  - `getConflictingEvents(spaceId, date, startTime, endTime)`: Promise<Event[]>
+  - `findAvailableSpaces(venueId, date, startTime, endTime, minCapacity?)`: Promise<Space[]>
+  - `getSpaceUtilization(spaceId, startDate, endDate)`: Promise<number> - percentage booked
+  - `getNextAvailableSlot(spaceId, afterDate)`: Promise<TimeSlot | null>
+- [ ] Implement time overlap logic correctly
+- [ ] Handle edge cases (same start/end time, midnight crossings)
+- [ ] Add comprehensive tests
+- [ ] Document algorithm logic
+
+### Task 29.8: Create Space Management API Routes ✅ (PARTIAL)
+**STATUS**: ✅ Partially completed
+- [x] `app/api/spaces/route.ts` exists with GET and POST endpoints
+  - GET fetches all spaces for user's venue
+  - POST creates new space with validation using spaceFormSchema
+  - Authentication and venue ownership checks in place
+- [x] `app/api/spaces/[spaceId]/route.ts` exists (need to verify PUT/DELETE)
+- [ ] Verify PUT endpoint exists and works correctly
+- [ ] Verify DELETE endpoint checks for active bookings before deletion
+- [ ] Test all endpoints thoroughly
+
+### Task 29.9: Create Space Availability API Route
+- [ ] Create `app/api/spaces/availability/route.ts`:
+  - `GET /api/spaces/availability`:
+    - Query params: `venueId`, `date`, `startTime`, `endTime`, `minCapacity` (optional)
+    - Return array of available spaces with conflict info
+    - Include space details and capacity
+- [ ] Optimize query performance
+- [ ] Add caching if needed
+- [ ] Test with various date ranges
+- [ ] Document API response format
+
+### Task 29.10: Update Events API for Space Validation
+- [ ] Update `app/api/events/route.ts` POST:
+  - Add space_id validation
+  - Check space availability before creating event
+  - Return 409 Conflict if space is booked
+  - Include conflicting events in error response
+- [ ] Update `app/api/events/[eventId]/route.ts` PUT:
+  - Validate space availability when updating event
+  - Allow changing space if new space is available
+  - Handle date/time changes that might create conflicts
+- [ ] Add helpful error messages for booking conflicts
+- [ ] Test all conflict scenarios
+
+### Task 29.11: Update Event Cancellation to Release Space
+- [ ] Update `app/api/events/[eventId]/route.ts`:
+  - On DELETE: automatically release space (cascade handles this)
+  - On status update to "cancelled": set booking_status to "cancelled"
+  - Ensure cancelled events don't block future bookings
+- [ ] Create `app/api/events/[eventId]/cancel/route.ts`:
+  - `POST /api/events/[eventId]/cancel`: Cancel event and release space
+  - Update event status to "cancelled"
+  - Update booking_status to "cancelled"
+  - Send confirmation response
+- [ ] Test space release on cancellation
+- [ ] Verify space becomes available immediately
+
+### Task 29.12: Generate TypeScript Types for Spaces ✅ (PARTIAL)
+**STATUS**: ✅ Partially completed
+- [x] Database types already include `spaces` table definition (lib/types/database.types.ts lines 87-139)
+- [x] Space type exported from lib/types/index.ts
+- [ ] Create additional helper types in `lib/types/space.types.ts`:
+  - `SpaceWithVenue` interface (includes venue details)
+  - `SpaceAvailability` interface
+  - `SpaceBooking` interface
+  - `SpaceFilter` type
+  - `SpaceUtilization` type
+  - `TimeSlot` type
+- [ ] Update Event type to include event_end_time field when added to database
+
+### Task 29.13: Create useSpaces Hook
+- [ ] Create `hooks/useSpaces.ts`:
+  - `useSpaces(venueId?: string)`: Fetch spaces for venue
+  - `useSpace(spaceId: string)`: Fetch single space
+  - Handle loading, error states
+  - Implement refresh/refetch
+  - Add caching
+- [ ] Test hook in component
+- [ ] Add TypeScript types
+
+### Task 29.14: Create useSpaceAvailability Hook
+- [ ] Create `hooks/useSpaceAvailability.ts`:
+  - `useSpaceAvailability(params)`: Check space availability
+  - `useConflictingEvents(spaceId, date, startTime, endTime)`: Get conflicts
+  - Debounce availability checks
+  - Handle loading states
+  - Cache results temporarily
+- [ ] Test hook with various inputs
+- [ ] Optimize performance
+
+### Task 29.15: Build SpaceSelector Component
+- [ ] Create `components/events/SpaceSelector.tsx`:
+  - Dropdown/Select component for choosing space
+  - Filter by venue
+  - Show space capacity
+  - Show availability indicator (green/red/yellow)
+  - Display amenities as badges
+  - Handle loading state
+  - Props: venueId, selectedSpaceId, onSelect, date, startTime, endTime
+- [ ] Style component to match design system
+- [ ] Test component rendering
+- [ ] Add accessibility attributes
+
+### Task 29.16: Add Space Availability Indicator to SpaceSelector
+- [ ] Update SpaceSelector component:
+  - Check availability when date/time changes
+  - Show green checkmark if available
+  - Show red X if booked
+  - Show yellow warning if partially available
+  - Display tooltip with conflict details
+  - Disable selecting unavailable spaces
+- [ ] Add real-time availability checking
+- [ ] Test visual feedback
+- [ ] Ensure good UX with loading states
+
+### Task 29.17: Create SpaceManager Component ✅ (PARTIAL)
+**STATUS**: ✅ Partially completed
+- [x] `components/spaces/SpaceCard.tsx` exists - displays space details with View/Edit buttons
+- [x] `components/spaces/SpaceForm.tsx` exists - form for creating/editing spaces
+- [ ] Create `components/venues/SpaceManager.tsx` or space list page:
+  - List all spaces for a venue with SpaceCard components
+  - Add new space button
+  - Delete space with confirmation
+  - Show space utilization percentage (optional)
+  - Sortable and filterable list
+- [ ] Verify SpaceForm has all fields and validation
+- [ ] Test CRUD operations end-to-end
+- [ ] Add empty state for no spaces
+
+### Task 29.18: Add Space-Based Filter to Calendar
+- [ ] Update `components/calendar/CalendarHeader.tsx`:
+  - Add space filter dropdown
+  - Multi-select for multiple spaces
+  - "All Spaces" option
+  - Filter by venue first, then show spaces
+- [ ] Update `app/(dashboard)/calendar/page.tsx`:
+  - Add space filter state
+  - Filter events by selected space(s)
+  - Update API calls to include space filter
+- [ ] Update `app/api/calendar/route.ts`:
+  - Accept `spaceId` or `spaceIds[]` query param
+  - Filter events by space
+- [ ] Test filtering with multiple spaces
+- [ ] Test performance with many spaces
+
+### Task 29.19: Update Calendar Event Display
+- [ ] Update calendar event cards to show space name
+- [ ] Add space icon or badge to events
+- [ ] Show booking conflict warnings on calendar
+- [ ] Color-code by space (optional)
+- [ ] Update EventQuickView to display space details
+- [ ] Test calendar displays space info correctly
+
+### Task 29.20: Implement Double-Booking Error Handling
+- [ ] Create user-friendly error messages for booking conflicts
+- [ ] Update EventForm to catch conflict errors
+- [ ] Show modal with conflict details:
+  - Conflicting event name
+  - Conflicting event date/time
+  - Link to view conflicting event
+  - Suggest alternative spaces
+- [ ] Allow user to choose different space
+- [ ] Test error handling flow
+
+### Task 29.21: Add Space Column to Events Views
+- [ ] Update `components/events/EventCard.tsx`:
+  - Display space name and capacity
+  - Show space icon
+- [ ] Update `app/(dashboard)/events/page.tsx`:
+  - Add space column to events table
+  - Make space filterable
+  - Sort by space name
+- [ ] Update Event detail page:
+  - Show space details prominently
+  - Display space amenities
+  - Show "View Space" link
+- [ ] Test all event views display space correctly
+
+### Task 29.22: Create Space Utilization Dashboard
+- [ ] Create `components/spaces/SpaceUtilizationDashboard.tsx`:
+  - Bar chart showing booking percentage per space
+  - Date range selector (week/month/quarter)
+  - List of most/least utilized spaces
+  - Average occupancy rate
+  - Peak booking times heatmap (optional)
+- [ ] Create `app/api/spaces/utilization/route.ts`:
+  - Calculate space utilization metrics
+  - Accept date range params
+  - Return aggregated statistics
+- [ ] Add to venue detail page or dashboard
+- [ ] Test with various data sets
+
+### Task 29.23: Update Event Forms with SpaceSelector
+- [ ] Update `components/events/EventForm.tsx`:
+  - Add SpaceSelector component
+  - Show availability in real-time as user selects date/time
+  - Validate space availability before submit
+  - Handle conflict errors gracefully
+- [ ] Update `app/(dashboard)/events/new/page.tsx`:
+  - Integrate updated form
+  - Pre-fill space from calendar if clicked from empty slot
+- [ ] Update `app/(dashboard)/events/[eventId]/edit/page.tsx`:
+  - Show current space
+  - Allow changing space with availability check
+- [ ] Test form with space selection
+
+### Task 29.24: Add Space Details Page (Optional)
+- [ ] Create `app/(dashboard)/spaces/[spaceId]/page.tsx`:
+  - Display space details
+  - Show all bookings for the space
+  - Timeline view of bookings
+  - Calendar view for the space
+  - Edit/delete buttons
+  - Link back to venue
+- [ ] Create breadcrumb navigation
+- [ ] Test page rendering
+
+### Task 29.25: Implement Space Capacity Validation
+- [ ] Add validation in event creation/update:
+  - Check if guest_count <= space.capacity
+  - Show warning if exceeding capacity
+  - Allow override with confirmation (optional)
+- [ ] Display capacity warnings in UI
+- [ ] Add capacity indicator in SpaceSelector
+- [ ] Test capacity validation
+
+### Task 29.26: Add Bulk Space Creation (Optional)
+- [ ] Create utility for creating multiple spaces at once
+- [ ] Add CSV import for spaces
+- [ ] Create template CSV download
+- [ ] Validate imported data
+- [ ] Test bulk import
+
+### Task 29.27: Create Migration Guide for Existing Events
+- [ ] Create `docs/space-booking-migration.md`:
+  - Explain space booking feature
+  - SQL script to assign default space to existing events
+  - Steps for venue managers to configure spaces
+  - How to handle events without spaces
+- [ ] Create SQL script: `migrations/assign-default-spaces.sql`
+  - Create default space for each venue
+  - Assign all events to default space
+  - Mark for manual review
+- [ ] Document migration process
+
+### Task 29.28: Unit Tests for Space Availability Algorithm
+- [ ] Create `__tests__/algorithms/space-availability.test.ts`:
+  - Test basic availability check
+  - Test overlapping bookings detection
+  - Test edge cases (same start/end, midnight crossing)
+  - Test excluding event ID for updates
+  - Test finding available spaces
+  - Test utilization calculation
+- [ ] Achieve >80% code coverage
+- [ ] Test with various time zones
+
+### Task 29.29: Integration Tests for Double-Booking Prevention
+- [ ] Test database constraint prevents overlapping bookings
+- [ ] Test API returns 409 for conflicts
+- [ ] Test updating event without creating self-conflict
+- [ ] Test cancelled events don't block bookings
+- [ ] Test concurrent booking attempts
+- [ ] Test space deletion with active bookings
+- [ ] Document test scenarios
+
+### Task 29.30: Test Space Release on Event Cancellation
+- [ ] Test cancelling event releases space immediately
+- [ ] Test deleting event releases space
+- [ ] Test changing event status to cancelled
+- [ ] Verify space becomes available for new bookings
+- [ ] Test re-activating cancelled event
+- [ ] Test cascade delete (venue deletion)
+
+### Task 29.31: Test Calendar Space Filtering
+- [ ] Test filtering by single space
+- [ ] Test filtering by multiple spaces
+- [ ] Test "All Spaces" option
+- [ ] Test switching between spaces
+- [ ] Test with venue filter + space filter
+- [ ] Test performance with many spaces (100+)
+
+### Task 29.32: Update CLAUDE.md Documentation
+- [ ] Add Space Booking Management to Phase 2 features section
+- [ ] Document spaces table in Database Schema
+- [ ] Update Core Features with space booking details
+- [ ] Add to Key Workflows
+- [ ] Document double-booking prevention mechanism
+- [ ] Add space-based filtering to calendar feature description
+
+### Task 29.33: Update API Documentation
+- [ ] Document `/api/spaces` endpoints
+- [ ] Document `/api/spaces/availability` endpoint
+- [ ] Document space-related event API changes
+- [ ] Add example requests/responses
+- [ ] Document error codes for conflicts
+
+### Task 29.34: End-to-End Testing
+- [ ] Test complete flow: Create venue → Add spaces → Create event → Select space
+- [ ] Test conflict scenario: Try to double-book → See error → Choose different space
+- [ ] Test cancellation: Cancel event → Verify space available → Book new event
+- [ ] Test calendar filter: Filter by space → See only relevant events
+- [ ] Test with multiple users (RLS isolation)
+- [ ] Test space utilization dashboard
+- [ ] Document test results
+
+### Task 29.35: Performance Optimization
+- [ ] Add database indexes for common queries
+- [ ] Optimize space availability checks
+- [ ] Cache space data in frontend
+- [ ] Batch API calls where possible
+- [ ] Test query performance with 1000+ events
+- [ ] Monitor and optimize slow queries
+
+### Task 29.36: Add Space Booking to Seed Data
+- [ ] Update `lib/utils/seedData.ts`:
+  - Create 2-3 spaces per venue
+  - Assign spaces to existing events
+  - Create some conflicting scenarios for testing
+  - Add variety in space types and capacities
+- [ ] Test seed data generation
+- [ ] Verify seed data creates valid bookings
+
+---
+
+## SUCCESS CRITERIA FOR PHASE 29
+
+After completing Phase 29, verify the following:
+
+### Core Space Booking Functionality
+- [ ] Spaces can be created, edited, and deleted for each venue
+- [ ] Events can be assigned to specific spaces
+- [ ] System prevents double-booking at database level
+- [ ] System prevents double-booking at API level
+- [ ] Cancelled events release their space bookings
+- [ ] Deleted events release their space bookings
+
+### Calendar Integration
+- [ ] Calendar shows space information for each event
+- [ ] Users can filter calendar by specific space(s)
+- [ ] Space filter works in combination with other filters
+- [ ] Calendar visually indicates booking conflicts
+
+### User Experience
+- [ ] SpaceSelector shows real-time availability
+- [ ] Clear error messages when space is unavailable
+- [ ] Conflicting events are displayed with details
+- [ ] Space capacity is validated against guest count
+- [ ] Empty states for venues without spaces
+
+### Data Integrity
+- [ ] RLS policies enforce multi-tenant isolation for spaces
+- [ ] No orphaned space bookings after event deletion
+- [ ] Database constraints prevent invalid bookings
+- [ ] Concurrent booking attempts handled correctly
+
+### Performance
+- [ ] Space availability checks complete in < 200ms
+- [ ] Calendar with space filter loads in < 1s
+- [ ] No N+1 query problems in space-related endpoints
+
+### Documentation
+- [ ] API endpoints documented
+- [ ] Migration guide created for existing events
+- [ ] Space booking feature documented in CLAUDE.md
+- [ ] Code comments added for complex logic
