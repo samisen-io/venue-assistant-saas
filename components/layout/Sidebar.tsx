@@ -10,6 +10,7 @@ import {
     Settings,
     Store,
     Users,
+    Briefcase,
     LogOut,
     RefreshCw,
     Building2
@@ -44,6 +45,11 @@ const sidebarItems = [
     {
         title: "Vendors",
         href: "/vendors",
+        icon: Briefcase,
+    },
+    {
+        title: "Clients",
+        href: "/clients",
         icon: Users,
     },
     {

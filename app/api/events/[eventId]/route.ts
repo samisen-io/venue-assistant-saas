@@ -22,6 +22,7 @@ export async function GET(
         *,
         spaces (*),
         venues (*),
+        clients (*),
         event_vendors (*),
         event_service_requirements (
             id,

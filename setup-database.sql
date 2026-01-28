@@ -43,10 +43,12 @@ DROP TABLE IF EXISTS event_services CASCADE;
 DROP TABLE IF EXISTS vendor_quotes CASCADE;
 DROP TABLE IF EXISTS vendor_communications CASCADE;
 DROP TABLE IF EXISTS agent_runs CASCADE;
+DROP TABLE IF EXISTS client_communications CASCADE;
 DROP TABLE IF EXISTS events CASCADE;
 DROP TABLE IF EXISTS vendors CASCADE;
 DROP TABLE IF EXISTS venues CASCADE;
 DROP TABLE IF EXISTS spaces CASCADE;
+DROP TABLE IF EXISTS clients CASCADE;
 
 -- =====================================================
 -- SECTION 3: CORE TABLES
@@ -140,6 +142,20 @@ CREATE TABLE vendors (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Table: CLIENTS (booking contacts)
+CREATE TABLE clients (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  venue_id UUID REFERENCES venues(id) ON DELETE CASCADE NOT NULL,
+  company_name TEXT,
+  contact_name TEXT NOT NULL,
+  email TEXT,
+  phone TEXT,
+  notes TEXT,
+  notify_on_booking_updates BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Table: VENDOR_SERVICES (many-to-many junction)
 CREATE TABLE vendor_services (
   vendor_id UUID REFERENCES vendors(id) ON DELETE CASCADE NOT NULL,
@@ -152,6 +168,7 @@ CREATE TABLE vendor_services (
 CREATE TABLE events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   space_id UUID REFERENCES spaces(id) ON DELETE CASCADE NOT NULL,
+  client_id UUID REFERENCES clients(id) ON DELETE SET NULL,
   venue_id UUID REFERENCES venues(id) ON DELETE CASCADE NOT NULL, -- Added for convenience
   event_name TEXT NOT NULL,
   event_type TEXT NOT NULL, -- wedding, corporate, birthday, conference, gala, other
@@ -165,6 +182,19 @@ CREATE TABLE events (
   status TEXT DEFAULT 'planning', -- planning, confirmed, in_progress, completed, cancelled
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Table: CLIENT_COMMUNICATIONS
+CREATE TABLE client_communications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id UUID REFERENCES clients(id) ON DELETE CASCADE NOT NULL,
+  event_id UUID REFERENCES events(id) ON DELETE SET NULL,
+  message_type TEXT NOT NULL CHECK (message_type IN ('booking_confirmed', 'booking_updated', 'booking_cancelled', 'general', 'reminder')),
+  subject TEXT,
+  body TEXT,
+  sent_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  sent_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Table: EVENT_SERVICE_REQUIREMENTS (many-to-many junction)
@@ -272,9 +302,12 @@ CREATE TABLE vendor_quotes (
 CREATE INDEX idx_spaces_venue_id ON spaces(venue_id);
 CREATE INDEX idx_event_services_venue_id ON event_services(venue_id);
 CREATE INDEX idx_vendors_venue_id ON vendors(venue_id);
+CREATE INDEX idx_clients_venue_id ON clients(venue_id);
+CREATE INDEX idx_clients_email ON clients(email);
 CREATE INDEX idx_vendor_services_vendor_id ON vendor_services(vendor_id);
 CREATE INDEX idx_vendor_services_service_id ON vendor_services(event_service_id);
 CREATE INDEX idx_events_space_id ON events(space_id);
+CREATE INDEX idx_events_client_id ON events(client_id);
 CREATE INDEX idx_events_venue_id ON events(venue_id);
 CREATE INDEX idx_events_date ON events(event_date);
 CREATE INDEX idx_events_status ON events(status);
@@ -284,6 +317,8 @@ CREATE INDEX idx_event_vendors_event_id ON event_vendors(event_id);
 CREATE INDEX idx_event_vendors_vendor_id ON event_vendors(vendor_id);
 CREATE INDEX idx_event_vendors_service_id ON event_vendors(event_service_id);
 CREATE INDEX idx_vendor_reviews_vendor_id ON vendor_reviews(vendor_id);
+CREATE INDEX idx_client_comms_client_id ON client_communications(client_id);
+CREATE INDEX idx_client_comms_event_id ON client_communications(event_id);
 CREATE INDEX idx_agent_runs_event_id ON agent_runs(event_id);
 CREATE INDEX idx_vendor_communications_event_id ON vendor_communications(event_id);
 CREATE INDEX idx_vendor_communications_vendor_id ON vendor_communications(vendor_id);
@@ -299,6 +334,7 @@ ALTER TABLE venues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE spaces ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vendors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vendor_services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_service_requirements ENABLE ROW LEVEL SECURITY;
@@ -307,6 +343,7 @@ ALTER TABLE vendor_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agent_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vendor_communications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vendor_quotes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE client_communications ENABLE ROW LEVEL SECURITY;
 
 -- =====================================================
 -- SECTION 7: RLS POLICIES
@@ -348,6 +385,16 @@ CREATE POLICY "Users can update own vendors" ON vendors FOR UPDATE
 CREATE POLICY "Users can delete own vendors" ON vendors FOR DELETE
   USING (EXISTS (SELECT 1 FROM venues WHERE venues.id = vendors.venue_id AND venues.owner_id = auth.uid()));
 
+-- CLIENTS: Users can manage clients for their venue
+CREATE POLICY "Users can view own clients" ON clients FOR SELECT
+  USING (EXISTS (SELECT 1 FROM venues WHERE venues.id = clients.venue_id AND venues.owner_id = auth.uid()));
+CREATE POLICY "Users can insert own clients" ON clients FOR INSERT
+  WITH CHECK (EXISTS (SELECT 1 FROM venues WHERE venues.id = clients.venue_id AND venues.owner_id = auth.uid()));
+CREATE POLICY "Users can update own clients" ON clients FOR UPDATE
+  USING (EXISTS (SELECT 1 FROM venues WHERE venues.id = clients.venue_id AND venues.owner_id = auth.uid()));
+CREATE POLICY "Users can delete own clients" ON clients FOR DELETE
+  USING (EXISTS (SELECT 1 FROM venues WHERE venues.id = clients.venue_id AND venues.owner_id = auth.uid()));
+
 -- VENDOR_SERVICES: Users can manage vendor services for their venue
 CREATE POLICY "Users can view own vendor_services" ON vendor_services FOR SELECT
   USING (
@@ -355,6 +402,44 @@ CREATE POLICY "Users can view own vendor_services" ON vendor_services FOR SELECT
       SELECT 1 FROM vendors
       JOIN venues ON venues.id = vendors.venue_id
       WHERE vendors.id = vendor_services.vendor_id
+      AND venues.owner_id = auth.uid()
+    )
+  );
+  
+-- CLIENT_COMMUNICATIONS: Users can manage communications for their clients
+CREATE POLICY "Users can view own client communications" ON client_communications FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM clients
+      JOIN venues ON venues.id = clients.venue_id
+      WHERE clients.id = client_communications.client_id
+      AND venues.owner_id = auth.uid()
+    )
+  );
+CREATE POLICY "Users can insert own client communications" ON client_communications FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM clients
+      JOIN venues ON venues.id = clients.venue_id
+      WHERE clients.id = client_communications.client_id
+      AND venues.owner_id = auth.uid()
+    )
+  );
+CREATE POLICY "Users can update own client communications" ON client_communications FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM clients
+      JOIN venues ON venues.id = clients.venue_id
+      WHERE clients.id = client_communications.client_id
+      AND venues.owner_id = auth.uid()
+    )
+  );
+CREATE POLICY "Users can delete own client communications" ON client_communications FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM clients
+      JOIN venues ON venues.id = clients.venue_id
+      WHERE clients.id = client_communications.client_id
       AND venues.owner_id = auth.uid()
     )
   );

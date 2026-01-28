@@ -28,6 +28,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Event, EventService, Space } from "@/lib/types";
 import { X } from "lucide-react";
 import { SpaceSelector } from "@/components/events/SpaceSelector";
+import { ClientSelector } from "@/components/events/ClientSelector";
 
 // Schema extension to include space_id which isn't in base event schema but needed for creation
 const eventFormWithSpaceSchema = eventFormSchema.extend({
@@ -65,6 +66,7 @@ export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: 
         mode: "onBlur", // Enable inline validation
         defaultValues: initialData ? {
             space_id: (initialData as any).space_id || "",
+            client_id: (initialData as any).client_id || null,
             event_name: initialData.event_name,
             event_type: initialData.event_type,
             event_date: initialData.event_date.split('T')[0], // simplistic date handling
@@ -76,6 +78,7 @@ export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: 
             special_requirements: initialData.special_requirements || "",
         } : {
             space_id: "",
+            client_id: null,
             event_name: "",
             event_type: "",
             event_date: "",
@@ -156,6 +159,23 @@ export function EventForm({ initialData, spaces, onSubmit, isLoading = false }: 
                                     startTime={form.watch("event_time")}
                                     endTime={form.watch("event_end_time")}
                                     excludeEventId={initialData?.id}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="client_id"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Client (Optional)</FormLabel>
+                            <FormControl>
+                                <ClientSelector
+                                    selectedClientId={field.value}
+                                    onSelect={field.onChange}
                                 />
                             </FormControl>
                             <FormMessage />

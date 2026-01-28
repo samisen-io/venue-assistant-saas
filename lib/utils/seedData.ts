@@ -3,14 +3,16 @@ import { SupabaseClient } from '@supabase/supabase-js';
 export interface SeedDataResult {
   success: boolean;
   message: string;
-  counts?: {
-    venues: number;
-    spaces: number;
-    vendors: number;
-    events: number;
-    assignments: number;
-    reviews: number;
-  };
+    counts?: {
+      venues: number;
+      spaces: number;
+      vendors: number;
+      events: number;
+      assignments: number;
+      reviews: number;
+      clients?: number;
+      client_communications?: number;
+    };
 }
 
 export async function clearAllData(
@@ -33,11 +35,17 @@ export async function clearAllData(
   // Event services
   await supabase.from('event_services').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
+  // Client communications
+  await supabase.from('client_communications').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
   // Events (references spaces and venues)
   await supabase.from('events').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
   // Vendors (references venues)
   await supabase.from('vendors').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+  // Clients (references venues)
+  await supabase.from('clients').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
   // Spaces (references venues)
   await supabase.from('spaces').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -77,11 +85,10 @@ export async function seedDemoData(
       throw new Error(venueError?.message || 'Failed to create venue');
     }
 
-    // 2. Create Multiple Spaces within the venue (16 spaces - 4x increase)
+    // 2. Create Multiple Spaces within the venue (7 spaces)
     const { data: spaces, error: spacesError } = await supabase
       .from('spaces')
       .insert([
-        // Ballrooms (4 spaces)
         {
           venue_id: venue.id,
           name: 'Grand Ballroom',
@@ -104,27 +111,6 @@ export async function seedDemoData(
         },
         {
           venue_id: venue.id,
-          name: 'Royal Ballroom',
-          capacity: 350,
-          space_type: 'ballroom',
-          floor_level: '3rd Floor',
-          square_footage: 3800,
-          hourly_rate: 1200,
-          notes: 'Classic ballroom with vintage decor',
-        },
-        {
-          venue_id: venue.id,
-          name: 'Sunset Ballroom',
-          capacity: 300,
-          space_type: 'ballroom',
-          floor_level: '4th Floor',
-          square_footage: 3500,
-          hourly_rate: 1100,
-          notes: 'Modern ballroom with floor-to-ceiling windows',
-        },
-        // Conference Rooms (4 spaces)
-        {
-          venue_id: venue.id,
           name: 'Executive Boardroom',
           capacity: 20,
           space_type: 'conference_room',
@@ -145,27 +131,6 @@ export async function seedDemoData(
         },
         {
           venue_id: venue.id,
-          name: 'Innovation Hub',
-          capacity: 40,
-          space_type: 'conference_room',
-          floor_level: '4th Floor',
-          square_footage: 700,
-          hourly_rate: 400,
-          notes: 'Tech-enabled collaborative workspace',
-        },
-        {
-          venue_id: venue.id,
-          name: 'Sterling Meeting Room',
-          capacity: 30,
-          space_type: 'meeting_room',
-          floor_level: '3rd Floor',
-          square_footage: 600,
-          hourly_rate: 350,
-          notes: 'Intimate meeting space for small groups',
-        },
-        // Outdoor Spaces (3 spaces)
-        {
-          venue_id: venue.id,
           name: 'Garden Terrace',
           capacity: 150,
           space_type: 'outdoor_garden',
@@ -174,27 +139,6 @@ export async function seedDemoData(
           hourly_rate: 800,
           notes: 'Beautiful outdoor space with fountain',
         },
-        {
-          venue_id: venue.id,
-          name: 'Rose Garden Pavilion',
-          capacity: 120,
-          space_type: 'outdoor_garden',
-          floor_level: 'Ground Floor',
-          square_footage: 1800,
-          hourly_rate: 700,
-          notes: 'Covered outdoor pavilion surrounded by roses',
-        },
-        {
-          venue_id: venue.id,
-          name: 'Courtyard Plaza',
-          capacity: 80,
-          space_type: 'outdoor_garden',
-          floor_level: 'Ground Floor',
-          square_footage: 1200,
-          hourly_rate: 600,
-          notes: 'Charming courtyard with string lights',
-        },
-        // Rooftop Spaces (3 spaces)
         {
           venue_id: venue.id,
           name: 'Rooftop Lounge',
@@ -207,27 +151,6 @@ export async function seedDemoData(
         },
         {
           venue_id: venue.id,
-          name: 'Sky Deck',
-          capacity: 80,
-          space_type: 'rooftop',
-          floor_level: 'Rooftop',
-          square_footage: 1300,
-          hourly_rate: 900,
-          notes: 'Open-air rooftop with bar setup',
-        },
-        {
-          venue_id: venue.id,
-          name: 'Penthouse Terrace',
-          capacity: 60,
-          space_type: 'rooftop',
-          floor_level: 'Penthouse',
-          square_footage: 1000,
-          hourly_rate: 850,
-          notes: 'Exclusive rooftop terrace with premium amenities',
-        },
-        // Banquet Halls (2 spaces)
-        {
-          venue_id: venue.id,
           name: 'Heritage Banquet Hall',
           capacity: 250,
           space_type: 'banquet_hall',
@@ -235,16 +158,6 @@ export async function seedDemoData(
           square_footage: 3000,
           hourly_rate: 950,
           notes: 'Traditional banquet hall with classic decor',
-        },
-        {
-          venue_id: venue.id,
-          name: 'Marquee Banquet Hall',
-          capacity: 200,
-          space_type: 'banquet_hall',
-          floor_level: '1st Floor',
-          square_footage: 2500,
-          hourly_rate: 850,
-          notes: 'Versatile banquet space with adjustable lighting',
         },
       ])
       .select();
@@ -254,12 +167,25 @@ export async function seedDemoData(
       throw new Error(spacesError?.message || 'Failed to create spaces');
     }
 
-    // Reference spaces by index
-    const ballrooms = spaces.slice(0, 4);
-    const conferenceRooms = spaces.slice(4, 8);
-    const outdoorSpaces = spaces.slice(8, 11);
-    const rooftopSpaces = spaces.slice(11, 14);
-    const banquetHalls = spaces.slice(14, 16);
+    const spaceByName = new Map(spaces.map((space) => [space.name, space]));
+    const grandBallroom = spaceByName.get('Grand Ballroom');
+    const crystalBallroom = spaceByName.get('Crystal Ballroom');
+    const executiveBoardroom = spaceByName.get('Executive Boardroom');
+    const skylineConference = spaceByName.get('Skyline Conference Room');
+    const gardenTerrace = spaceByName.get('Garden Terrace');
+    const rooftopLounge = spaceByName.get('Rooftop Lounge');
+    const heritageBanquet = spaceByName.get('Heritage Banquet Hall');
+    if (
+      !grandBallroom ||
+      !crystalBallroom ||
+      !executiveBoardroom ||
+      !skylineConference ||
+      !gardenTerrace ||
+      !rooftopLounge ||
+      !heritageBanquet
+    ) {
+      throw new Error('Failed to map seeded spaces');
+    }
 
     // 3. Create Event Services (catalog for the venue)
     const { data: eventServices, error: eventServicesError } = await supabase
@@ -283,41 +209,26 @@ export async function seedDemoData(
 
     const serviceIdBySlug = new Map(eventServices.map((service) => [service.slug, service.id]));
 
-    // 4. Create Vendors (44 vendors - 4x increase, attached to venue)
+    // 4. Create Vendors (4-5 vendors per service, attached to venue)
     const vendorSeedData = [
-      // Catering vendors (12 total)
+      // Catering vendors (5 total)
       { venue_id: venue.id, name: 'Gourmet Catering Co.', category: 'catering', contact_name: 'Sarah Johnson', contact_email: 'sarah@gourmetcatering.com', contact_phone: '(415) 555-1001', cost_per_unit: 45, website: 'https://gourmetcatering.example.com', reliability_score: 92, total_events: 15, on_time_count: 14, on_time_percentage: 93.3, avg_quality_rating: 4.7 },
       { venue_id: venue.id, name: 'Budget Bites Catering', category: 'catering', contact_name: 'Mike Chen', contact_email: 'mike@budgetbites.com', contact_phone: '(415) 555-1002', cost_per_unit: 25, reliability_score: 75, total_events: 20, on_time_count: 16, on_time_percentage: 80, avg_quality_rating: 3.8 },
       { venue_id: venue.id, name: 'Premium Feast Services', category: 'catering', contact_name: 'Emily Rodriguez', contact_email: 'emily@premiumfeast.com', contact_phone: '(415) 555-2001', cost_per_unit: 65, reliability_score: 95, total_events: 12, on_time_count: 12, on_time_percentage: 100, avg_quality_rating: 4.9 },
       { venue_id: venue.id, name: 'Savory Delights Catering', category: 'catering', contact_name: 'Maria Garcia', contact_email: 'maria@savorydelights.com', contact_phone: '(415) 555-1007', cost_per_unit: 55, reliability_score: 88, total_events: 18, on_time_count: 16, on_time_percentage: 88.9, avg_quality_rating: 4.5 },
-      { venue_id: venue.id, name: 'Elite Cuisine Events', category: 'catering', contact_name: 'Robert Kim', contact_email: 'robert@elitecuisine.com', contact_phone: '(415) 555-1008', cost_per_unit: 75, reliability_score: 96, total_events: 14, on_time_count: 14, on_time_percentage: 100, avg_quality_rating: 4.8 },
-      { venue_id: venue.id, name: 'Fresh & Tasty Catering', category: 'catering', contact_name: 'Linda Martinez', contact_email: 'linda@freshtasty.com', contact_phone: '(415) 555-1009', cost_per_unit: 35, reliability_score: 82, total_events: 22, on_time_count: 18, on_time_percentage: 81.8, avg_quality_rating: 4.2 },
-      { venue_id: venue.id, name: 'Gourmet Gardens Catering', category: 'catering', contact_name: 'James Thompson', contact_email: 'james@gourmetgardens.com', contact_phone: '(415) 555-1010', cost_per_unit: 50, reliability_score: 90, total_events: 16, on_time_count: 15, on_time_percentage: 93.8, avg_quality_rating: 4.6 },
-      { venue_id: venue.id, name: 'Urban Eats Catering', category: 'catering', contact_name: 'Anna Lee', contact_email: 'anna@urbaneats.com', contact_phone: '(415) 555-1011', cost_per_unit: 40, reliability_score: 85, total_events: 19, on_time_count: 16, on_time_percentage: 84.2, avg_quality_rating: 4.3 },
-      { venue_id: venue.id, name: 'Classic Comfort Foods', category: 'catering', contact_name: 'David Brown', contact_email: 'david@classiccomfort.com', contact_phone: '(415) 555-1012', cost_per_unit: 30, reliability_score: 78, total_events: 25, on_time_count: 20, on_time_percentage: 80, avg_quality_rating: 4.0 },
       { venue_id: venue.id, name: 'Artisan Table Catering', category: 'catering', contact_name: 'Sophie White', contact_email: 'sophie@artisantable.com', contact_phone: '(415) 555-1013', cost_per_unit: 70, reliability_score: 93, total_events: 11, on_time_count: 11, on_time_percentage: 100, avg_quality_rating: 4.9 },
-      { venue_id: venue.id, name: 'Global Flavors Catering', category: 'catering', contact_name: 'Carlos Rivera', contact_email: 'carlos@globalflavors.com', contact_phone: '(415) 555-1014', cost_per_unit: 60, reliability_score: 87, total_events: 13, on_time_count: 12, on_time_percentage: 92.3, avg_quality_rating: 4.4 },
-      { venue_id: venue.id, name: 'Simple Elegance Catering', category: 'catering', contact_name: 'Patricia Davis', contact_email: 'patricia@simpleelegance.com', contact_phone: '(415) 555-1015', cost_per_unit: 48, reliability_score: 91, total_events: 17, on_time_count: 16, on_time_percentage: 94.1, avg_quality_rating: 4.7 },
 
-      // AV vendors (8 total)
+      // AV vendors (4 total)
       { venue_id: venue.id, name: 'TechSound Audio Visual', category: 'av', contact_name: 'David Park', contact_email: 'david@techsound.com', contact_phone: '(415) 555-1003', cost_per_unit: 1500, reliability_score: 88, total_events: 25, on_time_count: 23, on_time_percentage: 92, avg_quality_rating: 4.5 },
       { venue_id: venue.id, name: 'ProAV Solutions', category: 'av', contact_name: 'Lisa Anderson', contact_email: 'lisa@proavsolutions.com', contact_phone: '(415) 555-2002', cost_per_unit: 2000, reliability_score: 91, total_events: 18, on_time_count: 17, on_time_percentage: 94.4, avg_quality_rating: 4.6 },
       { venue_id: venue.id, name: 'Crystal Clear AV', category: 'av', contact_name: 'Michael Johnson', contact_email: 'michael@crystalclearav.com', contact_phone: '(415) 555-1016', cost_per_unit: 1800, reliability_score: 89, total_events: 20, on_time_count: 18, on_time_percentage: 90, avg_quality_rating: 4.5 },
       { venue_id: venue.id, name: 'Elite Audio Visual', category: 'av', contact_name: 'Jennifer Lopez', contact_email: 'jennifer@eliteav.com', contact_phone: '(415) 555-1017', cost_per_unit: 2200, reliability_score: 94, total_events: 15, on_time_count: 15, on_time_percentage: 100, avg_quality_rating: 4.8 },
-      { venue_id: venue.id, name: 'SoundStage Productions', category: 'av', contact_name: 'Kevin Wright', contact_email: 'kevin@soundstage.com', contact_phone: '(415) 555-1018', cost_per_unit: 1600, reliability_score: 86, total_events: 22, on_time_count: 19, on_time_percentage: 86.4, avg_quality_rating: 4.3 },
-      { venue_id: venue.id, name: 'Visionary AV Systems', category: 'av', contact_name: 'Rachel Adams', contact_email: 'rachel@visionaryav.com', contact_phone: '(415) 555-1019', cost_per_unit: 1900, reliability_score: 92, total_events: 17, on_time_count: 16, on_time_percentage: 94.1, avg_quality_rating: 4.7 },
-      { venue_id: venue.id, name: 'Premier Sound & Light', category: 'av', contact_name: 'Thomas Miller', contact_email: 'thomas@premiersound.com', contact_phone: '(415) 555-1020', cost_per_unit: 1700, reliability_score: 90, total_events: 19, on_time_count: 18, on_time_percentage: 94.7, avg_quality_rating: 4.6 },
-      { venue_id: venue.id, name: 'Dynamic Audio Visual', category: 'av', contact_name: 'Nicole Turner', contact_email: 'nicole@dynamicav.com', contact_phone: '(415) 555-1021', cost_per_unit: 2100, reliability_score: 93, total_events: 16, on_time_count: 15, on_time_percentage: 93.8, avg_quality_rating: 4.7 },
 
-      // Florals vendors (8 total)
+      // Florals vendors (4 total)
       { venue_id: venue.id, name: 'Bloom & Blossom', category: 'florals', contact_name: 'Rachel Green', contact_email: 'rachel@bloomblossom.com', contact_phone: '(415) 555-1004', cost_per_unit: 800, reliability_score: 90, total_events: 30, on_time_count: 28, on_time_percentage: 93.3, avg_quality_rating: 4.8 },
       { venue_id: venue.id, name: 'Elegant Petals', category: 'florals', contact_name: 'Jennifer Wu', contact_email: 'jennifer@elegantpetals.com', contact_phone: '(415) 555-3001', cost_per_unit: 600, reliability_score: 85, total_events: 22, on_time_count: 19, on_time_percentage: 86.4, avg_quality_rating: 4.3 },
-      { venue_id: venue.id, name: 'Rose Garden Florals', category: 'florals', contact_name: 'Olivia Martinez', contact_email: 'olivia@rosegarden.com', contact_phone: '(415) 555-1022', cost_per_unit: 750, reliability_score: 88, total_events: 26, on_time_count: 24, on_time_percentage: 92.3, avg_quality_rating: 4.6 },
       { venue_id: venue.id, name: 'Petal Perfection', category: 'florals', contact_name: 'Emma Wilson', contact_email: 'emma@petalperfection.com', contact_phone: '(415) 555-1023', cost_per_unit: 850, reliability_score: 92, total_events: 24, on_time_count: 23, on_time_percentage: 95.8, avg_quality_rating: 4.7 },
-      { venue_id: venue.id, name: 'Botanical Bliss', category: 'florals', contact_name: 'Sophia Chen', contact_email: 'sophia@botanicalbliss.com', contact_phone: '(415) 555-1024', cost_per_unit: 700, reliability_score: 86, total_events: 28, on_time_count: 24, on_time_percentage: 85.7, avg_quality_rating: 4.4 },
       { venue_id: venue.id, name: 'Luxe Blooms', category: 'florals', contact_name: 'Isabella Garcia', contact_email: 'isabella@luxeblooms.com', contact_phone: '(415) 555-1025', cost_per_unit: 950, reliability_score: 94, total_events: 20, on_time_count: 19, on_time_percentage: 95, avg_quality_rating: 4.8 },
-      { venue_id: venue.id, name: 'Garden Dreams Florals', category: 'florals', contact_name: 'Mia Rodriguez', contact_email: 'mia@gardendreams.com', contact_phone: '(415) 555-1026', cost_per_unit: 650, reliability_score: 83, total_events: 25, on_time_count: 21, on_time_percentage: 84, avg_quality_rating: 4.2 },
-      { venue_id: venue.id, name: 'Floral Artistry', category: 'florals', contact_name: 'Ava Thomas', contact_email: 'ava@floralartistry.com', contact_phone: '(415) 555-1027', cost_per_unit: 900, reliability_score: 91, total_events: 21, on_time_count: 20, on_time_percentage: 95.2, avg_quality_rating: 4.7 },
 
       // Parking vendors (4 total)
       { venue_id: venue.id, name: 'VIP Valet Services', category: 'parking', contact_name: 'Tom Martinez', contact_email: 'tom@vipvalet.com', contact_phone: '(415) 555-1005', cost_per_unit: 15, reliability_score: 87, total_events: 35, on_time_count: 32, on_time_percentage: 91.4, avg_quality_rating: 4.4 },
@@ -331,15 +242,12 @@ export async function seedDemoData(
       { venue_id: venue.id, name: 'Guardian Event Security', category: 'security', contact_name: 'Alex Turner', contact_email: 'alex@guardianevents.com', contact_phone: '(415) 555-1032', cost_per_unit: 55, reliability_score: 91, total_events: 26, on_time_count: 25, on_time_percentage: 96.2, avg_quality_rating: 4.6 },
       { venue_id: venue.id, name: 'Sentinel Security Group', category: 'security', contact_name: 'Jordan Phillips', contact_email: 'jordan@sentinelgroup.com', contact_phone: '(415) 555-1033', cost_per_unit: 45, reliability_score: 88, total_events: 32, on_time_count: 29, on_time_percentage: 90.6, avg_quality_rating: 4.5 },
 
-      // Entertainment vendors (8 total)
+      // Entertainment vendors (5 total)
       { venue_id: venue.id, name: 'DJ Masters Entertainment', category: 'entertainment', contact_name: 'Chris Taylor', contact_email: 'chris@djmasters.com', contact_phone: '(415) 555-1006', cost_per_unit: 1200, reliability_score: 89, total_events: 40, on_time_count: 37, on_time_percentage: 92.5, avg_quality_rating: 4.6 },
       { venue_id: venue.id, name: 'Live Band Productions', category: 'entertainment', contact_name: 'Amanda Brooks', contact_email: 'amanda@livebandpro.com', contact_phone: '(415) 555-3002', cost_per_unit: 2500, reliability_score: 94, total_events: 16, on_time_count: 16, on_time_percentage: 100, avg_quality_rating: 4.9 },
       { venue_id: venue.id, name: 'Groove City DJs', category: 'entertainment', contact_name: 'Tyler Scott', contact_email: 'tyler@groovecity.com', contact_phone: '(415) 555-1034', cost_per_unit: 1100, reliability_score: 87, total_events: 38, on_time_count: 34, on_time_percentage: 89.5, avg_quality_rating: 4.4 },
       { venue_id: venue.id, name: 'Acoustic Harmony Band', category: 'entertainment', contact_name: 'Sarah Mitchell', contact_email: 'sarah@acousticharmony.com', contact_phone: '(415) 555-1035', cost_per_unit: 2200, reliability_score: 92, total_events: 18, on_time_count: 17, on_time_percentage: 94.4, avg_quality_rating: 4.7 },
-      { venue_id: venue.id, name: 'Party Beats Entertainment', category: 'entertainment', contact_name: 'Justin Harris', contact_email: 'justin@partybeats.com', contact_phone: '(415) 555-1036', cost_per_unit: 1300, reliability_score: 90, total_events: 35, on_time_count: 32, on_time_percentage: 91.4, avg_quality_rating: 4.5 },
       { venue_id: venue.id, name: 'Symphony Strings Quartet', category: 'entertainment', contact_name: 'Victoria Clark', contact_email: 'victoria@symphonystrings.com', contact_phone: '(415) 555-1037', cost_per_unit: 1800, reliability_score: 96, total_events: 22, on_time_count: 22, on_time_percentage: 100, avg_quality_rating: 4.9 },
-      { venue_id: venue.id, name: 'Electric Nights DJ Service', category: 'entertainment', contact_name: 'Brandon Lee', contact_email: 'brandon@electricnights.com', contact_phone: '(415) 555-1038', cost_per_unit: 1000, reliability_score: 85, total_events: 42, on_time_count: 36, on_time_percentage: 85.7, avg_quality_rating: 4.3 },
-      { venue_id: venue.id, name: 'Jazz Collective Band', category: 'entertainment', contact_name: 'Nathan Young', contact_email: 'nathan@jazzcollective.com', contact_phone: '(415) 555-1039', cost_per_unit: 2000, reliability_score: 93, total_events: 20, on_time_count: 19, on_time_percentage: 95, avg_quality_rating: 4.8 },
     ];
 
     const vendorData = vendorSeedData.map(({ category, ...vendor }) => vendor);
@@ -391,32 +299,32 @@ export async function seedDemoData(
       .from('events')
       .insert([
         // Future Events (12 events)
-        { space_id: ballrooms[0].id, venue_id: venue.id, event_name: 'Annual Tech Conference 2026', event_type: 'conference', event_date: futureDate2.toISOString().split('T')[0], event_time: '09:00', guest_count: 450, budget_total: 65000, status: 'planning' },
-        { space_id: ballrooms[1].id, venue_id: venue.id, event_name: 'Smith-Johnson Wedding', event_type: 'wedding', event_date: futureDate3.toISOString().split('T')[0], event_time: '17:00', guest_count: 300, budget_total: 45000, status: 'confirmed' },
-        { space_id: ballrooms[2].id, venue_id: venue.id, event_name: 'Garcia-Patel Wedding', event_type: 'wedding', event_date: futureDate4.toISOString().split('T')[0], event_time: '18:00', guest_count: 280, budget_total: 42000, status: 'confirmed' },
-        { space_id: ballrooms[3].id, venue_id: venue.id, event_name: 'New Year Gala 2027', event_type: 'corporate', event_date: futureDate6.toISOString().split('T')[0], event_time: '20:00', guest_count: 250, budget_total: 38000, status: 'planning' },
-        { space_id: outdoorSpaces[0].id, venue_id: venue.id, event_name: 'Summer Garden Party', event_type: 'social', event_date: futureDate2.toISOString().split('T')[0], event_time: '15:00', guest_count: 120, budget_total: 18000, status: 'confirmed' },
-        { space_id: outdoorSpaces[1].id, venue_id: venue.id, event_name: 'Spring Wedding Ceremony', event_type: 'wedding', event_date: futureDate3.toISOString().split('T')[0], event_time: '14:00', guest_count: 100, budget_total: 22000, status: 'planning' },
-        { space_id: outdoorSpaces[2].id, venue_id: venue.id, event_name: 'Product Launch Event', event_type: 'corporate', event_date: futureDate1.toISOString().split('T')[0], event_time: '11:00', guest_count: 75, budget_total: 15000, status: 'confirmed' },
-        { space_id: rooftopSpaces[0].id, venue_id: venue.id, event_name: 'Sunset Cocktail Reception', event_type: 'corporate', event_date: futureDate2.toISOString().split('T')[0], event_time: '18:30', guest_count: 90, budget_total: 16000, status: 'planning' },
-        { space_id: rooftopSpaces[1].id, venue_id: venue.id, event_name: 'Networking Mixer', event_type: 'social', event_date: futureDate1.toISOString().split('T')[0], event_time: '17:00', guest_count: 70, budget_total: 12000, status: 'confirmed' },
-        { space_id: rooftopSpaces[2].id, venue_id: venue.id, event_name: 'VIP Client Appreciation', event_type: 'corporate', event_date: futureDate5.toISOString().split('T')[0], event_time: '19:00', guest_count: 50, budget_total: 14000, status: 'planning' },
-        { space_id: conferenceRooms[0].id, venue_id: venue.id, event_name: 'Board Strategy Session', event_type: 'conference', event_date: futureDate1.toISOString().split('T')[0], event_time: '09:00', guest_count: 18, budget_total: 5000, status: 'confirmed' },
-        { space_id: conferenceRooms[1].id, venue_id: venue.id, event_name: 'Quarterly All-Hands Meeting', event_type: 'conference', event_date: futureDate2.toISOString().split('T')[0], event_time: '10:00', guest_count: 45, budget_total: 8000, status: 'planning' },
+        { space_id: grandBallroom.id, venue_id: venue.id, event_name: 'Annual Tech Conference 2026', event_type: 'conference', event_date: futureDate2.toISOString().split('T')[0], event_time: '09:00', guest_count: 450, budget_total: 65000, status: 'planning' },
+        { space_id: crystalBallroom.id, venue_id: venue.id, event_name: 'Smith-Johnson Wedding', event_type: 'wedding', event_date: futureDate3.toISOString().split('T')[0], event_time: '17:00', guest_count: 300, budget_total: 45000, status: 'confirmed' },
+        { space_id: grandBallroom.id, venue_id: venue.id, event_name: 'Garcia-Patel Wedding', event_type: 'wedding', event_date: futureDate4.toISOString().split('T')[0], event_time: '18:00', guest_count: 280, budget_total: 42000, status: 'confirmed' },
+        { space_id: heritageBanquet.id, venue_id: venue.id, event_name: 'New Year Gala 2027', event_type: 'corporate', event_date: futureDate6.toISOString().split('T')[0], event_time: '20:00', guest_count: 250, budget_total: 38000, status: 'planning' },
+        { space_id: gardenTerrace.id, venue_id: venue.id, event_name: 'Summer Garden Party', event_type: 'social', event_date: futureDate2.toISOString().split('T')[0], event_time: '15:00', guest_count: 120, budget_total: 18000, status: 'confirmed' },
+        { space_id: gardenTerrace.id, venue_id: venue.id, event_name: 'Spring Wedding Ceremony', event_type: 'wedding', event_date: futureDate3.toISOString().split('T')[0], event_time: '14:00', guest_count: 100, budget_total: 22000, status: 'planning' },
+        { space_id: rooftopLounge.id, venue_id: venue.id, event_name: 'Product Launch Event', event_type: 'corporate', event_date: futureDate1.toISOString().split('T')[0], event_time: '11:00', guest_count: 75, budget_total: 15000, status: 'confirmed' },
+        { space_id: rooftopLounge.id, venue_id: venue.id, event_name: 'Sunset Cocktail Reception', event_type: 'corporate', event_date: futureDate2.toISOString().split('T')[0], event_time: '18:30', guest_count: 90, budget_total: 16000, status: 'planning' },
+        { space_id: rooftopLounge.id, venue_id: venue.id, event_name: 'Networking Mixer', event_type: 'social', event_date: futureDate1.toISOString().split('T')[0], event_time: '17:00', guest_count: 70, budget_total: 12000, status: 'confirmed' },
+        { space_id: rooftopLounge.id, venue_id: venue.id, event_name: 'VIP Client Appreciation', event_type: 'corporate', event_date: futureDate5.toISOString().split('T')[0], event_time: '19:00', guest_count: 50, budget_total: 14000, status: 'planning' },
+        { space_id: executiveBoardroom.id, venue_id: venue.id, event_name: 'Board Strategy Session', event_type: 'conference', event_date: futureDate1.toISOString().split('T')[0], event_time: '09:00', guest_count: 18, budget_total: 5000, status: 'confirmed' },
+        { space_id: skylineConference.id, venue_id: venue.id, event_name: 'Quarterly All-Hands Meeting', event_type: 'conference', event_date: futureDate2.toISOString().split('T')[0], event_time: '10:00', guest_count: 45, budget_total: 8000, status: 'planning' },
 
         // Past Events (12 events - completed)
-        { space_id: ballrooms[0].id, venue_id: venue.id, event_name: 'Holiday Gala 2025', event_type: 'corporate', event_date: pastDate2.toISOString().split('T')[0], event_time: '19:00', guest_count: 400, budget_total: 55000, status: 'completed' },
-        { space_id: ballrooms[1].id, venue_id: venue.id, event_name: 'Martinez-Lee Wedding', event_type: 'wedding', event_date: pastDate3.toISOString().split('T')[0], event_time: '16:00', guest_count: 320, budget_total: 48000, status: 'completed' },
-        { space_id: ballrooms[2].id, venue_id: venue.id, event_name: 'Industry Awards Ceremony', event_type: 'corporate', event_date: pastDate1.toISOString().split('T')[0], event_time: '18:00', guest_count: 280, budget_total: 40000, status: 'completed' },
-        { space_id: ballrooms[3].id, venue_id: venue.id, event_name: 'Anderson-Brown Wedding', event_type: 'wedding', event_date: pastDate4.toISOString().split('T')[0], event_time: '17:30', guest_count: 260, budget_total: 39000, status: 'completed' },
-        { space_id: banquetHalls[0].id, venue_id: venue.id, event_name: 'Annual Fundraising Dinner', event_type: 'fundraiser', event_date: pastDate2.toISOString().split('T')[0], event_time: '18:30', guest_count: 220, budget_total: 32000, status: 'completed' },
-        { space_id: banquetHalls[1].id, venue_id: venue.id, event_name: 'Corporate Team Building', event_type: 'corporate', event_date: pastDate1.toISOString().split('T')[0], event_time: '12:00', guest_count: 180, budget_total: 25000, status: 'completed' },
-        { space_id: rooftopSpaces[0].id, venue_id: venue.id, event_name: 'Summer Sunset Soiree', event_type: 'social', event_date: pastDate3.toISOString().split('T')[0], event_time: '18:00', guest_count: 95, budget_total: 17000, status: 'completed' },
-        { space_id: rooftopSpaces[1].id, venue_id: venue.id, event_name: 'Product Launch Party', event_type: 'corporate', event_date: pastDate2.toISOString().split('T')[0], event_time: '19:30', guest_count: 75, budget_total: 13000, status: 'completed' },
-        { space_id: outdoorSpaces[0].id, venue_id: venue.id, event_name: 'Spring Garden Wedding', event_type: 'wedding', event_date: pastDate4.toISOString().split('T')[0], event_time: '15:00', guest_count: 130, budget_total: 24000, status: 'completed' },
-        { space_id: outdoorSpaces[1].id, venue_id: venue.id, event_name: 'Charity Garden Party', event_type: 'fundraiser', event_date: pastDate3.toISOString().split('T')[0], event_time: '14:00', guest_count: 110, budget_total: 19000, status: 'completed' },
-        { space_id: conferenceRooms[1].id, venue_id: venue.id, event_name: 'Leadership Workshop', event_type: 'conference', event_date: pastDate1.toISOString().split('T')[0], event_time: '09:00', guest_count: 40, budget_total: 7000, status: 'completed' },
-        { space_id: conferenceRooms[2].id, venue_id: venue.id, event_name: 'Sales Kickoff Meeting', event_type: 'conference', event_date: pastDate2.toISOString().split('T')[0], event_time: '08:30', guest_count: 35, budget_total: 6500, status: 'completed' },
+        { space_id: grandBallroom.id, venue_id: venue.id, event_name: 'Holiday Gala 2025', event_type: 'corporate', event_date: pastDate2.toISOString().split('T')[0], event_time: '19:00', guest_count: 400, budget_total: 55000, status: 'completed' },
+        { space_id: crystalBallroom.id, venue_id: venue.id, event_name: 'Martinez-Lee Wedding', event_type: 'wedding', event_date: pastDate3.toISOString().split('T')[0], event_time: '16:00', guest_count: 320, budget_total: 48000, status: 'completed' },
+        { space_id: grandBallroom.id, venue_id: venue.id, event_name: 'Industry Awards Ceremony', event_type: 'corporate', event_date: pastDate1.toISOString().split('T')[0], event_time: '18:00', guest_count: 280, budget_total: 40000, status: 'completed' },
+        { space_id: heritageBanquet.id, venue_id: venue.id, event_name: 'Anderson-Brown Wedding', event_type: 'wedding', event_date: pastDate4.toISOString().split('T')[0], event_time: '17:30', guest_count: 260, budget_total: 39000, status: 'completed' },
+        { space_id: heritageBanquet.id, venue_id: venue.id, event_name: 'Annual Fundraising Dinner', event_type: 'fundraiser', event_date: pastDate2.toISOString().split('T')[0], event_time: '18:30', guest_count: 220, budget_total: 32000, status: 'completed' },
+        { space_id: heritageBanquet.id, venue_id: venue.id, event_name: 'Corporate Team Building', event_type: 'corporate', event_date: pastDate1.toISOString().split('T')[0], event_time: '12:00', guest_count: 180, budget_total: 25000, status: 'completed' },
+        { space_id: rooftopLounge.id, venue_id: venue.id, event_name: 'Summer Sunset Soiree', event_type: 'social', event_date: pastDate3.toISOString().split('T')[0], event_time: '18:00', guest_count: 95, budget_total: 17000, status: 'completed' },
+        { space_id: rooftopLounge.id, venue_id: venue.id, event_name: 'Product Launch Party', event_type: 'corporate', event_date: pastDate2.toISOString().split('T')[0], event_time: '19:30', guest_count: 75, budget_total: 13000, status: 'completed' },
+        { space_id: gardenTerrace.id, venue_id: venue.id, event_name: 'Spring Garden Wedding', event_type: 'wedding', event_date: pastDate4.toISOString().split('T')[0], event_time: '15:00', guest_count: 130, budget_total: 24000, status: 'completed' },
+        { space_id: gardenTerrace.id, venue_id: venue.id, event_name: 'Charity Garden Party', event_type: 'fundraiser', event_date: pastDate3.toISOString().split('T')[0], event_time: '14:00', guest_count: 110, budget_total: 19000, status: 'completed' },
+        { space_id: skylineConference.id, venue_id: venue.id, event_name: 'Leadership Workshop', event_type: 'conference', event_date: pastDate1.toISOString().split('T')[0], event_time: '09:00', guest_count: 40, budget_total: 7000, status: 'completed' },
+        { space_id: executiveBoardroom.id, venue_id: venue.id, event_name: 'Sales Kickoff Meeting', event_type: 'conference', event_date: pastDate2.toISOString().split('T')[0], event_time: '08:30', guest_count: 35, budget_total: 6500, status: 'completed' },
       ])
       .select();
 
@@ -424,6 +332,87 @@ export async function seedDemoData(
       console.error('Events error details:', eventsError);
       throw new Error(eventsError?.message || 'Failed to create events');
     }
+
+    // 5.5 Create Clients
+    const { data: clients, error: clientsError } = await supabase
+      .from('clients')
+      .insert([
+        {
+          venue_id: venue.id,
+          company_name: 'Northwind Labs',
+          contact_name: 'Alex Morgan',
+          email: 'alex@northwindlabs.com',
+          phone: '(415) 555-2101',
+          notes: 'Prefers morning setup and AV walkthroughs.',
+          notify_on_booking_updates: true,
+        },
+        {
+          venue_id: venue.id,
+          company_name: 'Brightside Weddings',
+          contact_name: 'Sophie Reed',
+          email: 'sophie@brightsideweddings.com',
+          phone: '(415) 555-2102',
+          notes: 'VIP wedding planner, detailed timelines.',
+          notify_on_booking_updates: true,
+        },
+        {
+          venue_id: venue.id,
+          company_name: 'Apex Consulting',
+          contact_name: 'Jordan Lee',
+          email: 'jordan@apexconsulting.com',
+          phone: '(415) 555-2103',
+          notes: 'Corporate leadership events.',
+          notify_on_booking_updates: false,
+        },
+        {
+          venue_id: venue.id,
+          company_name: 'Lumen Foundation',
+          contact_name: 'Priya Patel',
+          email: 'priya@lumenfoundation.org',
+          phone: '(415) 555-2104',
+          notes: 'Nonprofit fundraisers, prefers evening start.',
+          notify_on_booking_updates: true,
+        },
+        {
+          venue_id: venue.id,
+          company_name: 'Crestline Tech',
+          contact_name: 'Marcus Nolan',
+          email: 'marcus@crestlinetech.com',
+          phone: '(415) 555-2105',
+          notes: 'Product launches with press needs.',
+          notify_on_booking_updates: true,
+        },
+      ])
+      .select();
+
+    if (clientsError || !clients || clients.length === 0) {
+      console.error('Clients error details:', clientsError);
+      throw new Error(clientsError?.message || 'Failed to create clients');
+    }
+
+    const eventByName = new Map(events.map((event) => [event.event_name, event]));
+    const clientByCompany = new Map(
+      clients
+        .map((client) => [client.company_name || client.contact_name, client])
+        .filter((entry): entry is [string, any] => Boolean(entry[0]))
+    );
+
+    const clientEventLinks = [
+      { eventName: 'Annual Tech Conference 2026', clientName: 'Northwind Labs' },
+      { eventName: 'Smith-Johnson Wedding', clientName: 'Brightside Weddings' },
+      { eventName: 'New Year Gala 2027', clientName: 'Apex Consulting' },
+      { eventName: 'Annual Fundraising Dinner', clientName: 'Lumen Foundation' },
+      { eventName: 'Product Launch Event', clientName: 'Crestline Tech' },
+    ];
+
+    await Promise.all(
+      clientEventLinks.map(async ({ eventName, clientName }) => {
+        const event = eventByName.get(eventName);
+        const client = clientByCompany.get(clientName);
+        if (!event || !client) return;
+        await supabase.from('events').update({ client_id: client.id }).eq('id', event.id);
+      })
+    );
 
     // 6. Create Event-Vendor Assignments
     const assignments = [];
@@ -610,6 +599,44 @@ export async function seedDemoData(
       console.error('Reviews error:', reviewsError);
     }
 
+    // 8. Create Client Communications
+    const communicationsSeed = [
+      {
+        client_id: clientByCompany.get('Northwind Labs')?.id,
+        event_id: eventByName.get('Annual Tech Conference 2026')?.id,
+        message_type: 'booking_confirmed',
+        subject: 'Booking Confirmed - Annual Tech Conference 2026',
+        body: 'Confirmed booking details and shared the setup timeline. Waiting on final AV requirements.',
+        sent_by: userId,
+      },
+      {
+        client_id: clientByCompany.get('Brightside Weddings')?.id,
+        event_id: eventByName.get('Smith-Johnson Wedding')?.id,
+        message_type: 'booking_updated',
+        subject: 'Wedding Timeline Update',
+        body: 'Updated floor plan and guest count. Confirmed floral delivery window.',
+        sent_by: userId,
+      },
+      {
+        client_id: clientByCompany.get('Lumen Foundation')?.id,
+        event_id: eventByName.get('Annual Fundraising Dinner')?.id,
+        message_type: 'general',
+        subject: 'Fundraising Dinner Logistics',
+        body: 'Shared parking and security plan for the gala attendees.',
+        sent_by: userId,
+      },
+    ];
+
+    const communicationsToInsert = communicationsSeed.filter((entry) => entry.client_id);
+    const { data: clientCommunications, error: communicationsError } = await supabase
+      .from('client_communications')
+      .insert(communicationsToInsert)
+      .select();
+
+    if (communicationsError) {
+      console.error('Client communications error:', communicationsError);
+    }
+
     return {
       success: true,
       message: 'Demo data seeded successfully!',
@@ -620,6 +647,8 @@ export async function seedDemoData(
         events: events.length,
         assignments: eventVendors?.length || 0,
         reviews: reviews.length,
+        clients: clients.length,
+        client_communications: clientCommunications?.length || 0,
       },
     };
   } catch (error: any) {

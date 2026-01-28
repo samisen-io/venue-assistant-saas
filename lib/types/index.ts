@@ -5,6 +5,8 @@ export type Profile = Database['public']['Tables']['profiles']['Row']
 export type Venue = Database['public']['Tables']['venues']['Row']
 export type Space = Database['public']['Tables']['spaces']['Row']
 export type Vendor = Database['public']['Tables']['vendors']['Row']
+export type Client = Database['public']['Tables']['clients']['Row']
+export type ClientCommunication = Database['public']['Tables']['client_communications']['Row']
 export type EventService = Database['public']['Tables']['event_services']['Row']
 export type VendorService = Database['public']['Tables']['vendor_services']['Row']
 export type Event = Database['public']['Tables']['events']['Row']
@@ -21,6 +23,7 @@ export type AgentRun = Database['public']['Tables']['agent_runs']['Row']
 export * from './agent.types'
 export * from './communication.types'
 export * from './quote.types'
+export * from './client.types'
 
 // Re-export calendar types
 export * from './calendar.types'

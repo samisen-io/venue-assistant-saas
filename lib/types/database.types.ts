@@ -85,6 +85,44 @@ export interface Database {
                     updated_at?: string | null
                 }
             }
+            clients: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    company_name: string | null
+                    contact_name: string
+                    email: string | null
+                    phone: string | null
+                    notes: string | null
+                    notify_on_booking_updates: boolean | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    company_name?: string | null
+                    contact_name: string
+                    email?: string | null
+                    phone?: string | null
+                    notes?: string | null
+                    notify_on_booking_updates?: boolean | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    company_name?: string | null
+                    contact_name?: string
+                    email?: string | null
+                    phone?: string | null
+                    notes?: string | null
+                    notify_on_booking_updates?: boolean | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+            }
             spaces: {
                 Row: {
                     id: string
@@ -253,6 +291,7 @@ export interface Database {
                 Row: {
                     id: string
                     space_id: string | null
+                    client_id: string | null
                     venue_id: string
                     event_name: string
                     event_type: string
@@ -271,6 +310,7 @@ export interface Database {
                 Insert: {
                     id?: string
                     space_id?: string | null
+                    client_id?: string | null
                     venue_id: string
                     event_name: string
                     event_type: string
@@ -289,6 +329,7 @@ export interface Database {
                 Update: {
                     id?: string
                     space_id?: string | null
+                    client_id?: string | null
                     venue_id?: string
                     event_name?: string
                     event_type?: string
@@ -460,6 +501,41 @@ export interface Database {
                     status?: string | null
                     processed?: boolean | null
                     requires_followup?: boolean | null
+                    created_at?: string | null
+                }
+            }
+            client_communications: {
+                Row: {
+                    id: string
+                    client_id: string
+                    event_id: string | null
+                    message_type: string
+                    subject: string | null
+                    body: string | null
+                    sent_at: string | null
+                    sent_by: string | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    client_id: string
+                    event_id?: string | null
+                    message_type: string
+                    subject?: string | null
+                    body?: string | null
+                    sent_at?: string | null
+                    sent_by?: string | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    client_id?: string
+                    event_id?: string | null
+                    message_type?: string
+                    subject?: string | null
+                    body?: string | null
+                    sent_at?: string | null
+                    sent_by?: string | null
                     created_at?: string | null
                 }
             }

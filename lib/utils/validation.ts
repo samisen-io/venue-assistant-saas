@@ -64,6 +64,7 @@ export const eventFormSchema = z.object({
     budget_total: z.coerce.number().min(1, 'Budget must be greater than $0').max(10000000, 'Budget seems too large'),
     description: z.string().max(1000, 'Description must be less than 1000 characters').optional(),
     special_requirements: z.string().max(500, 'Special requirements must be less than 500 characters').optional(),
+    client_id: z.string().uuid().nullable().optional(),
 })
 
 export const reviewFormSchema = z.object({
@@ -72,4 +73,20 @@ export const reviewFormSchema = z.object({
     cost_accurate: z.boolean(),
     would_use_again: z.boolean(),
     notes: z.string().optional(),
+})
+
+export const clientFormSchema = z.object({
+    company_name: z.string().max(100, 'Company name must be less than 100 characters').optional().or(z.literal('')),
+    contact_name: z.string().min(2, 'Contact name is required').max(100, 'Contact name must be less than 100 characters'),
+    email: z.string().email('Invalid email address').optional().or(z.literal('')),
+    phone: z.string().regex(/^[\\d\\s\\-\\(\\)]+$/, 'Invalid phone number format').optional().or(z.literal('')),
+    notes: z.string().max(1000, 'Notes must be less than 1000 characters').optional().or(z.literal('')),
+    notify_on_booking_updates: z.boolean().optional(),
+})
+
+export const clientCommunicationSchema = z.object({
+    event_id: z.string().uuid().nullable().optional(),
+    message_type: z.enum(['booking_confirmed', 'booking_updated', 'booking_cancelled', 'general', 'reminder']),
+    subject: z.string().max(200, 'Subject must be less than 200 characters').optional().or(z.literal('')),
+    body: z.string().min(1, 'Message body is required').max(5000, 'Message body must be less than 5000 characters'),
 })
