@@ -18,8 +18,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { ArrowUpCircle } from "lucide-react";
 
 const sidebarItems = [
     {
@@ -65,6 +66,14 @@ export function Sidebar() {
     const supabase = createClient();
     const { toast } = useToast();
     const [isSeeding, setIsSeeding] = useState(false);
+    const [planTier, setPlanTier] = useState<string | null>(null);
+
+    useEffect(() => {
+        fetch("/api/subscription")
+            .then(res => res.ok ? res.json() : null)
+            .then(data => { if (data?.plan_tier) setPlanTier(data.plan_tier); })
+            .catch(() => {});
+    }, []);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -139,6 +148,22 @@ export function Sidebar() {
                 </nav>
             </div>
             <div className="border-t p-4 space-y-2">
+                {planTier && planTier !== "enterprise" && (
+                    <Link href="/pricing">
+                        <Button
+                            variant="outline"
+                            className="w-full justify-start gap-3 text-purple-600 border-purple-200 hover:bg-purple-50 hover:text-purple-700 mb-1"
+                        >
+                            <ArrowUpCircle className="h-4 w-4" />
+                            Upgrade Plan
+                        </Button>
+                    </Link>
+                )}
+                {planTier && (
+                    <div className="px-3 py-1 text-xs text-muted-foreground">
+                        {planTier.charAt(0).toUpperCase() + planTier.slice(1)} Plan
+                    </div>
+                )}
                 <Button
                     variant="outline"
                     className="w-full justify-start gap-3 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"

@@ -18,11 +18,27 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+    InputOTP,
+    InputOTPGroup,
+    InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
+type SignupStep = "form" | "otp";
+
+interface PendingSignup {
+    userId: string;
+    email: string;
+    fullName: string;
+}
+
 export default function SignupPage() {
+    const [step, setStep] = useState<SignupStep>("form");
     const [isLoading, setIsLoading] = useState(false);
+    const [pendingSignup, setPendingSignup] = useState<PendingSignup | null>(null);
+    const [otpValue, setOtpValue] = useState("");
     const router = useRouter();
     const { toast } = useToast();
     const supabase = createClient();
@@ -40,12 +56,11 @@ export default function SignupPage() {
     async function onSubmit(values: z.infer<typeof signupSchema>) {
         setIsLoading(true);
         try {
-            // 1. Sign up with Supabase Auth
+            // Sign up with Supabase Auth - this sends the OTP email
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: values.email,
                 password: values.password,
                 options: {
-                    emailRedirectTo: `${window.location.origin}/api/auth/callback`,
                     data: {
                         full_name: values.fullName,
                     },
@@ -55,30 +70,20 @@ export default function SignupPage() {
             if (authError) throw authError;
 
             if (authData.user) {
-                // 2. Create profile entry
-                const { error: profileError } = await (supabase as any)
-                    .from("profiles")
-                    .insert({
-                        id: authData.user.id,
-                        email: values.email,
-                        full_name: values.fullName,
-                    });
-
-                if (profileError) {
-                    // If profile creation fails, we should probably record it or try again
-                    // But for MVP, we'll just log it
-                    console.error("Profile creation failed:", profileError);
-                }
-
-                toast({
-                    title: "Account created",
-                    description: "Please check your email to verify your account.",
+                // Store signup info for after OTP verification
+                setPendingSignup({
+                    userId: authData.user.id,
+                    email: values.email,
+                    fullName: values.fullName,
                 });
 
-                // Redirect to onboarding or dashboard
-                // Note: With email verification enabled, user might need to verify first
-                // If email confirmation is disabled in Supabase, this will work immediately
-                router.push("/onboarding/venue-setup");
+                toast({
+                    title: "Verification code sent",
+                    description: "Please check your email for an 8-digit verification code.",
+                });
+
+                // Move to OTP step
+                setStep("otp");
             }
         } catch (error) {
             toast({
@@ -91,6 +96,153 @@ export default function SignupPage() {
         }
     }
 
+    async function onVerifyOtp() {
+        if (!pendingSignup || otpValue.length !== 8) return;
+
+        setIsLoading(true);
+        try {
+            // Verify OTP
+            const { data, error } = await supabase.auth.verifyOtp({
+                email: pendingSignup.email,
+                token: otpValue,
+                type: "signup",
+            });
+
+            if (error) throw error;
+
+            if (data.user) {
+                // User is now authenticated - create trial subscription
+                try {
+                    const trialRes = await fetch("/api/subscription/trial", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            userId: data.user.id,
+                            email: pendingSignup.email,
+                            fullName: pendingSignup.fullName,
+                        }),
+                    });
+                    if (!trialRes.ok) {
+                        console.error("Trial subscription creation failed:", await trialRes.text());
+                    }
+                } catch (trialError) {
+                    console.error("Trial subscription creation failed:", trialError);
+                }
+
+                toast({
+                    title: "Email verified",
+                    description: "Your account is ready. You have a 14-day free trial!",
+                });
+
+                router.push("/onboarding/venue-setup");
+            }
+        } catch (error) {
+            toast({
+                title: "Verification failed",
+                description: error instanceof Error ? error.message : "Invalid or expired code",
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    async function onResendOtp() {
+        if (!pendingSignup) return;
+
+        setIsLoading(true);
+        try {
+            const { error } = await supabase.auth.resend({
+                type: "signup",
+                email: pendingSignup.email,
+            });
+
+            if (error) throw error;
+
+            toast({
+                title: "Code resent",
+                description: "Please check your email for a new verification code.",
+            });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error instanceof Error ? error.message : "Failed to resend code",
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    // OTP verification step
+    if (step === "otp" && pendingSignup) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Verify your email</CardTitle>
+                    <CardDescription>
+                        We sent a verification code to {pendingSignup.email}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex justify-center">
+                        <InputOTP
+                            maxLength={8}
+                            value={otpValue}
+                            onChange={setOtpValue}
+                        >
+                            <InputOTPGroup>
+                                <InputOTPSlot index={0} />
+                                <InputOTPSlot index={1} />
+                                <InputOTPSlot index={2} />
+                                <InputOTPSlot index={3} />
+                                <InputOTPSlot index={4} />
+                                <InputOTPSlot index={5} />
+                                <InputOTPSlot index={6} />
+                                <InputOTPSlot index={7} />
+                            </InputOTPGroup>
+                        </InputOTP>
+                    </div>
+
+                    <Button
+                        className="w-full"
+                        onClick={onVerifyOtp}
+                        disabled={isLoading || otpValue.length !== 8}
+                    >
+                        {isLoading ? "Verifying..." : "Verify email"}
+                    </Button>
+
+                    <div className="text-center text-sm text-muted-foreground">
+                        Didn&apos;t receive the code?{" "}
+                        <button
+                            type="button"
+                            onClick={onResendOtp}
+                            disabled={isLoading}
+                            className="underline hover:text-primary disabled:opacity-50"
+                        >
+                            Resend
+                        </button>
+                    </div>
+
+                    <div className="text-center text-sm">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setStep("form");
+                                setPendingSignup(null);
+                                setOtpValue("");
+                            }}
+                            className="underline hover:text-primary"
+                        >
+                            Use a different email
+                        </button>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    // Signup form step
     return (
         <Card>
             <CardHeader>

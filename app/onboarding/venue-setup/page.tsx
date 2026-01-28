@@ -42,6 +42,7 @@ export default function VenueSetupPage() {
             city: "",
             state: "",
             zip_code: "",
+            contact_name: "",
             phone: "",
             email: "",
             venue_type: "",
@@ -60,6 +61,7 @@ export default function VenueSetupPage() {
                 city: values.city,
                 state: values.state,
                 zip_code: values.zip_code,
+                contact_name: values.contact_name,
                 phone: values.phone,
                 email: values.email,
                 venue_type: values.venue_type,
@@ -182,6 +184,49 @@ export default function VenueSetupPage() {
                                         <FormLabel>Zip Code</FormLabel>
                                         <FormControl>
                                             <Input placeholder="10001" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+
+                        <FormField
+                            control={form.control}
+                            name="contact_name"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Contact Name</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="John Smith" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="phone"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Phone</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="(555) 123-4567" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="email"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Email</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="contact@venue.com" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

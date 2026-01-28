@@ -22,6 +22,7 @@ export const venueFormSchema = z.object({
     city: z.string().min(1, 'City is required').max(50, 'City must be less than 50 characters'),
     state: z.string().min(1, 'State is required').max(50, 'State must be less than 50 characters'),
     zip_code: z.string().regex(/^\d{5}(-\d{4})?$/, 'Invalid ZIP code format (e.g., 12345 or 12345-6789)'),
+    contact_name: z.string().min(2, 'Contact name is required').max(100, 'Contact name must be less than 100 characters'),
     phone: z.string().regex(/^[\d\s\-\(\)]+$/, 'Invalid phone number format').min(10, 'Phone number required'),
     email: z.string().email('Invalid email address'),
     venue_type: z.string().min(1, 'Please select a venue type'),

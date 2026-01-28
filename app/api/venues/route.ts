@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { venueFormSchema } from '@/lib/utils/validation'
+import { canCreateSpace } from '@/lib/subscription/limits'
+import { trackSpaceCreation } from '@/lib/subscription/usage'
 
 export async function GET(request: Request) {
     try {
@@ -35,6 +37,15 @@ export async function POST(request: Request) {
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
+        // Check subscription limits
+        const spaceCheck = await canCreateSpace(user.id)
+        if (!spaceCheck.allowed) {
+            return NextResponse.json(
+                { error: spaceCheck.reason, code: 'LIMIT_REACHED' },
+                { status: 403 }
+            )
+        }
+
         const json = await request.json()
         const body = venueFormSchema.parse(json)
 
@@ -48,6 +59,9 @@ export async function POST(request: Request) {
             .single()
 
         if (error) throw error
+
+        // Track usage
+        await trackSpaceCreation(user.id).catch(console.error)
 
         return NextResponse.json(venue)
     } catch (error) {

@@ -14,7 +14,9 @@
       "Bash(cmd.exe /c \"npm run build\")",
       "Bash(powershell.exe -Command \"npm run build\")",
       "Bash(powershell.exe -Command \"npx shadcn@latest add dialog\")",
-      "Bash(npx next build:*)"
+      "Bash(npx next build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node -e:*)"
     ]
   }
 }

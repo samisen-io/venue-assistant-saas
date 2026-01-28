@@ -15,7 +15,15 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { EventCard } from "@/components/events/EventCard";
 import { Event } from "@/lib/types";
 import { Loading } from "@/components/shared/Loading";
+import { TrialBanner } from "@/components/subscription/TrialBanner";
+import { SubscriptionBadge } from "@/components/subscription/SubscriptionBadge";
 import Link from "next/link";
+
+interface SubscriptionData {
+    plan_tier: string;
+    status: string;
+    trial_ends_at: string | null;
+}
 
 export default function DashboardPage() {
     const [stats, setStats] = useState({
@@ -25,15 +33,19 @@ export default function DashboardPage() {
         totalBudget: 0
     });
     const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+    const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
+    const [trialDaysRemaining, setTrialDaysRemaining] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             setIsLoading(true);
             try {
-                // Fetch venues first to get a venue_id if needed, or rely on API to return all for user
-                const eventsRes = await fetch("/api/events");
-                const vendorsRes = await fetch("/api/vendors");
+                const [eventsRes, vendorsRes, subRes] = await Promise.all([
+                    fetch("/api/events"),
+                    fetch("/api/vendors"),
+                    fetch("/api/subscription"),
+                ]);
 
                 if (eventsRes.ok && vendorsRes.ok) {
                     const eventsData: Event[] = await eventsRes.json();
@@ -52,6 +64,17 @@ export default function DashboardPage() {
                         totalBudget: eventsData.reduce((acc, curr) => acc + (curr.budget_total || 0), 0)
                     });
                 }
+
+                if (subRes.ok) {
+                    const subData = await subRes.json();
+                    if (subData) {
+                        setSubscription(subData);
+                        if (subData.status === "trialing" && subData.trial_ends_at) {
+                            const remaining = new Date(subData.trial_ends_at).getTime() - Date.now();
+                            setTrialDaysRemaining(Math.max(0, Math.ceil(remaining / (1000 * 60 * 60 * 24))));
+                        }
+                    }
+                }
             } catch (error) {
                 console.error("Error fetching dashboard data:", error);
             } finally {
@@ -66,9 +89,18 @@ export default function DashboardPage() {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
+            {trialDaysRemaining !== null && (
+                <TrialBanner daysRemaining={trialDaysRemaining} />
+            )}
+
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+                    <div className="flex items-center gap-3 mb-1">
+                        <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+                        {subscription && (
+                            <SubscriptionBadge tier={subscription.plan_tier} status={subscription.status} />
+                        )}
+                    </div>
                     <p className="text-muted-foreground mt-1">Welcome back! Here&apos;s what&apos;s happening with your venues.</p>
                 </div>
                 <div className="flex gap-3">

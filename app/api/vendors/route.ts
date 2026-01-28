@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { vendorFormSchema } from '@/lib/utils/validation'
 import { Database } from '@/lib/types/database.types'
+import { canCreateVendor } from '@/lib/subscription/limits'
+import { trackVendorCreation } from '@/lib/subscription/usage'
 
 type VendorInsert = Database['public']['Tables']['vendors']['Insert']
 
@@ -62,6 +64,15 @@ export async function POST(request: Request) {
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
+        // Check subscription limits
+        const vendorCheck = await canCreateVendor(user.id)
+        if (!vendorCheck.allowed) {
+            return NextResponse.json(
+                { error: vendorCheck.reason, code: 'LIMIT_REACHED' },
+                { status: 403 }
+            )
+        }
+
         const json = await request.json()
         const vendorData = json
 
@@ -107,6 +118,9 @@ export async function POST(request: Request) {
             .insert(vendorServices)
 
         if (vendorServicesError) throw vendorServicesError
+
+        // Track usage
+        await trackVendorCreation(user.id).catch(console.error)
 
         return NextResponse.json(vendor)
     } catch (error) {

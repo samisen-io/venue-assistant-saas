@@ -491,5 +491,111 @@ END $$;
 
 
 -- =====================================================
+-- MIGRATION 9: Subscriptions & Usage Tracking
+-- =====================================================
+-- Creates subscriptions and usage_tracking tables for
+-- Stripe billing integration (Phase 23).
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL UNIQUE,
+    stripe_customer_id TEXT UNIQUE NOT NULL,
+    stripe_subscription_id TEXT UNIQUE,
+    plan_tier TEXT NOT NULL CHECK (plan_tier IN ('starter', 'professional', 'enterprise', 'trial')),
+    status TEXT NOT NULL CHECK (status IN ('active', 'canceled', 'past_due', 'trialing', 'incomplete')),
+    current_period_start TIMESTAMP WITH TIME ZONE,
+    current_period_end TIMESTAMP WITH TIME ZONE,
+    cancel_at_period_end BOOLEAN DEFAULT false,
+    trial_ends_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_customer_id ON subscriptions(stripe_customer_id);
+
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'subscriptions' AND policyname = 'Users can view own subscription'
+  ) THEN
+    CREATE POLICY "Users can view own subscription"
+      ON subscriptions FOR SELECT TO authenticated
+      USING (user_id = auth.uid());
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'subscriptions' AND policyname = 'Users can update own subscription'
+  ) THEN
+    CREATE POLICY "Users can update own subscription"
+      ON subscriptions FOR UPDATE TO authenticated
+      USING (user_id = auth.uid());
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'subscriptions' AND policyname = 'Service role can manage subscriptions'
+  ) THEN
+    CREATE POLICY "Service role can manage subscriptions"
+      ON subscriptions FOR ALL TO service_role USING (true) WITH CHECK (true);
+  END IF;
+END $$;
+
+
+CREATE TABLE IF NOT EXISTS usage_tracking (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+    month DATE NOT NULL,
+    spaces_created INTEGER DEFAULT 0,
+    events_created INTEGER DEFAULT 0,
+    vendors_created INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, month)
+);
+
+CREATE INDEX IF NOT EXISTS idx_usage_tracking_user_month ON usage_tracking(user_id, month);
+
+ALTER TABLE usage_tracking ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'usage_tracking' AND policyname = 'Users can view own usage'
+  ) THEN
+    CREATE POLICY "Users can view own usage"
+      ON usage_tracking FOR SELECT TO authenticated
+      USING (user_id = auth.uid());
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'usage_tracking' AND policyname = 'Service role can manage usage tracking'
+  ) THEN
+    CREATE POLICY "Service role can manage usage tracking"
+      ON usage_tracking FOR ALL TO service_role USING (true) WITH CHECK (true);
+  END IF;
+END $$;
+
+
+-- =====================================================
+-- MIGRATION 10: Add contact_name to venues
+-- =====================================================
+
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS contact_name TEXT;
+
+
+-- =====================================================
 -- ALL MIGRATIONS COMPLETE
 -- =====================================================
