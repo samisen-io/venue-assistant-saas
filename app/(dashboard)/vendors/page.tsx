@@ -7,9 +7,11 @@ import { EventService, Vendor } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { VendorCard } from "@/components/vendors/VendorCard";
+import { VendorTable } from "@/components/vendors/VendorTable";
 import { Loading } from "@/components/shared/Loading";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorMessage } from "@/components/shared/ErrorMessage";
+import { ViewToggle, ViewMode } from "@/components/shared/ViewToggle";
 import {
     Select,
     SelectContent,
@@ -25,6 +27,17 @@ export default function VendorsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [eventServices, setEventServices] = useState<EventService[]>([]);
     const [selectedServiceId, setSelectedServiceId] = useState("all");
+    const [viewMode, setViewMode] = useState<ViewMode>(() => {
+        if (typeof window !== "undefined") {
+            return (localStorage.getItem("viewMode:vendors") as ViewMode) || "grid";
+        }
+        return "grid";
+    });
+
+    const handleViewModeChange = (mode: ViewMode) => {
+        setViewMode(mode);
+        localStorage.setItem("viewMode:vendors", mode);
+    };
 
     const fetchVendors = async () => {
         setIsLoading(true);
@@ -80,12 +93,15 @@ export default function VendorsPage() {
         <div className="space-y-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <h1 className="text-3xl font-bold tracking-tight">Vendors</h1>
-                <Button asChild>
-                    <Link href="/vendors/new">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Vendor
-                    </Link>
-                </Button>
+                <div className="flex items-center gap-3">
+                    <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
+                    <Button asChild>
+                        <Link href="/vendors/new">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Vendor
+                        </Link>
+                    </Button>
+                </div>
             </div>
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -132,12 +148,14 @@ export default function VendorsPage() {
                         : { actionHref: "/vendors/new" }
                     )}
                 />
-            ) : (
+            ) : viewMode === "grid" ? (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {filteredVendors.map((vendor) => (
                         <VendorCard key={vendor.id} vendor={vendor} />
                     ))}
                 </div>
+            ) : (
+                <VendorTable vendors={filteredVendors} />
             )}
         </div>
     );

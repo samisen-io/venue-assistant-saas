@@ -9,9 +9,11 @@ import { useVenues } from "@/hooks/useVenues";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ClientCard } from "@/components/clients/ClientCard";
+import { ClientTable } from "@/components/clients/ClientTable";
 import { Loading } from "@/components/shared/Loading";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorMessage } from "@/components/shared/ErrorMessage";
+import { ViewToggle, ViewMode } from "@/components/shared/ViewToggle";
 import {
     Select,
     SelectContent,
@@ -23,7 +25,18 @@ import {
 export function ClientList() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedVenueId, setSelectedVenueId] = useState("all");
+    const [viewMode, setViewMode] = useState<ViewMode>(() => {
+        if (typeof window !== "undefined") {
+            return (localStorage.getItem("viewMode:clients") as ViewMode) || "grid";
+        }
+        return "grid";
+    });
     const { venues } = useVenues();
+
+    const handleViewModeChange = (mode: ViewMode) => {
+        setViewMode(mode);
+        localStorage.setItem("viewMode:clients", mode);
+    };
 
     const { clients, loading, error, refetch } = useClients({
         venueId: selectedVenueId !== "all" ? selectedVenueId : undefined,
@@ -40,12 +53,15 @@ export function ClientList() {
         <div className="space-y-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
-                <Button asChild>
-                    <Link href="/clients/new">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Client
-                    </Link>
-                </Button>
+                <div className="flex items-center gap-3">
+                    <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
+                    <Button asChild>
+                        <Link href="/clients/new">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Client
+                        </Link>
+                    </Button>
+                </div>
             </div>
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -100,12 +116,14 @@ export function ClientList() {
                         : { actionHref: "/clients/new" }
                     )}
                 />
-            ) : (
+            ) : viewMode === "grid" ? (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {clients.map((client: Client & { event_count?: number }) => (
                         <ClientCard key={client.id} client={client} />
                     ))}
                 </div>
+            ) : (
+                <ClientTable clients={clients} />
             )}
         </div>
     );

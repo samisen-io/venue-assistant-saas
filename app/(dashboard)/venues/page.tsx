@@ -6,14 +6,27 @@ import { Plus } from "lucide-react";
 import { Venue } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { VenueCard } from "@/components/venues/VenueCard";
+import { VenueTable } from "@/components/venues/VenueTable";
 import { Loading } from "@/components/shared/Loading";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorMessage } from "@/components/shared/ErrorMessage";
+import { ViewToggle, ViewMode } from "@/components/shared/ViewToggle";
 
 export default function VenuesPage() {
     const [venues, setVenues] = useState<Venue[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
+    const [viewMode, setViewMode] = useState<ViewMode>(() => {
+        if (typeof window !== "undefined") {
+            return (localStorage.getItem("viewMode:venues") as ViewMode) || "grid";
+        }
+        return "grid";
+    });
+
+    const handleViewModeChange = (mode: ViewMode) => {
+        setViewMode(mode);
+        localStorage.setItem("viewMode:venues", mode);
+    };
 
     const fetchVenues = async () => {
         setIsLoading(true);
@@ -42,12 +55,15 @@ export default function VenuesPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold tracking-tight">Venues</h1>
-                <Button asChild>
-                    <Link href="/venues/new">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Venue
-                    </Link>
-                </Button>
+                <div className="flex items-center gap-3">
+                    <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
+                    <Button asChild>
+                        <Link href="/venues/new">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Venue
+                        </Link>
+                    </Button>
+                </div>
             </div>
 
             {venues.length === 0 ? (
@@ -57,12 +73,14 @@ export default function VenuesPage() {
                     actionLabel="Add Venue"
                     actionHref="/venues/new"
                 />
-            ) : (
+            ) : viewMode === "grid" ? (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {venues.map((venue) => (
                         <VenueCard key={venue.id} venue={venue} />
                     ))}
                 </div>
+            ) : (
+                <VenueTable venues={venues} />
             )}
         </div>
     );
