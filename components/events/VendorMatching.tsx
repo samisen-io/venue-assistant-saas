@@ -12,7 +12,7 @@ import { formatCurrency } from "@/lib/utils/format";
 import { Loading } from "@/components/shared/Loading";
 
 interface VendorMatchingProps {
-    event: Event;
+    event: Event & { event_vendors?: Array<{ vendor_id: string }> };
     onVendorAdded: () => void;
 }
 
@@ -21,6 +21,15 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
     const [rankedVendors, setRankedVendors] = useState<VendorMatchResult[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
+    const [addedVendorIds, setAddedVendorIds] = useState<Set<string>>(new Set());
+
+    // Track already added vendors from event data
+    useEffect(() => {
+        const existingVendorIds = new Set(
+            (event.event_vendors || []).map(ev => ev.vendor_id)
+        );
+        setAddedVendorIds(existingVendorIds);
+    }, [event.event_vendors]);
 
     useEffect(() => {
         const fetchVendors = async () => {
@@ -81,6 +90,8 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
                 description: "Vendor has been successfully added to the event.",
             });
 
+            // Track this vendor as added
+            setAddedVendorIds(prev => new Set(prev).add(vendor.id));
             onVendorAdded();
         } catch (error: any) {
             toast({
@@ -175,10 +186,11 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
 
                                         <Button
                                             onClick={() => addVendorToEvent(vendor, defaultServiceId)}
-                                            disabled={isSubmitting === vendor.id || !defaultServiceId}
+                                            disabled={isSubmitting === vendor.id || !defaultServiceId || addedVendorIds.has(vendor.id)}
                                             size="sm"
+                                            variant={addedVendorIds.has(vendor.id) ? "outline" : "default"}
                                         >
-                                            {isSubmitting === vendor.id ? "Adding..." : "Add to Event"}
+                                            {isSubmitting === vendor.id ? "Adding..." : addedVendorIds.has(vendor.id) ? "Added" : "Add to Event"}
                                         </Button>
                                     </div>
                                 </div>

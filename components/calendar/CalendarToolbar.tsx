@@ -64,6 +64,17 @@ export function CalendarToolbar({
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-slate-600" />
               <div className="flex flex-wrap gap-1">
+                <Badge
+                  variant={selectedStatuses.length === 0 ? 'default' : 'outline'}
+                  className={`cursor-pointer ${
+                    selectedStatuses.length === 0
+                      ? 'bg-slate-800 text-white'
+                      : 'hover:bg-slate-100'
+                  }`}
+                  onClick={() => onStatusChange([])}
+                >
+                  All
+                </Badge>
                 {Object.entries(statusConfig).map(([status, config]) => (
                   <Badge
                     key={status}

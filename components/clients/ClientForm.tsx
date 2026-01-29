@@ -15,13 +15,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Client, Venue } from "@/lib/types";
 
@@ -55,30 +48,8 @@ export function ClientForm({ initialData, venues, onSubmit, isLoading = false }:
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                    control={form.control}
-                    name="venue_id"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Venue</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!initialData}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select venue" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {venues.map((venue) => (
-                                        <SelectItem key={venue.id} value={venue.id}>
-                                            {venue.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                {/* venue_id is auto-selected (one venue per user by design) */}
+                <input type="hidden" {...form.register("venue_id")} />
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <FormField

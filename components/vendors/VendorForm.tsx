@@ -44,10 +44,13 @@ export function VendorForm({ initialData, venues, onSubmit, isLoading = false }:
     const [eventServices, setEventServices] = useState<EventService[]>([]);
     const [isLoadingServices, setIsLoadingServices] = useState(true);
 
+    // Auto-select the only venue (one venue per user by design)
+    const defaultVenueId = initialData?.venue_id || venues[0]?.id || "";
+
     const form = useForm<VendorFormValues>({
         resolver: zodResolver(vendorFormWithVenueSchema) as any, // Cast to any to bypass the complex type mismatch
         defaultValues: {
-            venue_id: initialData?.venue_id || "",
+            venue_id: defaultVenueId,
             name: initialData?.name || "",
             event_service_ids: (initialData as any)?.vendor_services?.map((service: any) => service.event_service_id) || [],
             contact_name: initialData?.contact_name || "",
@@ -80,30 +83,8 @@ export function VendorForm({ initialData, venues, onSubmit, isLoading = false }:
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                    control={form.control}
-                    name="venue_id"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Venue</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!initialData}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select venue" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {venues.map((venue) => (
-                                        <SelectItem key={venue.id} value={venue.id}>
-                                            {venue.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                {/* venue_id is auto-selected (one venue per user by design) */}
+                <input type="hidden" {...form.register("venue_id")} />
 
                 <FormField
                     control={form.control}

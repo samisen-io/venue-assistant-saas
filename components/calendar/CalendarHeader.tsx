@@ -17,6 +17,7 @@ interface CalendarHeaderProps {
   currentDate: Date
   onViewChange: (view: CalendarView) => void
   onNavigate: (direction: 'prev' | 'next' | 'today') => void
+  // Note: venue filter props removed - one venue per user by design
   selectedVenueId?: string
   venues?: Array<{ id: string; venue_name: string }>
   onVenueChange?: (venueId: string) => void
@@ -30,9 +31,6 @@ export function CalendarHeader({
   currentDate,
   onViewChange,
   onNavigate,
-  selectedVenueId,
-  venues = [],
-  onVenueChange,
   selectedSpaceId,
   spaces = [],
   onSpaceChange,
@@ -88,22 +86,7 @@ export function CalendarHeader({
 
       {/* Right side - View switcher and filters */}
       <div className="flex items-center gap-3 w-full sm:w-auto">
-        {/* Venue filter */}
-        {venues.length > 0 && onVenueChange && (
-          <Select value={selectedVenueId || 'all'} onValueChange={onVenueChange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="All Venues" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Venues</SelectItem>
-              {venues.map((venue) => (
-                <SelectItem key={venue.id} value={venue.id}>
-                  {venue.venue_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+        {/* Note: Venue filter removed - one venue per user by design */}
 
         {/* Space filter */}
         {spaces.length > 0 && onSpaceChange && (

@@ -1,16 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { Plus, Building2 } from "lucide-react";
-import { Space } from "@/lib/types";
+import { Plus, Building2, Search, Filter, X } from "lucide-react";
+import { Space, SpaceType } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { SpaceCard } from "@/components/spaces/SpaceCard";
 import { SpaceTable } from "@/components/spaces/SpaceTable";
 import { Loading } from "@/components/shared/Loading";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorMessage } from "@/components/shared/ErrorMessage";
 import { ViewToggle, ViewMode } from "@/components/shared/ViewToggle";
+
+const spaceTypes: { value: string; label: string }[] = [
+    { value: "ballroom", label: "Ballroom" },
+    { value: "conference_room", label: "Conference Room" },
+    { value: "meeting_room", label: "Meeting Room" },
+    { value: "outdoor_garden", label: "Outdoor Garden" },
+    { value: "rooftop", label: "Rooftop" },
+    { value: "banquet_hall", label: "Banquet Hall" },
+    { value: "other", label: "Other" },
+];
 
 export default function SpacesPage() {
     const [spaces, setSpaces] = useState<Space[]>([]);
@@ -22,6 +40,12 @@ export default function SpacesPage() {
         }
         return "grid";
     });
+
+    // Filter state
+    const [searchQuery, setSearchQuery] = useState("");
+    const [typeFilter, setTypeFilter] = useState<string>("all");
+    const [minCapacity, setMinCapacity] = useState<string>("");
+    const [maxRate, setMaxRate] = useState<string>("");
 
     const handleViewModeChange = (mode: ViewMode) => {
         setViewMode(mode);
@@ -47,6 +71,51 @@ export default function SpacesPage() {
         fetchSpaces();
     }, []);
 
+    // Filter spaces based on search and filters
+    const filteredSpaces = useMemo(() => {
+        return spaces.filter((space) => {
+            // Search filter (name, floor_level)
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                const matchesName = space.name.toLowerCase().includes(query);
+                const matchesFloor = space.floor_level?.toLowerCase().includes(query);
+                if (!matchesName && !matchesFloor) return false;
+            }
+
+            // Type filter
+            if (typeFilter !== "all" && space.space_type !== typeFilter) {
+                return false;
+            }
+
+            // Min capacity filter
+            if (minCapacity) {
+                const min = parseInt(minCapacity, 10);
+                if (!isNaN(min) && (space.capacity === null || space.capacity < min)) {
+                    return false;
+                }
+            }
+
+            // Max hourly rate filter
+            if (maxRate) {
+                const max = parseFloat(maxRate);
+                if (!isNaN(max) && space.hourly_rate !== null && space.hourly_rate > max) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    }, [spaces, searchQuery, typeFilter, minCapacity, maxRate]);
+
+    const clearFilters = () => {
+        setSearchQuery("");
+        setTypeFilter("all");
+        setMinCapacity("");
+        setMaxRate("");
+    };
+
+    const hasActiveFilters = searchQuery || typeFilter !== "all" || minCapacity || maxRate;
+
     if (isLoading) return <Loading />;
 
     if (error) return <ErrorMessage message={error} onRetry={fetchSpaces} />;
@@ -69,6 +138,76 @@ export default function SpacesPage() {
                 </div>
             </div>
 
+            {/* Search and Filters */}
+            {spaces.length > 0 && (
+                <div className="bg-white border rounded-lg p-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        {/* Search */}
+                        <div className="relative flex-1 max-w-xs">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <Input
+                                type="text"
+                                placeholder="Search spaces..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-9"
+                            />
+                        </div>
+
+                        {/* Type Filter */}
+                        <div className="flex items-center gap-2">
+                            <Filter className="h-4 w-4 text-slate-600" />
+                            <Select value={typeFilter} onValueChange={setTypeFilter}>
+                                <SelectTrigger className="w-[160px]">
+                                    <SelectValue placeholder="All Types" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Types</SelectItem>
+                                    {spaceTypes.map((type) => (
+                                        <SelectItem key={type.value} value={type.value}>
+                                            {type.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Min Capacity */}
+                        <Input
+                            type="number"
+                            placeholder="Min capacity"
+                            value={minCapacity}
+                            onChange={(e) => setMinCapacity(e.target.value)}
+                            className="w-[130px]"
+                        />
+
+                        {/* Max Rate */}
+                        <Input
+                            type="number"
+                            placeholder="Max $/hr"
+                            value={maxRate}
+                            onChange={(e) => setMaxRate(e.target.value)}
+                            className="w-[120px]"
+                        />
+
+                        {/* Clear Filters */}
+                        {hasActiveFilters && (
+                            <Button variant="ghost" size="sm" onClick={clearFilters}>
+                                <X className="h-4 w-4 mr-1" />
+                                Clear
+                            </Button>
+                        )}
+                    </div>
+
+                    {/* Results count */}
+                    {hasActiveFilters && (
+                        <div className="mt-3 text-sm text-gray-500">
+                            Showing {filteredSpaces.length} of {spaces.length} spaces
+                        </div>
+                    )}
+                </div>
+            )}
+
             {spaces.length === 0 ? (
                 <EmptyState
                     icon={Building2}
@@ -77,14 +216,25 @@ export default function SpacesPage() {
                     actionLabel="Add Space"
                     actionHref="/spaces/new"
                 />
+            ) : filteredSpaces.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed">
+                    <Search className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900">No matching spaces</h3>
+                    <p className="text-gray-500 max-w-sm mx-auto mt-2">
+                        Try adjusting your search or filter criteria
+                    </p>
+                    <Button variant="outline" className="mt-4" onClick={clearFilters}>
+                        Clear Filters
+                    </Button>
+                </div>
             ) : viewMode === "grid" ? (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {spaces.map((space) => (
+                    {filteredSpaces.map((space) => (
                         <SpaceCard key={space.id} space={space} />
                     ))}
                 </div>
             ) : (
-                <SpaceTable spaces={spaces} />
+                <SpaceTable spaces={filteredSpaces} />
             )}
         </div>
     );
