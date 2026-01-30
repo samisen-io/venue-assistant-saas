@@ -89,30 +89,30 @@ export function EventVendorsList({ eventId, refreshKey }: EventVendorsListProps)
                     return (
                         <Card key={association.id}>
                             <CardContent className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex gap-4">
-                                        <div className="bg-primary/10 p-3 rounded-lg flex items-center justify-center">
-                                            <CheckCircle2 className="h-6 w-6 text-primary" />
+                                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="flex gap-3 sm:gap-4 min-w-0">
+                                        <div className="bg-primary/10 p-2 sm:p-3 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                                         </div>
-                                        <div>
-                                            <h4 className="font-bold">{association.vendors.name}</h4>
+                                        <div className="min-w-0">
+                                            <h4 className="font-bold truncate">{association.vendors.name}</h4>
                                             <p className="text-sm text-gray-500">
                                                 {association.event_services?.name || "Service"}
                                             </p>
-                                            <div className="flex gap-4 mt-2 text-xs text-gray-400">
-                                                <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {association.vendors.contact_email}</span>
-                                                {association.vendors.contact_phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {association.vendors.contact_phone}</span>}
+                                            <div className="flex flex-col sm:flex-row sm:gap-4 mt-2 text-xs text-gray-400">
+                                                <span className="flex items-center gap-1 truncate"><Mail className="h-3 w-3 flex-shrink-0" /> {association.vendors.contact_email}</span>
+                                                {association.vendors.contact_phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3 flex-shrink-0" /> {association.vendors.contact_phone}</span>}
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-6">
-                                        <div className="text-right">
+                                    <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-6">
+                                        <div className="text-left sm:text-right">
                                             <Badge className={association.confirmed ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
                                                 {association.confirmed ? "Confirmed" : "Pending"}
                                             </Badge>
                                         </div>
-                                        <div className="text-right min-w-[100px]">
+                                        <div className="text-right">
                                             <p className="font-bold">{formatCurrency(association.quoted_cost || association.vendors.cost_per_unit || 0)}</p>
                                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Quoted Cost</p>
                                         </div>

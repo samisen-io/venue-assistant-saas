@@ -4,7 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { CalendarDays, DollarSign, Edit, MapPin, Users, Settings, Send, CheckCircle2, Building2, XCircle } from "lucide-react";
+import { CalendarDays, DollarSign, Edit, MapPin, Users, Send, CheckCircle2, Building2, XCircle } from "lucide-react";
 
 import { Event, EventServiceRequirement, EventVendor, Venue } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -110,7 +110,7 @@ export default function EventDetailsPage({ params }: { params: Promise<{ eventId
     if (error || !event) return <ErrorMessage message={error || "Event not found"} onRetry={fetchEventDetails} />;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 min-w-0">
             <Breadcrumbs
                 items={[
                     { label: "Events", href: "/events" },
@@ -118,42 +118,22 @@ export default function EventDetailsPage({ params }: { params: Promise<{ eventId
                 ]}
             />
             {/* Header Section */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-3xl font-bold tracking-tight">{event.event_name}</h1>
-                        <Badge variant="outline" className={getStatusColor(event.status)}>
-                            {event.status}
-                        </Badge>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500">
-                        <div className="flex items-center gap-2">
-                            <CalendarDays className="h-4 w-4" />
-                            <span>{format(new Date(event.event_date), 'MMMM d, yyyy')}</span>
-                            {event.event_time && <span>at {event.event_time}</span>}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4" />
-                            <span>{event.venues?.name}</span>
-                        </div>
-                        {(event as any).spaces?.name && (
-                            <div className="flex items-center gap-2">
-                                <Building2 className="h-4 w-4" />
-                                <span>{(event as any).spaces.name}</span>
-                            </div>
-                        )}
-                        <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            <span>{event.guest_count} Guests</span>
-                        </div>
-                    </div>
+            <div className="space-y-4">
+                {/* Title and Status */}
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{event.event_name}</h1>
+                    <Badge variant="outline" className={getStatusColor(event.status)}>
+                        {event.status}
+                    </Badge>
                 </div>
-                <div className="flex items-center gap-2">
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap items-center gap-2">
                     {event.status === "planning" && (
                         <Button
                             onClick={handleStartAgent}
                             disabled={isStartingAgent}
-                            variant="default"
+                            className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white"
                         >
                             <Send className="mr-2 h-4 w-4" />
                             {isStartingAgent ? "Starting..." : "Contact Vendors with AI"}
@@ -199,41 +179,64 @@ export default function EventDetailsPage({ params }: { params: Promise<{ eventId
                     )}
                     <Button variant="outline" asChild>
                         <Link href={`/events/${eventId}/edit`}>
-                            <Settings className="mr-2 h-4 w-4" />
-                            Settings
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
                         </Link>
                     </Button>
+                </div>
+
+                {/* Event Details */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500">
+                    <div className="flex items-center gap-2">
+                        <CalendarDays className="h-4 w-4 flex-shrink-0" />
+                        <span>{format(new Date(event.event_date), 'MMM d, yyyy')}</span>
+                        {event.event_time && <span>at {event.event_time}</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate max-w-[150px] sm:max-w-none">{event.venues?.name}</span>
+                    </div>
+                    {(event as any).spaces?.name && (
+                        <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 flex-shrink-0" />
+                            <span className="truncate max-w-[150px] sm:max-w-none">{(event as any).spaces.name}</span>
+                        </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 flex-shrink-0" />
+                        <span>{event.guest_count} Guests</span>
+                    </div>
                 </div>
             </div>
 
             {/* Tabs Section */}
             <Tabs defaultValue="overview" className="space-y-4">
-                <TabsList>
+                <TabsList className="w-full justify-start overflow-x-auto">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="vendors">Vendors</TabsTrigger>
                     <TabsTrigger value="budget">Budget</TabsTrigger>
-                    <TabsTrigger value="communications">Communications</TabsTrigger>
+                    <TabsTrigger value="communications" className="whitespace-nowrap">Communications</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-4">
                     {/* Quick Stats */}
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Budget</CardTitle>
-                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                <CardTitle className="text-xs sm:text-sm font-medium">Total Budget</CardTitle>
+                                <DollarSign className="h-4 w-4 text-muted-foreground hidden sm:block" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{formatCurrency(event.budget_total)}</div>
+                                <div className="text-lg sm:text-2xl font-bold">{formatCurrency(event.budget_total)}</div>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Vendors Booked</CardTitle>
-                                <Users className="h-4 w-4 text-muted-foreground" />
+                                <CardTitle className="text-xs sm:text-sm font-medium">Vendors Booked</CardTitle>
+                                <Users className="h-4 w-4 text-muted-foreground hidden sm:block" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">
+                                <div className="text-lg sm:text-2xl font-bold">
                                     {event.event_vendors?.length || 0}
                                 </div>
                             </CardContent>
@@ -244,10 +247,10 @@ export default function EventDetailsPage({ params }: { params: Promise<{ eventId
                     {servicesNeeded.length > 0 && (
                         <Card>
                             <CardHeader>
-                                <CardTitle>Services Needed</CardTitle>
+                                <CardTitle className="text-base sm:text-lg">Services Needed</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                                <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                     {servicesNeeded.map((service) => {
                                         const isAssigned = assignedCategories.has(service.event_service_id);
                                         const budgetAmount = service.budget_amount || 0;
@@ -278,27 +281,27 @@ export default function EventDetailsPage({ params }: { params: Promise<{ eventId
                         </Card>
                     )}
 
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                        <Card className="col-span-4">
+                    <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+                        <Card className="lg:col-span-4">
                             <CardHeader>
-                                <CardTitle>Recent Activity</CardTitle>
+                                <CardTitle className="text-base sm:text-lg">Recent Activity</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <p className="text-sm text-gray-500">No recent activity recorded.</p>
                             </CardContent>
                         </Card>
-                        <Card className="col-span-3">
+                        <Card className="lg:col-span-3">
                             <CardHeader>
-                                <CardTitle>Event Notes</CardTitle>
+                                <CardTitle className="text-base sm:text-lg">Event Notes</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-sm text-gray-500 whitespace-pre-wrap">
+                                <p className="text-sm text-gray-500 whitespace-pre-wrap break-words">
                                     {event.description || "No notes available."}
                                 </p>
                                 {event.special_requirements && (
                                     <div className="mt-4">
                                         <h4 className="font-semibold text-sm mb-1">Special Requirements</h4>
-                                        <p className="text-sm text-gray-500">{event.special_requirements}</p>
+                                        <p className="text-sm text-gray-500 break-words">{event.special_requirements}</p>
                                     </div>
                                 )}
                             </CardContent>

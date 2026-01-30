@@ -61,7 +61,7 @@ export function EventBudget({ eventId, totalBudget, refreshKey }: EventBudgetPro
 
     return (
         <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Allocated</CardTitle>
@@ -103,10 +103,10 @@ export function EventBudget({ eventId, totalBudget, refreshKey }: EventBudgetPro
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Expense Breakdown</CardTitle>
+                    <CardTitle className="text-base sm:text-lg">Expense Breakdown</CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <Table>
+                <CardContent className="overflow-x-auto">
+                    <Table className="min-w-[600px]">
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Service</TableHead>

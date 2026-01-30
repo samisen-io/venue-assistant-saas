@@ -170,16 +170,16 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
                                         )}
                                     </div>
 
-                                    <div className="flex items-center gap-6">
+                                    <div className="flex flex-wrap items-center justify-end gap-3 sm:gap-6">
                                         <div className="text-center">
                                             <div className="flex items-center justify-center text-primary">
-                                                <TrendingUp className="h-5 w-5 mr-1" />
-                                                <span className="text-2xl font-bold">{score}</span>
+                                                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 mr-1" />
+                                                <span className="text-xl sm:text-2xl font-bold">{score}</span>
                                             </div>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Match Score</p>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Match</p>
                                         </div>
 
-                                        <div className="text-right min-w-[100px]">
+                                        <div className="text-right">
                                             <p className="text-sm font-bold">{vendor.cost_per_unit ? formatCurrency(vendor.cost_per_unit) : "N/A"}</p>
                                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">{vendor.cost_structure?.replace('_', ' ')}</p>
                                         </div>
@@ -190,7 +190,7 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
                                             size="sm"
                                             variant={addedVendorIds.has(vendor.id) ? "outline" : "default"}
                                         >
-                                            {isSubmitting === vendor.id ? "Adding..." : addedVendorIds.has(vendor.id) ? "Added" : "Add to Event"}
+                                            {isSubmitting === vendor.id ? "Adding..." : addedVendorIds.has(vendor.id) ? "Added" : "Add"}
                                         </Button>
                                     </div>
                                 </div>
