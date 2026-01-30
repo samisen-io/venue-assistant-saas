@@ -12,7 +12,7 @@ interface ViewToggleProps {
 
 export function ViewToggle({ viewMode, onViewModeChange }: ViewToggleProps) {
     return (
-        <div className="flex items-center border rounded-md">
+        <div className="hidden sm:flex items-center border rounded-md">
             <Button
                 variant={viewMode === "grid" ? "secondary" : "ghost"}
                 size="sm"

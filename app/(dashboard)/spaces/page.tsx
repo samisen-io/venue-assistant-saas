@@ -19,6 +19,8 @@ import { Loading } from "@/components/shared/Loading";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorMessage } from "@/components/shared/ErrorMessage";
 import { ViewToggle, ViewMode } from "@/components/shared/ViewToggle";
+import { MobileFilters } from "@/components/shared/MobileFilters";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const spaceTypes: { value: string; label: string }[] = [
     { value: "ballroom", label: "Ballroom" },
@@ -34,6 +36,7 @@ export default function SpacesPage() {
     const [spaces, setSpaces] = useState<Space[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
+    const isMobile = useIsMobile();
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         if (typeof window !== "undefined") {
             return (localStorage.getItem("viewMode:spaces") as ViewMode) || "grid";
@@ -46,6 +49,9 @@ export default function SpacesPage() {
     const [typeFilter, setTypeFilter] = useState<string>("all");
     const [minCapacity, setMinCapacity] = useState<string>("");
     const [maxRate, setMaxRate] = useState<string>("");
+
+    // Calculate active filter count for mobile badge
+    const activeFilterCount = (searchQuery ? 1 : 0) + (typeFilter !== "all" ? 1 : 0) + (minCapacity ? 1 : 0) + (maxRate ? 1 : 0);
 
     const handleViewModeChange = (mode: ViewMode) => {
         setViewMode(mode);
@@ -140,72 +146,74 @@ export default function SpacesPage() {
 
             {/* Search and Filters */}
             {spaces.length > 0 && (
-                <div className="bg-white border rounded-lg p-4">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                        {/* Search */}
-                        <div className="relative flex-1 max-w-xs">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <MobileFilters activeFilterCount={activeFilterCount}>
+                    <div className="bg-white border rounded-lg p-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                            {/* Search */}
+                            <div className="relative flex-1 w-full sm:max-w-xs">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <Input
+                                    type="text"
+                                    placeholder="Search spaces..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="pl-9"
+                                />
+                            </div>
+
+                            {/* Type Filter */}
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <Filter className="h-4 w-4 text-slate-600 hidden sm:block" />
+                                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                                    <SelectTrigger className="w-full sm:w-[160px]">
+                                        <SelectValue placeholder="All Types" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Types</SelectItem>
+                                        {spaceTypes.map((type) => (
+                                            <SelectItem key={type.value} value={type.value}>
+                                                {type.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Min Capacity */}
                             <Input
-                                type="text"
-                                placeholder="Search spaces..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-9"
+                                type="number"
+                                placeholder="Min capacity"
+                                value={minCapacity}
+                                onChange={(e) => setMinCapacity(e.target.value)}
+                                className="w-full sm:w-[130px]"
                             />
+
+                            {/* Max Rate */}
+                            <Input
+                                type="number"
+                                placeholder="Max $/hr"
+                                value={maxRate}
+                                onChange={(e) => setMaxRate(e.target.value)}
+                                className="w-full sm:w-[120px]"
+                            />
+
+                            {/* Clear Filters */}
+                            {hasActiveFilters && (
+                                <Button variant="ghost" size="sm" onClick={clearFilters} className="w-full sm:w-auto">
+                                    <X className="h-4 w-4 mr-1" />
+                                    Clear
+                                </Button>
+                            )}
                         </div>
 
-                        {/* Type Filter */}
-                        <div className="flex items-center gap-2">
-                            <Filter className="h-4 w-4 text-slate-600" />
-                            <Select value={typeFilter} onValueChange={setTypeFilter}>
-                                <SelectTrigger className="w-[160px]">
-                                    <SelectValue placeholder="All Types" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Types</SelectItem>
-                                    {spaceTypes.map((type) => (
-                                        <SelectItem key={type.value} value={type.value}>
-                                            {type.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* Min Capacity */}
-                        <Input
-                            type="number"
-                            placeholder="Min capacity"
-                            value={minCapacity}
-                            onChange={(e) => setMinCapacity(e.target.value)}
-                            className="w-[130px]"
-                        />
-
-                        {/* Max Rate */}
-                        <Input
-                            type="number"
-                            placeholder="Max $/hr"
-                            value={maxRate}
-                            onChange={(e) => setMaxRate(e.target.value)}
-                            className="w-[120px]"
-                        />
-
-                        {/* Clear Filters */}
+                        {/* Results count */}
                         {hasActiveFilters && (
-                            <Button variant="ghost" size="sm" onClick={clearFilters}>
-                                <X className="h-4 w-4 mr-1" />
-                                Clear
-                            </Button>
+                            <div className="mt-3 text-sm text-gray-500">
+                                Showing {filteredSpaces.length} of {spaces.length} spaces
+                            </div>
                         )}
                     </div>
-
-                    {/* Results count */}
-                    {hasActiveFilters && (
-                        <div className="mt-3 text-sm text-gray-500">
-                            Showing {filteredSpaces.length} of {spaces.length} spaces
-                        </div>
-                    )}
-                </div>
+                </MobileFilters>
             )}
 
             {spaces.length === 0 ? (
@@ -227,7 +235,7 @@ export default function SpacesPage() {
                         Clear Filters
                     </Button>
                 </div>
-            ) : viewMode === "grid" ? (
+            ) : isMobile || viewMode === "grid" ? (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {filteredSpaces.map((space) => (
                         <SpaceCard key={space.id} space={space} />

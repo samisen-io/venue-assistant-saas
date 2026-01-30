@@ -14,6 +14,8 @@ import { Loading } from "@/components/shared/Loading";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorMessage } from "@/components/shared/ErrorMessage";
 import { ViewToggle, ViewMode } from "@/components/shared/ViewToggle";
+import { MobileFilters } from "@/components/shared/MobileFilters";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
     Select,
     SelectContent,
@@ -25,6 +27,7 @@ import {
 export function ClientList() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedVenueId, setSelectedVenueId] = useState("all");
+    const isMobile = useIsMobile();
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         if (typeof window !== "undefined") {
             return (localStorage.getItem("viewMode:clients") as ViewMode) || "grid";
@@ -32,6 +35,9 @@ export function ClientList() {
         return "grid";
     });
     const { venues } = useVenues();
+
+    // Calculate active filter count for mobile badge
+    const activeFilterCount = (searchTerm ? 1 : 0) + (selectedVenueId !== "all" ? 1 : 0);
 
     const handleViewModeChange = (mode: ViewMode) => {
         setViewMode(mode);
@@ -64,40 +70,42 @@ export function ClientList() {
                 </div>
             </div>
 
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <Input
-                        placeholder="Search clients..."
-                        className="pl-9"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+            <MobileFilters activeFilterCount={activeFilterCount}>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <Input
+                            placeholder="Search clients..."
+                            className="pl-9"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    {venues.length > 1 && (
+                        <div className="w-full sm:w-[220px]">
+                            <Select value={selectedVenueId} onValueChange={setSelectedVenueId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="All Venues" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Venues</SelectItem>
+                                    {venues.map((venue) => (
+                                        <SelectItem key={venue.id} value={venue.id}>
+                                            {venue.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+                    {venues.length === 1 && (
+                        <div className="hidden sm:flex items-center text-sm text-muted-foreground gap-2">
+                            <Filter className="h-4 w-4" />
+                            {venues[0].name}
+                        </div>
+                    )}
                 </div>
-                {venues.length > 1 && (
-                    <div className="w-full sm:w-[220px]">
-                        <Select value={selectedVenueId} onValueChange={setSelectedVenueId}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="All Venues" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Venues</SelectItem>
-                                {venues.map((venue) => (
-                                    <SelectItem key={venue.id} value={venue.id}>
-                                        {venue.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                )}
-                {venues.length === 1 && (
-                    <div className="hidden sm:flex items-center text-sm text-muted-foreground gap-2">
-                        <Filter className="h-4 w-4" />
-                        {venues[0].name}
-                    </div>
-                )}
-            </div>
+            </MobileFilters>
 
             {clients.length === 0 ? (
                 <EmptyState
@@ -116,7 +124,7 @@ export function ClientList() {
                         : { actionHref: "/clients/new" }
                     )}
                 />
-            ) : viewMode === "grid" ? (
+            ) : isMobile || viewMode === "grid" ? (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {clients.map((client: Client & { event_count?: number }) => (
                         <ClientCard key={client.id} client={client} />

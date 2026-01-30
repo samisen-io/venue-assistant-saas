@@ -13,6 +13,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
+import { MobileSidebar } from "./MobileSidebar";
 
 // Map routes to page titles
 const routeTitles: Record<string, string> = {
@@ -53,7 +54,8 @@ export function Header() {
     };
 
     return (
-        <header className="flex h-14 items-center gap-4 border-b bg-gray-50/40 px-6 lg:h-[60px]">
+        <header className="flex h-14 items-center gap-4 border-b bg-gray-50/40 px-4 md:px-6 lg:h-[60px]">
+            <MobileSidebar />
             <div className="flex-1">
                 <h1 className="text-lg font-semibold">{pageTitle}</h1>
             </div>

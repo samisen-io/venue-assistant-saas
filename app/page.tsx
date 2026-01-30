@@ -2,9 +2,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { LandingNav } from "@/components/landing/LandingNav";
 import {
   ArrowRight,
-  LayoutDashboard,
   CalendarDays,
   Users,
   Building2,
@@ -22,34 +22,7 @@ import {
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-        <div className="container flex h-16 items-center px-4 md:px-6">
-          <Link className="flex items-center justify-center" href="#">
-            <Building2 className="h-7 w-7 mr-2 text-blue-600" />
-            <span className="text-xl font-bold">VenueManager</span>
-          </Link>
-          <nav className="ml-auto flex items-center gap-4 sm:gap-6">
-            <Link className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors" href="#features">
-              Features
-            </Link>
-            <Link className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors" href="#ai-features">
-              AI Features
-            </Link>
-            <Link className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors" href="#how-it-works">
-              How It Works
-            </Link>
-            <div className="hidden sm:flex items-center gap-2 ml-4">
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/login">Log In</Link>
-              </Button>
-              <Button asChild size="sm">
-                <Link href="/signup">Sign Up Free</Link>
-              </Button>
-            </div>
-          </nav>
-        </div>
-      </header>
+      <LandingNav />
 
       <main className="flex-1">
         {/* Hero Section */}

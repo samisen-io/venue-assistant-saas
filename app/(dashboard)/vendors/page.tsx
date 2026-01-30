@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { EventService, Vendor } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,8 @@ import { Loading } from "@/components/shared/Loading";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorMessage } from "@/components/shared/ErrorMessage";
 import { ViewToggle, ViewMode } from "@/components/shared/ViewToggle";
+import { MobileFilters } from "@/components/shared/MobileFilters";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
     Select,
     SelectContent,
@@ -27,12 +29,16 @@ export default function VendorsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [eventServices, setEventServices] = useState<EventService[]>([]);
     const [selectedServiceId, setSelectedServiceId] = useState("all");
+    const isMobile = useIsMobile();
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         if (typeof window !== "undefined") {
             return (localStorage.getItem("viewMode:vendors") as ViewMode) || "grid";
         }
         return "grid";
     });
+
+    // Calculate active filter count for mobile badge
+    const activeFilterCount = (searchTerm ? 1 : 0) + (selectedServiceId !== "all" ? 1 : 0);
 
     const handleViewModeChange = (mode: ViewMode) => {
         setViewMode(mode);
@@ -104,32 +110,34 @@ export default function VendorsPage() {
                 </div>
             </div>
 
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <Input
-                        placeholder="Search vendors..."
-                        className="pl-9"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+            <MobileFilters activeFilterCount={activeFilterCount}>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <Input
+                            placeholder="Search vendors..."
+                            className="pl-9"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <div className="w-full sm:w-[220px]">
+                        <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="All Services" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Services</SelectItem>
+                                {eventServices.map((service) => (
+                                    <SelectItem key={service.id} value={service.id}>
+                                        {service.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
-                <div className="w-full sm:w-[220px]">
-                    <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="All Services" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Services</SelectItem>
-                            {eventServices.map((service) => (
-                                <SelectItem key={service.id} value={service.id}>
-                                    {service.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
+            </MobileFilters>
 
             {filteredVendors.length === 0 ? (
                 <EmptyState
@@ -148,7 +156,7 @@ export default function VendorsPage() {
                         : { actionHref: "/vendors/new" }
                     )}
                 />
-            ) : viewMode === "grid" ? (
+            ) : isMobile || viewMode === "grid" ? (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {filteredVendors.map((vendor) => (
                         <VendorCard key={vendor.id} vendor={vendor} />

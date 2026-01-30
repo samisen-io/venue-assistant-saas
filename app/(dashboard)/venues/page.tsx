@@ -11,11 +11,13 @@ import { Loading } from "@/components/shared/Loading";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorMessage } from "@/components/shared/ErrorMessage";
 import { ViewToggle, ViewMode } from "@/components/shared/ViewToggle";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function VenuesPage() {
     const [venues, setVenues] = useState<Venue[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
+    const isMobile = useIsMobile();
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         if (typeof window !== "undefined") {
             return (localStorage.getItem("viewMode:venues") as ViewMode) || "grid";
@@ -73,7 +75,7 @@ export default function VenuesPage() {
                     actionLabel="Add Venue"
                     actionHref="/venues/new"
                 />
-            ) : viewMode === "grid" ? (
+            ) : isMobile || viewMode === "grid" ? (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {venues.map((venue) => (
                         <VenueCard key={venue.id} venue={venue} />
