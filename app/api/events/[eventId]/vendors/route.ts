@@ -27,7 +27,9 @@ export async function POST(
                 vendor_id: vendor_id,
                 event_service_id: event_service_id,
                 quoted_cost: quoted_cost || 0,
-                confirmed: false
+                confirmed: false,
+                outreach_status: 'pending',
+                status_updated_at: new Date().toISOString()
             } as any)
             .select()
             .single()
@@ -59,18 +61,48 @@ export async function GET(
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
+        // Fetch event vendors with related data
         const { data: vendors, error } = await supabase
             .from('event_vendors')
             .select(`
-        *,
-        vendors (*),
-        event_services (*)
-      `)
+                *,
+                vendors (*),
+                event_services (*)
+            `)
             .eq('event_id', eventId)
 
         if (error) throw error
 
-        return NextResponse.json(vendors)
+        // Fetch budget allocations for the event
+        const { data: budgets } = await supabase
+            .from('event_service_requirements')
+            .select('event_service_id, budget_amount')
+            .eq('event_id', eventId)
+
+        // Merge budget info into vendors
+        const vendorsWithBudget = (vendors as any[])?.map((v: any) => {
+            const budget = (budgets as any[])?.find((b: any) => b.event_service_id === v.event_service_id)
+            return {
+                ...v,
+                budget_allocation: budget ? { budget_amount: budget.budget_amount } : null
+            }
+        })
+
+        // Count communications for each event_vendor
+        const { data: commCounts } = await supabase
+            .from('vendor_communications')
+            .select('event_vendor_id')
+            .eq('event_id', eventId)
+
+        const vendorsWithComms = vendorsWithBudget?.map((v: any) => {
+            const count = (commCounts as any[])?.filter((c: any) => c.event_vendor_id === v.id).length || 0
+            return {
+                ...v,
+                communication_count: count
+            }
+        })
+
+        return NextResponse.json(vendorsWithComms)
     } catch (error) {
         console.error('Error fetching event vendors:', error)
         return new NextResponse('Internal Error', { status: 500 })

@@ -597,5 +597,121 @@ ALTER TABLE venues ADD COLUMN IF NOT EXISTS contact_name TEXT;
 
 
 -- =====================================================
+-- MIGRATION 11: Vendor Outreach Lifecycle
+-- =====================================================
+-- Adds outreach_status and related columns to event_vendors
+-- for tracking the complete vendor communication lifecycle.
+-- =====================================================
+
+-- Create the outreach status enum type if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'vendor_outreach_status') THEN
+    CREATE TYPE vendor_outreach_status AS ENUM (
+      'pending',         -- Not yet contacted (default for legacy)
+      'contacted',       -- Initial outreach sent
+      'available',       -- Vendor responded positively, within budget
+      'not_available',   -- Vendor declined or unavailable
+      'needs_attention', -- Vendor available but over budget
+      'confirmed',       -- Venue manager confirmed
+      'rejected'         -- Venue manager rejected
+    );
+  END IF;
+END $$;
+
+-- Add outreach_status column
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'event_vendors' AND column_name = 'outreach_status'
+  ) THEN
+    ALTER TABLE event_vendors ADD COLUMN outreach_status vendor_outreach_status DEFAULT 'pending';
+  END IF;
+END $$;
+
+-- Add status_updated_at column
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'event_vendors' AND column_name = 'status_updated_at'
+  ) THEN
+    ALTER TABLE event_vendors ADD COLUMN status_updated_at TIMESTAMP WITH TIME ZONE;
+  END IF;
+END $$;
+
+-- Add status_notes column
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'event_vendors' AND column_name = 'status_notes'
+  ) THEN
+    ALTER TABLE event_vendors ADD COLUMN status_notes TEXT;
+  END IF;
+END $$;
+
+-- Add contacted_at column
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'event_vendors' AND column_name = 'contacted_at'
+  ) THEN
+    ALTER TABLE event_vendors ADD COLUMN contacted_at TIMESTAMP WITH TIME ZONE;
+  END IF;
+END $$;
+
+-- Add vendor_response_at column
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'event_vendors' AND column_name = 'vendor_response_at'
+  ) THEN
+    ALTER TABLE event_vendors ADD COLUMN vendor_response_at TIMESTAMP WITH TIME ZONE;
+  END IF;
+END $$;
+
+-- Add rejection_reason column
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'event_vendors' AND column_name = 'rejection_reason'
+  ) THEN
+    ALTER TABLE event_vendors ADD COLUMN rejection_reason TEXT;
+  END IF;
+END $$;
+
+-- Add event_vendor_id column to vendor_communications for linking
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'vendor_communications' AND column_name = 'event_vendor_id'
+  ) THEN
+    ALTER TABLE vendor_communications ADD COLUMN event_vendor_id UUID REFERENCES event_vendors(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+-- Create index on outreach_status
+CREATE INDEX IF NOT EXISTS idx_event_vendors_outreach_status ON event_vendors(outreach_status);
+
+-- Create index on event_vendor_id in vendor_communications
+CREATE INDEX IF NOT EXISTS idx_vendor_communications_event_vendor_id ON vendor_communications(event_vendor_id);
+
+-- Migrate existing records: Set outreach_status based on confirmed flag
+UPDATE event_vendors
+SET outreach_status = CASE
+  WHEN confirmed = true THEN 'confirmed'::vendor_outreach_status
+  ELSE 'pending'::vendor_outreach_status
+END,
+status_updated_at = COALESCE(confirmed_at, created_at)
+WHERE outreach_status IS NULL OR outreach_status = 'pending'::vendor_outreach_status;
+
+
+-- =====================================================
 -- ALL MIGRATIONS COMPLETE
 -- =====================================================

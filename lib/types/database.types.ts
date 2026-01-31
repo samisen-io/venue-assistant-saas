@@ -386,6 +386,12 @@ export interface Database {
                     actual_cost: number | null
                     confirmed: boolean | null
                     confirmed_at: string | null
+                    outreach_status: 'pending' | 'contacted' | 'available' | 'not_available' | 'needs_attention' | 'confirmed' | 'rejected' | null
+                    status_updated_at: string | null
+                    status_notes: string | null
+                    contacted_at: string | null
+                    vendor_response_at: string | null
+                    rejection_reason: string | null
                     created_at: string | null
                 }
                 Insert: {
@@ -398,6 +404,12 @@ export interface Database {
                     actual_cost?: number | null
                     confirmed?: boolean | null
                     confirmed_at?: string | null
+                    outreach_status?: 'pending' | 'contacted' | 'available' | 'not_available' | 'needs_attention' | 'confirmed' | 'rejected' | null
+                    status_updated_at?: string | null
+                    status_notes?: string | null
+                    contacted_at?: string | null
+                    vendor_response_at?: string | null
+                    rejection_reason?: string | null
                     created_at?: string | null
                 }
                 Update: {
@@ -410,6 +422,12 @@ export interface Database {
                     actual_cost?: number | null
                     confirmed?: boolean | null
                     confirmed_at?: string | null
+                    outreach_status?: 'pending' | 'contacted' | 'available' | 'not_available' | 'needs_attention' | 'confirmed' | 'rejected' | null
+                    status_updated_at?: string | null
+                    status_notes?: string | null
+                    contacted_at?: string | null
+                    vendor_response_at?: string | null
+                    rejection_reason?: string | null
                     created_at?: string | null
                 }
             }
@@ -453,6 +471,7 @@ export interface Database {
                     id: string
                     event_id: string
                     vendor_id: string
+                    event_vendor_id: string | null
                     thread_id: string | null
                     direction: string
                     subject: string | null
@@ -471,6 +490,7 @@ export interface Database {
                     id?: string
                     event_id: string
                     vendor_id: string
+                    event_vendor_id?: string | null
                     thread_id?: string | null
                     direction: string
                     subject?: string | null
@@ -489,6 +509,7 @@ export interface Database {
                     id?: string
                     event_id?: string
                     vendor_id?: string
+                    event_vendor_id?: string | null
                     thread_id?: string | null
                     direction?: string
                     subject?: string | null

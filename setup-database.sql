@@ -50,6 +50,20 @@ DROP TABLE IF EXISTS venues CASCADE;
 DROP TABLE IF EXISTS spaces CASCADE;
 DROP TABLE IF EXISTS clients CASCADE;
 
+-- Drop custom types
+DROP TYPE IF EXISTS vendor_outreach_status CASCADE;
+
+-- Create custom enum types
+CREATE TYPE vendor_outreach_status AS ENUM (
+  'pending',         -- Not yet contacted (default for legacy)
+  'contacted',       -- Initial outreach sent
+  'available',       -- Vendor responded positively, within budget
+  'not_available',   -- Vendor declined or unavailable
+  'needs_attention', -- Vendor available but over budget
+  'confirmed',       -- Venue manager confirmed
+  'rejected'         -- Venue manager rejected
+);
+
 -- =====================================================
 -- SECTION 3: CORE TABLES
 -- =====================================================
@@ -209,7 +223,7 @@ CREATE TABLE event_service_requirements (
   UNIQUE(event_id, event_service_id)
 );
 
--- Table: EVENT_VENDORS (many-to-many junction)
+-- Table: EVENT_VENDORS (many-to-many junction with outreach lifecycle)
 CREATE TABLE event_vendors (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id UUID REFERENCES events(id) ON DELETE CASCADE NOT NULL,
@@ -220,6 +234,13 @@ CREATE TABLE event_vendors (
   actual_cost DECIMAL(10,2),
   confirmed BOOLEAN DEFAULT false,
   confirmed_at TIMESTAMP WITH TIME ZONE,
+  -- Outreach lifecycle columns
+  outreach_status vendor_outreach_status DEFAULT 'pending',
+  status_updated_at TIMESTAMP WITH TIME ZONE,
+  status_notes TEXT,
+  contacted_at TIMESTAMP WITH TIME ZONE,
+  vendor_response_at TIMESTAMP WITH TIME ZONE,
+  rejection_reason TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(event_id, vendor_id, event_service_id)
 );
@@ -259,6 +280,7 @@ CREATE TABLE vendor_communications (
   agent_run_id UUID REFERENCES agent_runs(id) ON DELETE CASCADE,
   event_id UUID REFERENCES events(id) ON DELETE CASCADE,
   vendor_id UUID REFERENCES vendors(id) ON DELETE CASCADE,
+  event_vendor_id UUID REFERENCES event_vendors(id) ON DELETE SET NULL, -- Links to specific event-vendor assignment
   direction TEXT NOT NULL, -- outbound, inbound
   subject TEXT,
   body TEXT,
@@ -316,6 +338,8 @@ CREATE INDEX idx_event_service_requirements_service_id ON event_service_requirem
 CREATE INDEX idx_event_vendors_event_id ON event_vendors(event_id);
 CREATE INDEX idx_event_vendors_vendor_id ON event_vendors(vendor_id);
 CREATE INDEX idx_event_vendors_service_id ON event_vendors(event_service_id);
+CREATE INDEX idx_event_vendors_outreach_status ON event_vendors(outreach_status);
+CREATE INDEX idx_vendor_communications_event_vendor_id ON vendor_communications(event_vendor_id);
 CREATE INDEX idx_vendor_reviews_vendor_id ON vendor_reviews(vendor_id);
 CREATE INDEX idx_client_comms_client_id ON client_communications(client_id);
 CREATE INDEX idx_client_comms_event_id ON client_communications(event_id);

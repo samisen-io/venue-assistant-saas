@@ -28,6 +28,9 @@ export * from './client.types'
 // Re-export calendar types
 export * from './calendar.types'
 
+// Re-export vendor outreach types
+export * from './vendor-outreach.types'
+
 export type VendorMatchResult = {
     vendor: Vendor
     score: number

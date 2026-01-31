@@ -8,6 +8,7 @@ import {
 } from '@/lib/ai/prompts/emailDrafting'
 import { buildFollowUpPrompt } from '@/lib/ai/prompts/followUp'
 import { EmailDraft, EmailSendResult } from '@/lib/types/communication.types'
+import type { VendorOutreachStatus } from '@/lib/types/vendor-outreach.types'
 
 /**
  * Vendor Communicator
@@ -19,6 +20,7 @@ export interface VendorOutreachInput {
   event: Event
   venueName: string
   agentRunId?: string
+  eventVendorId?: string // Link to event_vendors record
 }
 
 export interface VendorOutreachResult {
@@ -104,6 +106,8 @@ export async function sendVendorOutreach(
       }
     }
 
+    const now = new Date().toISOString()
+
     // Save communication record
     console.log('📧 Saving communication record to database...')
     const { data: communication, error: dbError } = await (supabase as any)
@@ -112,15 +116,16 @@ export async function sendVendorOutreach(
         agent_run_id: input.agentRunId || null,
         event_id: input.event.id,
         vendor_id: input.vendor.id,
+        event_vendor_id: input.eventVendorId || null,
         direction: 'outbound',
         subject: emailDraft.subject,
         body: emailBody,
         from_email: emailDraft.from,
         to_email: emailDraft.to,
-        sent_at: new Date().toISOString(),
+        sent_at: now,
         status: 'sent',
         processed: true,
-        requires_followup: false,
+        requires_followup: true, // AI contacts should track for follow-up
       })
       .select()
       .single()
@@ -129,6 +134,26 @@ export async function sendVendorOutreach(
       console.error('❌ Error saving communication record:', dbError)
     } else {
       console.log('✅ Communication record saved with ID:', communication?.id)
+    }
+
+    // Update event_vendors outreach status to 'contacted'
+    if (input.eventVendorId) {
+      console.log('📧 Updating event_vendors outreach status to contacted...')
+      const { error: statusError } = await (supabase as any)
+        .from('event_vendors')
+        .update({
+          outreach_status: 'contacted' as VendorOutreachStatus,
+          status_updated_at: now,
+          contacted_at: now,
+          status_notes: 'Contacted via AI agent'
+        })
+        .eq('id', input.eventVendorId)
+
+      if (statusError) {
+        console.error('❌ Error updating outreach status:', statusError)
+      } else {
+        console.log('✅ Outreach status updated to contacted')
+      }
     }
 
     return {
@@ -207,6 +232,7 @@ export async function sendFollowUpEmail(
     venueName: string
     previousCommunications: VendorCommunication[]
     agentRunId?: string
+    eventVendorId?: string
     reason?: 'no_response' | 'incomplete_quote' | 'clarification_needed' | 'deadline_reminder'
     specificQuestions?: string[]
   },
@@ -252,6 +278,7 @@ export async function sendFollowUpEmail(
         agent_run_id: input.agentRunId || null,
         event_id: input.event.id,
         vendor_id: input.vendor.id,
+        event_vendor_id: input.eventVendorId || null,
         thread_id: threadId || null,
         direction: 'outbound',
         subject: emailDraft.subject,
@@ -261,7 +288,7 @@ export async function sendFollowUpEmail(
         sent_at: new Date().toISOString(),
         status: 'sent',
         processed: true,
-        requires_followup: false,
+        requires_followup: true,
       })
       .select()
       .single()
@@ -292,6 +319,7 @@ export async function sendConfirmationEmail(
     vendor: Vendor
     event: Event
     venueName: string
+    eventVendorId?: string
     quoteDetails: {
       totalCost: number
       approvedAt: string
@@ -338,18 +366,21 @@ export async function sendConfirmationEmail(
       }
     }
 
+    const now = new Date().toISOString()
+
     // Save communication record
     const { data: communication, error: dbError } = await (supabase as any)
       .from('vendor_communications')
       .insert({
         event_id: input.event.id,
         vendor_id: input.vendor.id,
+        event_vendor_id: input.eventVendorId || null,
         direction: 'outbound',
         subject: emailDraft.subject,
         body: emailBody,
         from_email: emailDraft.from,
         to_email: emailDraft.to,
-        sent_at: new Date().toISOString(),
+        sent_at: now,
         status: 'sent',
         processed: true,
         requires_followup: false,
@@ -359,6 +390,24 @@ export async function sendConfirmationEmail(
 
     if (dbError) {
       console.error('Error saving confirmation communication record:', dbError)
+    }
+
+    // Update event_vendors status to 'confirmed'
+    if (input.eventVendorId) {
+      const { error: statusError } = await (supabase as any)
+        .from('event_vendors')
+        .update({
+          outreach_status: 'confirmed' as VendorOutreachStatus,
+          status_updated_at: now,
+          confirmed: true,
+          confirmed_at: now,
+          status_notes: 'Confirmed via AI agent'
+        })
+        .eq('id', input.eventVendorId)
+
+      if (statusError) {
+        console.error('Error updating outreach status to confirmed:', statusError)
+      }
     }
 
     return {
@@ -371,6 +420,67 @@ export async function sendConfirmationEmail(
     return {
       success: false,
       error: error.message || 'Failed to send confirmation email',
+    }
+  }
+}
+
+/**
+ * Update event vendor status based on vendor response
+ */
+export async function updateVendorOutreachStatus(
+  eventVendorId: string,
+  newStatus: VendorOutreachStatus,
+  options?: {
+    quotedCost?: number
+    notes?: string
+  },
+  supabaseClient?: any
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = supabaseClient || await createClient()
+
+  try {
+    const now = new Date().toISOString()
+    const updateData: any = {
+      outreach_status: newStatus,
+      status_updated_at: now,
+    }
+
+    // Add vendor_response_at for response statuses
+    if (['available', 'not_available', 'needs_attention'].includes(newStatus)) {
+      updateData.vendor_response_at = now
+    }
+
+    // Add confirmed fields for confirmed status
+    if (newStatus === 'confirmed') {
+      updateData.confirmed = true
+      updateData.confirmed_at = now
+    }
+
+    // Add quoted cost if provided
+    if (options?.quotedCost !== undefined) {
+      updateData.quoted_cost = options.quotedCost
+    }
+
+    // Add notes if provided
+    if (options?.notes) {
+      updateData.status_notes = options.notes
+    }
+
+    const { error } = await (supabase as any)
+      .from('event_vendors')
+      .update(updateData)
+      .eq('id', eventVendorId)
+
+    if (error) {
+      throw error
+    }
+
+    return { success: true }
+  } catch (error: any) {
+    console.error('Error updating vendor outreach status:', error)
+    return {
+      success: false,
+      error: error.message || 'Failed to update vendor status'
     }
   }
 }

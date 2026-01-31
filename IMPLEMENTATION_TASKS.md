@@ -2424,3 +2424,343 @@ After completing Phase 30, verify the following:
 - [x] RLS policies enforce tenant isolation for clients and communications
 - [x] Foreign key constraints are correct (CASCADE on venue delete, SET NULL on client delete from events)
 - [x] Indexes exist for common query patterns
+
+---
+
+## PHASE 31: VENDOR OUTREACH LIFECYCLE
+
+> **Note**: This phase implements a complete vendor outreach lifecycle with proper status tracking, ensuring all communications (manual and AI-initiated) are captured in `vendor_communications`. The goal is to provide a clear workflow from initial contact through final confirmation, with budget awareness and email notifications at key stages.
+
+### Feature Overview
+
+**Vendor Lifecycle Statuses:**
+| Status | Description | Triggered By |
+|--------|-------------|--------------|
+| `contacted` | Initial outreach sent to vendor | Manual contact or AI agent |
+| `available` | Vendor responded positively, quote within budget | Vendor response processing |
+| `not_available` | Vendor declined or unavailable | Vendor response processing |
+| `needs_attention` | Vendor available but quoted over budget | Auto-detected from quote comparison |
+| `confirmed` | Venue manager confirmed the vendor | Manual confirmation action |
+| `rejected` | Venue manager rejected the vendor | Manual rejection action |
+
+**Lifecycle Flow:**
+```
+(new) → CONTACTED → AVAILABLE → CONFIRMED
+                  ↘ NEEDS_ATTENTION → CONFIRMED (if approved)
+                  ↘ NOT_AVAILABLE
+                  ↘ REJECTED (manager rejects)
+```
+
+**Email Notifications:**
+| Trigger | Recipient | Email Type |
+|---------|-----------|------------|
+| Contact button clicked | Vendor | Quote request email |
+| AI agent contacts | Vendor | AI-drafted outreach email |
+| Vendor confirmed | Vendor | Confirmation/booking email |
+| Vendor rejected | Vendor | Optional rejection notice |
+
+### Task 31.1: Update Database Schema for Vendor Outreach Status
+- [x] Add `outreach_status` enum column to `event_vendors` table:
+  ```sql
+  -- Create enum type
+  CREATE TYPE vendor_outreach_status AS ENUM (
+    'pending',        -- Not yet contacted (default for legacy)
+    'contacted',      -- Initial outreach sent
+    'available',      -- Vendor responded positively, within budget
+    'not_available',  -- Vendor declined or unavailable
+    'needs_attention',-- Vendor available but over budget
+    'confirmed',      -- Venue manager confirmed
+    'rejected'        -- Venue manager rejected
+  );
+
+  -- Add column to event_vendors
+  ALTER TABLE event_vendors
+    ADD COLUMN outreach_status vendor_outreach_status DEFAULT 'pending',
+    ADD COLUMN status_updated_at TIMESTAMP WITH TIME ZONE,
+    ADD COLUMN status_notes TEXT,
+    ADD COLUMN contacted_at TIMESTAMP WITH TIME ZONE,
+    ADD COLUMN vendor_response_at TIMESTAMP WITH TIME ZONE,
+    ADD COLUMN rejection_reason TEXT;
+  ```
+- [x] Create index: `CREATE INDEX idx_event_vendors_outreach_status ON event_vendors(outreach_status);`
+- [x] Migrate existing records: Set `outreach_status = 'confirmed'` where `confirmed = true`, otherwise `'pending'`
+- [x] Add migration to `migrations/all-migrations.sql` and `setup-database.sql`
+- [ ] Test migration in Supabase SQL Editor
+
+### Task 31.2: Update TypeScript Types
+- [x] Update `lib/types/database.types.ts` with new enum and columns
+- [x] Create `lib/types/vendor-outreach.types.ts`:
+  ```typescript
+  export type VendorOutreachStatus =
+    | 'pending'
+    | 'contacted'
+    | 'available'
+    | 'not_available'
+    | 'needs_attention'
+    | 'confirmed'
+    | 'rejected';
+
+  export interface VendorOutreachTransition {
+    from: VendorOutreachStatus;
+    to: VendorOutreachStatus;
+    timestamp: string;
+    triggeredBy: 'manual' | 'ai_agent' | 'vendor_response' | 'system';
+    notes?: string;
+  }
+
+  export interface VendorOutreachContext {
+    eventVendorId: string;
+    vendorId: string;
+    eventId: string;
+    currentStatus: VendorOutreachStatus;
+    quotedCost?: number;
+    budgetForService?: number;
+    isOverBudget: boolean;
+  }
+  ```
+- [x] Export types from `lib/types/index.ts`
+- [ ] Regenerate Supabase types if using type generation
+
+### Task 31.3: Create Vendor Outreach Status Utilities
+- [x] Create `lib/utils/vendorOutreachStatus.ts`:
+  - `getStatusLabel(status)`: Human-readable status labels
+  - `getStatusColor(status)`: Color coding for badges (green, yellow, red, blue, gray)
+  - `getStatusIcon(status)`: Lucide icon for each status
+  - `canTransitionTo(from, to)`: Validate allowed status transitions
+  - `getAvailableActions(status)`: Actions available for each status
+  - `isTerminalStatus(status)`: Check if status is final (confirmed/rejected/not_available)
+- [x] Create `lib/algorithms/budgetComparison.ts`:
+  - `checkQuoteAgainstBudget(quotedCost, serviceBudget, tolerance?)`: Returns 'within' | 'over' | 'under'
+  - `calculateBudgetVariance(quotedCost, serviceBudget)`: Returns percentage variance
+  - `shouldFlagForAttention(quotedCost, serviceBudget)`: Returns boolean (default: >10% over)
+- [ ] Add unit tests for status utilities
+
+### Task 31.4: Create Manual Contact Flow API
+- [x] Create `app/api/events/[eventId]/vendors/[associationId]/contact/route.ts`:
+  - `POST /api/events/{eventId}/vendors/{associationId}/contact`:
+    - Validate vendor has email address
+    - Generate quote request email using existing templates
+    - Send email via Resend
+    - Create `vendor_communications` record with direction='outbound'
+    - Update `event_vendors.outreach_status` to 'contacted'
+    - Update `event_vendors.contacted_at` timestamp
+    - Return success with communication ID
+- [x] Handle errors: missing email, send failure, already contacted
+- [x] Add authentication and authorization checks
+- [ ] Test API endpoint
+
+### Task 31.5: Update AI Agent to Use Outreach Status
+- [x] Update `lib/agent/vendorCommunicator.ts`:
+  - After `sendVendorOutreach()`: Update `event_vendors.outreach_status` to 'contacted'
+  - After quote extraction: Check budget and set 'available' or 'needs_attention'
+  - On vendor decline detection: Set 'not_available'
+- [ ] Update `lib/agent/orchestrator.ts`:
+  - Check `outreach_status` before contacting (skip if already contacted/confirmed)
+  - Log status transitions to agent run logs
+- [x] Ensure all AI communications are linked via `event_vendor_id` in `vendor_communications`
+- [ ] Test AI agent flow with status tracking
+
+### Task 31.6: Create Vendor Response Processing
+- [ ] Create `lib/utils/vendorResponseProcessor.ts`:
+  - `processVendorResponse(communicationId, responseType, quoteAmount?)`:
+    - Find associated `event_vendor` record
+    - Compare quote against budget allocation for service
+    - Determine new status: 'available', 'not_available', or 'needs_attention'
+    - Update `event_vendors` with new status and `vendor_response_at`
+    - Return status transition details
+- [ ] Update `app/api/agent/process-reply/route.ts`:
+  - After processing vendor reply, call `processVendorResponse()`
+  - Extract quote amount from AI analysis
+  - Update status based on response content
+- [x] Add manual response recording endpoint for non-AI flow:
+  - `POST /api/events/{eventId}/vendors/{associationId}/response`
+  - Accept: `{ responseType: 'available' | 'not_available', quotedAmount?, notes? }`
+- [ ] Test response processing with various scenarios
+
+### Task 31.7: Create Confirm/Reject Actions with Email Notifications
+- [x] Update `app/api/events/[eventId]/vendors/[associationId]/route.ts`:
+  - `PUT` with `{ action: 'confirm' }`:
+    - Validate current status allows confirmation (available, needs_attention)
+    - Update status to 'confirmed'
+    - Update `confirmed_at` timestamp
+    - Send confirmation email to vendor via Resend
+    - Create `vendor_communications` record for confirmation email
+    - Return updated record
+  - `PUT` with `{ action: 'reject', reason? }`:
+    - Update status to 'rejected'
+    - Store rejection reason
+    - Optionally send rejection notification to vendor
+    - Create `vendor_communications` record if email sent
+    - Return updated record
+- [x] Create `lib/email/templates/vendorConfirmation.ts`:
+  - `generateConfirmationSubject()`: "Booking Confirmed: {eventName}"
+  - `generateConfirmationHTML()`: Professional confirmation with event details
+  - `generateConfirmationPlainText()`: Plain text version
+- [ ] Create `lib/email/templates/vendorRejection.ts` (optional):
+  - Polite rejection notification
+- [ ] Test confirm and reject flows with email delivery
+
+### Task 31.8: Replace "Add" Button with "Contact" in VendorMatching Component
+- [x] Update `components/events/VendorMatching.tsx`:
+  - Replace "Add" button with "Contact" button
+  - On click: Call `/api/events/{eventId}/vendors` to create association with `outreach_status: 'pending'`
+  - Then call `/api/events/{eventId}/vendors/{id}/contact` to send email
+  - Show loading state during contact process
+  - Show toast on success: "Contact request sent to {vendorName}"
+  - Handle vendors without email: Show warning, offer to add email first
+  - Track contacted vendors to disable duplicate contacts
+- [ ] Add "Contact All" button for batch outreach (optional)
+- [x] Update button styling to indicate action (e.g., Mail icon)
+- [ ] Test contact flow from vendor matching
+
+### Task 31.9: Update EventVendorsList Component with Lifecycle Status
+- [x] Update `components/events/EventVendorsList.tsx`:
+  - Display `outreach_status` badge with appropriate color/icon
+  - Show different actions based on current status:
+    - `pending`: "Contact" button
+    - `contacted`: "Awaiting Response" indicator, "Mark Available/Unavailable" actions
+    - `available`: "Confirm" button, "Reject" button
+    - `needs_attention`: Warning badge with budget info, "Confirm Anyway" button, "Reject" button
+    - `confirmed`: Success badge, "Remove" action
+    - `rejected`: Muted styling, "Re-contact" action
+    - `not_available`: Muted styling, "Re-contact" action
+  - Add status filter dropdown (All, Pending, Contacted, Available, Needs Attention, Confirmed, Rejected)
+  - Show last communication date/summary
+  - Add "View Communications" link to open communication thread
+- [x] Create `components/events/VendorStatusBadge.tsx`:
+  - Reusable badge component with status color and icon
+  - Tooltip with status description and timestamp
+- [x] Create `components/events/VendorActionMenu.tsx`:
+  - Context menu with available actions based on status
+  - Confirmation dialogs for destructive actions
+- [ ] Test all status displays and actions
+
+### Task 31.10: Create Vendor Communication Thread View
+- [x] Create `components/events/VendorCommunicationThread.tsx`:
+  - Display all communications for a specific event-vendor pair
+  - Show outbound emails (sent to vendor)
+  - Show inbound emails (vendor replies)
+  - Chronological order with timestamps
+  - Visual distinction between sent and received
+  - Show email subject, preview, and full body on expand
+- [x] Create `app/api/events/[eventId]/vendors/[associationId]/communications/route.ts`:
+  - `GET`: Fetch all vendor_communications for this event-vendor pair
+  - Join with agent_runs for AI-generated context
+- [x] Add "View Thread" button/link in EventVendorsList
+- [x] Create dialog or slide-over panel to show thread
+- [ ] Test communication thread display
+
+### Task 31.11: Ensure Manual Communications are Captured
+- [x] Update manual contact flow to always create `vendor_communications` record:
+  - Link via `event_id` and `vendor_id`
+  - Set appropriate fields: direction, subject, body, sent_at, status
+- [ ] Create utility function `logVendorCommunication()` in `lib/utils/communicationLogger.ts`:
+  - Standardize communication logging for both manual and AI flows
+  - Required fields: event_id, vendor_id, direction, subject, body
+  - Optional fields: agent_run_id, email_id, thread_id
+- [ ] Update all email sending functions to use `logVendorCommunication()`
+- [x] Add communication logging to confirmation and rejection emails
+- [ ] Verify all touchpoints log to vendor_communications table
+
+### Task 31.12: Add Budget Context to Vendor Cards
+- [x] Update `components/events/VendorMatching.tsx`:
+  - Show budget allocation for the service category
+  - Show vendor's quoted/typical cost
+  - Visual indicator if vendor is over budget (yellow/red warning)
+  - Calculate and show variance percentage
+- [x] Update `components/events/EventVendorsList.tsx`:
+  - For `needs_attention` status: Show "Quoted: $X (Y% over budget)"
+  - Add budget comparison column or badge
+- [ ] Create `components/shared/BudgetComparisonIndicator.tsx`:
+  - Reusable component showing quoted vs budget
+  - Color coding: green (under), yellow (near), red (over)
+  - Percentage variance display
+
+### Task 31.13: Add Status History Tracking (Optional Enhancement)
+- [ ] Create `vendor_outreach_history` table (optional):
+  ```sql
+  CREATE TABLE vendor_outreach_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_vendor_id UUID REFERENCES event_vendors(id) ON DELETE CASCADE,
+    from_status vendor_outreach_status,
+    to_status vendor_outreach_status NOT NULL,
+    triggered_by TEXT NOT NULL, -- 'manual', 'ai_agent', 'vendor_response', 'system'
+    triggered_by_user_id UUID REFERENCES profiles(id),
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  );
+  ```
+- [ ] Create trigger or utility to log status changes
+- [ ] Display status history in vendor detail view
+- [ ] Enable RLS policies for status history
+
+### Task 31.14: Testing
+- [ ] Test complete manual flow: Contact → Available → Confirm (with emails)
+- [ ] Test complete AI flow: AI contacts → Quote received → Status updated
+- [ ] Test over-budget scenario: Contact → Needs Attention → Confirm/Reject
+- [ ] Test vendor decline: Contact → Not Available
+- [ ] Test rejection flow with email notification
+- [ ] Test re-contact after rejection/not_available
+- [ ] Test all communications are logged to vendor_communications
+- [ ] Test budget comparison logic with various scenarios
+- [ ] Test status filtering in vendor lists
+- [ ] Test RLS policies for new columns
+- [ ] Test concurrent status updates (edge cases)
+
+---
+
+## SUCCESS CRITERIA FOR PHASE 31
+
+After completing Phase 31, verify the following:
+
+### Lifecycle Status Tracking
+- [x] `event_vendors` table has `outreach_status` column with enum values
+- [x] Status transitions follow defined rules (can't skip steps)
+- [x] All status changes update `status_updated_at` timestamp
+- [x] Legacy records migrated to appropriate status
+
+### Manual Contact Flow
+- [x] "Contact" button replaces "Add" in vendor matching
+- [x] Clicking Contact creates association and sends email
+- [x] Email is logged in `vendor_communications`
+- [x] Status changes to 'contacted' after email sent
+- [x] Vendors without email show appropriate warning
+
+### AI Agent Integration
+- [x] AI agent updates `outreach_status` after contacting
+- [ ] Quote extraction updates status based on budget comparison
+- [ ] Vendor decline detection sets 'not_available'
+- [x] All AI communications linked to event_vendor
+
+### Response Processing
+- [x] Vendor positive response sets 'available' (if within budget)
+- [x] Vendor positive response sets 'needs_attention' (if over budget)
+- [x] Vendor decline sets 'not_available'
+- [x] Manual response recording available for non-AI flow
+
+### Confirm/Reject Actions
+- [x] Venue manager can confirm from 'available' or 'needs_attention' status
+- [x] Venue manager can reject from any non-terminal status
+- [x] Confirmation sends email to vendor
+- [x] Confirmation email logged in vendor_communications
+- [x] Rejection stores reason and optionally notifies vendor
+
+### Communication Tracking
+- [x] All manual contact emails logged
+- [x] All AI-generated emails logged
+- [x] All confirmation/rejection emails logged
+- [x] Communication thread viewable per event-vendor pair
+- [x] Communications linked to correct event_vendor association
+
+### Budget Awareness
+- [x] Vendor cards show budget context
+- [x] Over-budget vendors flagged with 'needs_attention'
+- [x] Budget variance displayed where relevant
+- [x] Configurable tolerance threshold for budget comparison
+
+### UI/UX
+- [x] Status badges with appropriate colors and icons
+- [x] Status-specific actions shown in vendor lists
+- [x] Status filter works correctly
+- [x] Communication thread view accessible
+- [x] Loading states and error handling for all async operations

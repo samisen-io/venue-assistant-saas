@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, Star, TrendingUp, AlertCircle } from "lucide-react";
+import { Check, TrendingUp, AlertCircle, Mail, AlertTriangle } from "lucide-react";
 import { Event, Vendor, VendorMatchResult } from "@/lib/types";
 import { rankVendorsByMatch } from "@/lib/algorithms/vendorMatching";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils/format";
 import { Loading } from "@/components/shared/Loading";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface VendorMatchingProps {
     event: Event & { event_vendors?: Array<{ vendor_id: string }> };
@@ -67,10 +73,21 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
         fetchVendors();
     }, [event]);
 
-    const addVendorToEvent = async (vendor: Vendor, eventServiceId: string) => {
+    const contactVendor = async (vendor: Vendor, eventServiceId: string) => {
+        // Check if vendor has email
+        if (!vendor.contact_email) {
+            toast({
+                title: "Missing Email",
+                description: `${vendor.name} doesn't have an email address. Please add one to their profile first.`,
+                variant: "destructive",
+            });
+            return;
+        }
+
         setIsSubmitting(vendor.id);
         try {
-            const res = await fetch(`/api/events/${event.id}/vendors`, {
+            // Step 1: Add vendor to event
+            const addRes = await fetch(`/api/events/${event.id}/vendors`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -80,17 +97,36 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
                 }),
             });
 
-            if (!res.ok) {
-                const msg = await res.text();
+            if (!addRes.ok) {
+                const msg = await addRes.text();
                 throw new Error(msg || "Failed to add vendor");
             }
 
-            toast({
-                title: "Vendor Added",
-                description: "Vendor has been successfully added to the event.",
+            const association = await addRes.json();
+
+            // Step 2: Send contact email
+            const contactRes = await fetch(`/api/events/${event.id}/vendors/${association.id}/contact`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
             });
 
-            // Track this vendor as added
+            const contactResult = await contactRes.json();
+
+            if (!contactRes.ok) {
+                // Vendor was added but email failed
+                toast({
+                    title: "Vendor Added",
+                    description: contactResult.error || "Vendor added but email could not be sent.",
+                    variant: "default",
+                });
+            } else {
+                toast({
+                    title: "Contact Sent",
+                    description: `Quote request sent to ${vendor.name}. They will receive an email shortly.`,
+                });
+            }
+
+            // Track this vendor as contacted
             setAddedVendorIds(prev => new Set(prev).add(vendor.id));
             onVendorAdded();
         } catch (error: any) {
@@ -184,14 +220,48 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
                                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">{vendor.cost_structure?.replace('_', ' ')}</p>
                                         </div>
 
-                                        <Button
-                                            onClick={() => addVendorToEvent(vendor, defaultServiceId)}
-                                            disabled={isSubmitting === vendor.id || !defaultServiceId || addedVendorIds.has(vendor.id)}
-                                            size="sm"
-                                            variant={addedVendorIds.has(vendor.id) ? "outline" : "default"}
-                                        >
-                                            {isSubmitting === vendor.id ? "Adding..." : addedVendorIds.has(vendor.id) ? "Added" : "Add"}
-                                        </Button>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div>
+                                                        <Button
+                                                            onClick={() => contactVendor(vendor, defaultServiceId)}
+                                                            disabled={isSubmitting === vendor.id || !defaultServiceId || addedVendorIds.has(vendor.id)}
+                                                            size="sm"
+                                                            variant={addedVendorIds.has(vendor.id) ? "outline" : "default"}
+                                                            className="gap-1.5"
+                                                        >
+                                                            {isSubmitting === vendor.id ? (
+                                                                "Sending..."
+                                                            ) : addedVendorIds.has(vendor.id) ? (
+                                                                <>
+                                                                    <Check className="h-4 w-4" />
+                                                                    Contacted
+                                                                </>
+                                                            ) : !vendor.contact_email ? (
+                                                                <>
+                                                                    <AlertTriangle className="h-4 w-4" />
+                                                                    No Email
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Mail className="h-4 w-4" />
+                                                                    Contact
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    {!vendor.contact_email
+                                                        ? "Add an email to this vendor's profile to contact them"
+                                                        : addedVendorIds.has(vendor.id)
+                                                        ? "Quote request already sent"
+                                                        : "Send quote request email to vendor"
+                                                    }
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     </div>
                                 </div>
                             </CardContent>
