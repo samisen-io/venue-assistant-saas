@@ -5,8 +5,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { formatDate } from "@/lib/utils/format"
-import { ArrowDown, ArrowUp, Mail, Clock } from "lucide-react"
+import { ArrowDown, ArrowUp, Mail, Clock, Eye } from "lucide-react"
 
 interface Communication {
   id: string
@@ -48,6 +55,8 @@ export function CommunicationsList({ eventId }: CommunicationsListProps) {
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
+  const [selectedCommunication, setSelectedCommunication] = useState<Communication | null>(null)
+  const [selectedVendor, setSelectedVendor] = useState<Communication['vendor'] | null>(null)
 
   useEffect(() => {
     fetchCommunications()
@@ -210,36 +219,33 @@ export function CommunicationsList({ eventId }: CommunicationsListProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Communications Thread */}
-              <div className="space-y-3">
-                {sortedComms.map((comm, idx) => (
-                  <div key={comm.id}>
-                    <div className="flex items-start gap-3">
-                      <div className={`mt-1 ${comm.direction === 'outbound' ? 'text-blue-600' : 'text-green-600'}`}>
-                        {comm.direction === 'outbound' ? (
-                          <ArrowUp className="h-5 w-5" />
-                        ) : (
-                          <ArrowDown className="h-5 w-5" />
-                        )}
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">
-                            {comm.direction === 'outbound' ? 'You' : vendor.name}
-                          </span>
-                          <Badge variant="outline" className={getStatusColor(comm.status)}>
-                            {comm.status || 'sent'}
-                          </Badge>
-                          <span className="text-xs text-gray-500">
-                            {comm.sent_at ? formatDate(comm.sent_at) : 'Sending...'}
-                          </span>
-                        </div>
-                        {comm.subject && (
-                          <p className="text-sm font-medium">{comm.subject}</p>
-                        )}
-                        <p className="text-sm text-gray-600 line-clamp-2">{comm.body}</p>
-                      </div>
+              <div className="space-y-1">
+                {sortedComms.map((comm) => (
+                  <div
+                    key={comm.id}
+                    className="flex items-center gap-2 py-1.5 px-2 -mx-2 rounded cursor-pointer hover:bg-muted/50 transition-colors group"
+                    onClick={() => {
+                      setSelectedCommunication(comm)
+                      setSelectedVendor(vendor)
+                    }}
+                  >
+                    <div className={comm.direction === 'outbound' ? 'text-blue-600' : 'text-green-600'}>
+                      {comm.direction === 'outbound' ? (
+                        <ArrowUp className="h-4 w-4" />
+                      ) : (
+                        <ArrowDown className="h-4 w-4" />
+                      )}
                     </div>
-                    {idx < sortedComms.length - 1 && <Separator className="mt-3" />}
+                    <span className="text-xs text-muted-foreground w-16 shrink-0">
+                      {comm.sent_at ? formatDate(comm.sent_at) : 'Sending...'}
+                    </span>
+                    <span className="text-sm truncate flex-1">
+                      {comm.subject || comm.body.slice(0, 60)}
+                    </span>
+                    <Badge variant="outline" className={`${getStatusColor(comm.status)} text-xs shrink-0`}>
+                      {comm.status || 'sent'}
+                    </Badge>
+                    <Eye className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                   </div>
                 ))}
               </div>
@@ -292,6 +298,99 @@ export function CommunicationsList({ eventId }: CommunicationsListProps) {
           </Card>
         )
       })}
+
+      {/* Communication Detail Modal */}
+      <Dialog
+        open={!!selectedCommunication}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedCommunication(null)
+            setSelectedVendor(null)
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          {selectedCommunication && selectedVendor && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-2">
+                  <div className={selectedCommunication.direction === 'outbound' ? 'text-blue-600' : 'text-green-600'}>
+                    {selectedCommunication.direction === 'outbound' ? (
+                      <ArrowUp className="h-5 w-5" />
+                    ) : (
+                      <ArrowDown className="h-5 w-5" />
+                    )}
+                  </div>
+                  <DialogTitle>
+                    {selectedCommunication.direction === 'outbound' ? 'Sent Message' : 'Received Message'}
+                  </DialogTitle>
+                  <Badge variant="outline" className={getStatusColor(selectedCommunication.status)}>
+                    {selectedCommunication.status || 'sent'}
+                  </Badge>
+                </div>
+                <DialogDescription>
+                  Communication with {selectedVendor.name}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 mt-4">
+                {/* Email Details */}
+                <div className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-2 text-sm">
+                  <span className="font-medium text-muted-foreground">From:</span>
+                  <span>{selectedCommunication.from_email}</span>
+
+                  <span className="font-medium text-muted-foreground">To:</span>
+                  <span>{selectedCommunication.to_email}</span>
+
+                  <span className="font-medium text-muted-foreground">Date:</span>
+                  <span>
+                    {selectedCommunication.sent_at
+                      ? formatDate(selectedCommunication.sent_at)
+                      : 'Sending...'}
+                  </span>
+
+                  {selectedCommunication.read_at && (
+                    <>
+                      <span className="font-medium text-muted-foreground">Read:</span>
+                      <span>{formatDate(selectedCommunication.read_at)}</span>
+                    </>
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* Subject */}
+                {selectedCommunication.subject && (
+                  <div>
+                    <h4 className="font-semibold text-sm text-muted-foreground mb-1">Subject</h4>
+                    <p className="font-medium">{selectedCommunication.subject}</p>
+                  </div>
+                )}
+
+                {/* Full Message Body */}
+                <div>
+                  <h4 className="font-semibold text-sm text-muted-foreground mb-2">Message</h4>
+                  <div className="bg-muted/50 rounded-lg p-4 whitespace-pre-wrap text-sm">
+                    {selectedCommunication.body}
+                  </div>
+                </div>
+
+                {/* Vendor Info */}
+                <Separator />
+                <div className="flex items-center gap-3 text-sm">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">{selectedVendor.name}</p>
+                    <p className="text-muted-foreground">
+                      {(selectedVendor.vendor_services || [])[0]?.event_services?.name || 'Vendor'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
