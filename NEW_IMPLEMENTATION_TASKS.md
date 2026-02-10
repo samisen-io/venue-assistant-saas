@@ -449,19 +449,19 @@ The following already exists and will be leveraged (not rebuilt):
   - Public read access for published venue photos
 
 ### Task 2.2: Create Image Upload Utilities
-- [ ] Create `lib/storage/upload.ts`:
+- [x] Create `lib/storage/upload.ts`:
   - `uploadVenuePhoto(venueId, file, section): Promise<string>` — returns public URL
   - `deleteVenuePhoto(path): Promise<void>`
   - `uploadHeroImage(venueId, file): Promise<string>`
   - `uploadTestimonialPhoto(venueId, file): Promise<string>`
-- [ ] Create `lib/storage/optimize.ts`:
+- [x] Create `lib/storage/optimize.ts`:
   - Client-side image compression before upload (target <500KB)
   - Resize to max 2000px width
   - Convert to WebP where supported
 - [ ] Test upload and retrieval
 
 ### Task 2.3: Create Photo Upload Component
-- [ ] Create `components/shared/PhotoUploader.tsx`:
+- [x] Create `components/shared/PhotoUploader.tsx`:
   - Drag-and-drop support
   - Click to upload
   - Upload progress indicator
