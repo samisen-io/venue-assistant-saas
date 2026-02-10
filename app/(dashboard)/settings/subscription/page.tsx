@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CreditCard, ArrowUpCircle, XCircle } from "lucide-react";
+import { CreditCard, ArrowUpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubscriptionBadge } from "@/components/subscription/SubscriptionBadge";
@@ -25,6 +25,17 @@ interface Usage {
     spaces_created: number;
     events_created: number;
     vendors_created: number;
+}
+
+function getSafeRedirectUrl(rawUrl: unknown): string | null {
+    if (typeof rawUrl !== "string" || !rawUrl.trim()) return null;
+    try {
+        const parsed = new URL(rawUrl, window.location.origin);
+        const isHttp = parsed.protocol === "http:" || parsed.protocol === "https:";
+        return isHttp ? parsed.toString() : null;
+    } catch {
+        return null;
+    }
 }
 
 export default function SubscriptionPage() {
@@ -58,7 +69,9 @@ export default function SubscriptionPage() {
             const res = await fetch("/api/subscription/portal", { method: "POST" });
             if (!res.ok) throw new Error("Failed to create portal session");
             const { url } = await res.json();
-            window.location.href = url;
+            const safeUrl = getSafeRedirectUrl(url);
+            if (!safeUrl) throw new Error("Invalid portal URL");
+            window.location.href = safeUrl;
         } catch {
             toast({
                 title: "Error",

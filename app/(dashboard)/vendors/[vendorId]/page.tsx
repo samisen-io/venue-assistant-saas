@@ -21,6 +21,32 @@ interface VendorReviewWithEvent extends VendorReview {
   };
 }
 
+function getSafeWebsiteUrl(rawUrl: unknown): string | null {
+  if (typeof rawUrl !== "string" || !rawUrl.trim()) return null;
+  try {
+    const parsed = new URL(rawUrl, window.location.origin);
+    const isHttp = parsed.protocol === "http:" || parsed.protocol === "https:";
+    return isHttp ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function getSafeMailtoLink(email: unknown): string | null {
+  if (typeof email !== "string" || !email.trim()) return null;
+  const safeEmail = email.trim();
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailPattern.test(safeEmail)) return null;
+  return `mailto:${safeEmail}`;
+}
+
+function getSafeTelLink(phone: unknown): string | null {
+  if (typeof phone !== "string" || !phone.trim()) return null;
+  const cleaned = phone.replace(/[^\d+]/g, "");
+  if (!cleaned || cleaned.length < 7) return null;
+  return `tel:${cleaned}`;
+}
+
 export default function VendorDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -78,6 +104,9 @@ export default function VendorDetailPage() {
   const avgQualityRating = vendor.avg_quality_rating || 0;
   const onTimePercentage = vendor.on_time_percentage || 0;
   const totalEvents = vendor.total_events || 0;
+  const safeMailtoLink = getSafeMailtoLink(vendor.contact_email);
+  const safeTelLink = getSafeTelLink(vendor.contact_phone);
+  const safeWebsiteUrl = getSafeWebsiteUrl(vendor.website);
 
   return (
     <div className="space-y-6">
@@ -133,29 +162,29 @@ export default function VendorDetailPage() {
               <p className="text-sm text-gray-500">Contact Person</p>
               <p className="font-medium mt-1">{vendor.contact_name || "N/A"}</p>
             </div>
-            {vendor.contact_email && (
+            {safeMailtoLink && (
               <>
                 <div className="flex items-center gap-2 text-gray-700">
                   <Mail className="h-4 w-4" />
-                  <a href={`mailto:${vendor.contact_email}`} className="hover:underline">
+                  <a href={safeMailtoLink} className="hover:underline">
                     {vendor.contact_email}
                   </a>
                 </div>
               </>
             )}
-            {vendor.contact_phone && (
+            {safeTelLink && (
               <div className="flex items-center gap-2 text-gray-700">
                 <Phone className="h-4 w-4" />
-                <a href={`tel:${vendor.contact_phone}`} className="hover:underline">
+                <a href={safeTelLink} className="hover:underline">
                   {vendor.contact_phone}
                 </a>
               </div>
             )}
-            {vendor.website && (
+            {safeWebsiteUrl && (
               <>
                 <Separator />
                 <Button asChild variant="outline" className="w-full">
-                  <a href={vendor.website} target="_blank" rel="noopener noreferrer">
+                  <a href={safeWebsiteUrl} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="mr-2 h-4 w-4" />
                     Visit Website
                   </a>

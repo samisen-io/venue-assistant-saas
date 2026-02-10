@@ -10,18 +10,14 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-async function testFetch() {
-    console.log('Testing profiles fetch...')
-    const { data, error } = await supabase
-        .from('profiles')
-        .select(`*`)
-        .limit(1)
+console.log('Testing profiles fetch...')
+const { error } = await supabase
+    .from('profiles')
+    .select(`*`)
+    .limit(1)
 
-    if (error) {
-        console.error('SQL Error (profiles):', JSON.stringify(error, null, 2))
-    } else {
-        console.log('Success, profiles found')
-    }
+if (error) {
+    console.error('SQL Error (profiles):', JSON.stringify(error, null, 2))
+} else {
+    console.log('Success, profiles found')
 }
-
-testFetch()

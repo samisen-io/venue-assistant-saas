@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { PricingCard } from "./PricingCard";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,8 +19,18 @@ interface PricingTableProps {
 
 export function PricingTable({ plans, currentTier }: PricingTableProps) {
     const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
-    const router = useRouter();
     const { toast } = useToast();
+
+    const getSafeRedirectUrl = (rawUrl: unknown): string | null => {
+        if (typeof rawUrl !== "string" || !rawUrl.trim()) return null;
+        try {
+            const parsed = new URL(rawUrl, window.location.origin);
+            const isHttp = parsed.protocol === "http:" || parsed.protocol === "https:";
+            return isHttp ? parsed.toString() : null;
+        } catch {
+            return null;
+        }
+    };
 
     const handleSubscribe = async (priceId: string) => {
         setLoadingPriceId(priceId);
@@ -37,10 +46,10 @@ export function PricingTable({ plans, currentTier }: PricingTableProps) {
             }
 
             const { url } = await response.json();
-            if (url) {
-                window.location.href = url;
-            }
-        } catch (error) {
+            const safeUrl = getSafeRedirectUrl(url);
+            if (!safeUrl) throw new Error("Invalid checkout URL");
+            window.location.href = safeUrl;
+        } catch {
             toast({
                 title: "Error",
                 description: "Failed to start checkout. Please try again.",

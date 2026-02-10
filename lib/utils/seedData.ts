@@ -62,6 +62,8 @@ export async function seedDemoData(
     // Clear existing data first
     await clearAllData(supabase, userId);
 
+    const demoEmailSuffix = userId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || 'owner';
+
     // 1. Create ONE Venue (the property the user manages)
     const { data: venue, error: venueError } = await supabase
       .from('venues')
@@ -73,7 +75,7 @@ export async function seedDemoData(
         state: 'CA',
         zip_code: '94102',
         phone: '(415) 555-0100',
-        email: 'events@grandhotel.com',
+        email: `events+${demoEmailSuffix}@example.com`,
         venue_type: 'hotel',
         description: 'Premier event venue in downtown San Francisco',
       })
