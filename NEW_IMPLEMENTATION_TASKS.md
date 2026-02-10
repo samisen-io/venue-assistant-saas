@@ -1026,10 +1026,10 @@ The following already exists and will be leveraged (not rebuilt):
 ## PHASE 9: PAGE PUBLISHING & PREVIEW
 
 ### Task 9.1: Implement Publishing Workflow
-- [ ] Create `components/page-editor/PublishButton.tsx`:
+- [x] Create `components/page-editor/PublishButton.tsx`:
   - Button states: "Publish" / "Publish Changes" / "Published ✓"
   - Keyboard shortcut: Ctrl+P
-- [ ] Create `components/page-editor/PublishChecklist.tsx`:
+- [x] Create `components/page-editor/PublishChecklist.tsx`:
   - Pre-publish validation modal:
     - ✅ Hero image uploaded
     - ✅ At least 5 gallery photos
@@ -1039,20 +1039,20 @@ The following already exists and will be leveraged (not rebuilt):
     - ⚠️ No SEO description (warning, not blocker)
     - ⚠️ No pricing packages (warning, not blocker)
   - "Publish Anyway" option for warnings
-- [ ] Create `app/api/venues/[venueId]/publish/route.ts`:
+- [x] Create `app/api/venues/[venueId]/publish/route.ts`:
   - `POST` — Set `page_status = 'published'`, run validation, return warnings/errors
   - Auto-snapshot current state to `venue_page_versions` table on publish
 
 ### Task 9.2: Implement Version History
 > **NOTE**: PRD 3.2 requires last 10 published versions with restore functionality.
-- [ ] Create `components/page-editor/VersionHistory.tsx`:
+- [x] Create `components/page-editor/VersionHistory.tsx`:
   - "View History" button in editor
   - List of last 10 published versions with timestamp, publisher, change summary
   - "Restore this version" button per version
   - Confirmation modal before restore
-- [ ] Create `app/api/venues/[venueId]/versions/route.ts`:
+- [x] Create `app/api/venues/[venueId]/versions/route.ts`:
   - `GET` — List version history
-- [ ] Create `app/api/venues/[venueId]/versions/[versionId]/restore/route.ts`:
+- [x] Create `app/api/venues/[venueId]/versions/[versionId]/restore/route.ts`:
   - `POST` — Restore snapshot from version
 - [ ] Test restore doesn't break current data
 
@@ -1061,34 +1061,37 @@ The following already exists and will be leveraged (not rebuilt):
   - Same as public page but shows unpublished/draft changes
   - Requires preview token for access (query param `?token=xxx`)
   - Shows "PREVIEW" banner at top
-- [ ] Create `app/api/venues/[venueId]/preview-token/route.ts`:
+- [x] Create `app/api/venues/[venueId]/preview-token/route.ts`:
   - Generate time-limited preview URL (24h expiry)
-- [ ] Add "Preview in New Tab" and "Copy Preview Link" buttons to editor
+- [x] Add "Preview in New Tab" and "Copy Preview Link" buttons to editor
 
-### Task 9.3: Implement Unpublish Functionality
-- [ ] Add "Unpublish" option in page editor settings
-- [ ] Confirmation modal: "This will take your page offline"
-- [ ] Sets `page_status = 'unpublished'`
-- [ ] Public page returns "This page is not currently available" for unpublished venues
+### Task 9.4: Implement Unpublish Functionality
+- [x] Add "Unpublish" option in page editor settings
+- [x] Confirmation modal: "This will take your page offline"
+- [x] Create `app/api/venues/[venueId]/unpublish/route.ts`:
+  - `POST` — Sets `page_status = 'unpublished'`
+- [ ] Verify public page returns "This page is not currently available" for unpublished venues
 
 ---
 
 ## PHASE 10: PAGE ANALYTICS DASHBOARD
 
 ### Task 10.1: Create Analytics Tracking
-- [ ] Create `lib/analytics/tracker.ts`:
+- [x] Create `lib/analytics/tracker.ts`:
   - `trackEvent(venueId, eventType, metadata): void`
   - Writes to `page_analytics` table
   - IP hashing for privacy (no raw IPs stored)
-- [ ] Create `app/api/venues/public/[slug]/track/route.ts`:
+- [x] Create `app/api/venues/public/[slug]/track/route.ts`:
   - `POST` — Public endpoint for tracking page_view, cta_click, gallery_view events
   - Rate limited using existing `lib/utils/rateLimit.ts`
-- [ ] Add tracking calls to public page components (page view on load, CTA clicks, gallery opens, calendar clicks)
-- [ ] Add scroll depth tracking (Intersection Observer on each section: Hero, Gallery, Details, Calendar, Contact, Testimonials, Footer)
-- [ ] Add element click tracking (CTA buttons, phone number, email, social links, gallery photos)
+- [x] Create `hooks/usePublicPageTracking.ts`:
+  - Track page views, CTA clicks, gallery opens, calendar clicks
+  - Scroll depth tracking (Intersection Observer on sections with `data-analytics-section`)
+  - Element click tracking (elements with `data-track-click` attribute)
+  - Session ID generation and persistence
 
 ### Task 10.2: Create Analytics API
-- [ ] Create `app/api/venues/[venueId]/analytics/route.ts`:
+- [x] Create `app/api/venues/[venueId]/analytics/route.ts`:
   - `GET ?range=7d|30d|90d|custom&start=&end=`
   - Return aggregated metrics:
     - Page views, inquiries started, leads captured, conversion rate
@@ -1100,27 +1103,28 @@ The following already exists and will be leveraged (not rebuilt):
 
 ### Task 10.3: Create Analytics Dashboard Components
 > **NOTE**: Can leverage existing `components/dashboard/StatCard.tsx` pattern for metric cards.
-- [ ] Create `components/analytics/AnalyticsMetricCard.tsx` (extends StatCard with trend indicator)
-- [ ] Create `components/analytics/TrafficSourcesChart.tsx`
-- [ ] Create `components/analytics/InquiryAnalytics.tsx`
-- [ ] Create `components/analytics/AIChatPerformance.tsx`
-- [ ] Create `components/analytics/VisitorBehavior.tsx`:
+- [x] Create `components/analytics/AnalyticsMetricCard.tsx` (extends StatCard with trend indicator)
+- [x] Create `components/analytics/AnalyticsChart.tsx` (TrafficSourcesChart with bar visualization)
+- [x] Create `components/analytics/InquiryAnalytics.tsx` (inquiries started, lead conversion, funnel stages)
+- [x] Create `components/analytics/AIChatPerformance.tsx` (conversations, avg messages, escalation rate, lead capture %)
+- [x] Create `components/analytics/VisitorBehavior.tsx`:
   - Scroll depth per section (Hero 100%, Gallery 85%, etc.)
   - Most clicked elements
   - Average time on page
-- [ ] Create `components/analytics/DateRangeSelector.tsx` (7d, 30d, 90d, custom)
+- [x] Create `components/analytics/DateRangeSelector.tsx` (7d, 30d, 90d, custom)
+- [x] Create `hooks/useAnalytics.ts` (fetch analytics data with date range filtering)
 
 ### Task 10.4: Create Analytics Dashboard Page
-- [ ] Create `app/(dashboard)/venues/[venueId]/analytics/page.tsx`:
-  - Overview metric cards
-  - Traffic sources chart
-  - Visitor behavior (scroll depth, time on page, most clicked)
+- [x] Create `app/(dashboard)/venues/[venueId]/analytics/page.tsx`:
+  - Overview metric cards (page views, chats opened, leads captured, CTA clicks)
   - Inquiry analytics + conversion funnel
-  - AI chat performance
-  - Date range selector
-  - Export button (CSV, PDF)
+  - AI chat performance metrics
+  - Visitor behavior (scroll depth, time on page, clicked elements)
+  - Traffic sources breakdown
+  - Date range selector (7d, 30d, 90d, custom)
 - [ ] Test with various date ranges
 - [ ] Test mobile responsive layout
+- [ ] Add CSV/PDF export functionality (optional enhancement)
 
 ---
 
