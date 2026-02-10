@@ -79,8 +79,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ venu
     if (!body.id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
 
     if (entity === "addon") {
-      const { id, entity, ...fields } = body
-      void entity
+      const { id, entity: entityField, ...fields } = body
+      void entityField
       const { data, error } = await (auth.supabase as any)
         .from("venue_package_addons")
         .update(fields)
@@ -92,8 +92,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ venu
       return NextResponse.json(data)
     }
 
-    const { id, entity, ...fields } = body
-    void entity
+    const { id, entity: entityField, ...fields } = body
+    void entityField
     const { data, error } = await (auth.supabase as any)
       .from("venue_packages")
       .update({ ...fields, updated_at: new Date().toISOString() })

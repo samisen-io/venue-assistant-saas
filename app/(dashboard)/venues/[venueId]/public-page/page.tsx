@@ -27,6 +27,10 @@ import { SEOEditor } from "@/components/page-editor/SEOEditor"
 import { TestimonialsEditor } from "@/components/page-editor/TestimonialsEditor"
 import { LivePreview } from "@/components/page-editor/LivePreview"
 import { ChangesSummaryPanel } from "@/components/page-editor/ChangesSummaryPanel"
+import { PublishButton } from "@/components/page-editor/PublishButton"
+import { VersionHistory } from "@/components/page-editor/VersionHistory"
+import { UnpublishDialog } from "@/components/page-editor/UnpublishDialog"
+import { PreviewLinkButton } from "@/components/page-editor/PreviewLinkButton"
 
 type VenuePackage = Database["public"]["Tables"]["venue_packages"]["Row"]
 type VenuePackageAddon = Database["public"]["Tables"]["venue_package_addons"]["Row"]
@@ -346,6 +350,38 @@ export default function VenuePublicPageEditorPage() {
           <Button onClick={() => saveAll().catch(() => {})} disabled={saving}>
             {saving ? "Saving..." : "Save"}
           </Button>
+          {data && (
+            <PreviewLinkButton 
+              venueId={venueId}
+              venueSlug={data.venue.slug ?? undefined}
+            />
+          )}
+          <VersionHistory 
+            venueId={venueId}
+            onVersionRestored={() => {
+              fetchData()
+              toast({ title: "Version restored", description: "Page restored to previous version." })
+            }}
+          />
+          {data && (
+            <>
+              <PublishButton 
+                venueId={venueId}
+                pageData={data}
+                isDirty={dirty}
+                onPublishSuccess={() => {
+                  fetchData()
+                }}
+              />
+              <UnpublishDialog
+                venueId={venueId}
+                isPublished={data.venue.page_status === "published"}
+                onUnpublishSuccess={() => {
+                  fetchData()
+                }}
+              />
+            </>
+          )}
         </div>
       </div>
 

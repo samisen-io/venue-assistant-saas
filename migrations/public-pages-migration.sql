@@ -1517,16 +1517,77 @@ END $$;
 
 
 -- =====================================================
+-- MIGRATION 25: Create preview_tokens Table
+-- =====================================================
+-- Stores preview tokens for unpublished venue pages (24-hour expiry)
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS preview_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  venue_id UUID REFERENCES venues(id) ON DELETE CASCADE NOT NULL,
+  token TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_preview_tokens_venue_id ON preview_tokens(venue_id);
+CREATE INDEX IF NOT EXISTS idx_preview_tokens_token ON preview_tokens(token);
+
+ALTER TABLE preview_tokens ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'preview_tokens' AND policyname = 'Users can view own venue preview tokens'
+  ) THEN
+    CREATE POLICY "Users can view own venue preview tokens"
+      ON preview_tokens FOR SELECT TO authenticated
+      USING (EXISTS (SELECT 1 FROM venues WHERE venues.id = preview_tokens.venue_id AND venues.owner_id = auth.uid()));
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'preview_tokens' AND policyname = 'Users can create own venue preview tokens'
+  ) THEN
+    CREATE POLICY "Users can create own venue preview tokens"
+      ON preview_tokens FOR INSERT TO authenticated
+      WITH CHECK (EXISTS (SELECT 1 FROM venues WHERE venues.id = preview_tokens.venue_id AND venues.owner_id = auth.uid()));
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'preview_tokens' AND policyname = 'Users can delete own venue preview tokens'
+  ) THEN
+    CREATE POLICY "Users can delete own venue preview tokens"
+      ON preview_tokens FOR DELETE TO authenticated
+      USING (EXISTS (SELECT 1 FROM venues WHERE venues.id = preview_tokens.venue_id AND venues.owner_id = auth.uid()));
+  END IF;
+END $$;
+
+-- Clean up expired preview tokens (runs automatically)
+DROP FUNCTION IF EXISTS cleanup_expired_preview_tokens();
+CREATE FUNCTION cleanup_expired_preview_tokens()
+RETURNS void AS $$
+BEGIN
+  DELETE FROM preview_tokens WHERE expires_at < NOW();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- =====================================================
 -- PUBLIC PAGES MIGRATION COMPLETE
 -- =====================================================
--- Tables created/modified: 16
+-- Tables created/modified: 17
 --   Modified: venues (15 new columns), spaces (7 new columns)
 --   Created: venue_photos, venue_amenities, venue_event_types,
 --     venue_packages, venue_package_addons, venue_testimonials,
 --     venue_availability, venue_calendar_settings, venue_blackout_dates,
---     venue_ai_settings, venue_page_versions, page_analytics,
+--     venue_ai_settings, venue_page_versions, page_analytics, preview_tokens,
 --     leads, lead_activities, conversations, conversation_messages,
 --     proposals
--- Functions: generate_venue_slug(), cleanup_old_page_versions()
+-- Functions: generate_venue_slug(), cleanup_old_page_versions(), cleanup_expired_preview_tokens()
 -- Triggers: generate_venue_slug_trigger, cleanup_page_versions_trigger
 -- =====================================================
