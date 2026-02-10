@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-function PaymentFailureBanner({ className }: { className?: string }) {
+function PaymentFailureBanner({ className }: Readonly<{ className?: string }>) {
     return (
         <div className={cn(
             "flex items-center justify-between p-4 rounded-lg border bg-red-50 border-red-200",
@@ -38,7 +38,7 @@ function PaymentFailureBanner({ className }: { className?: string }) {
     );
 }
 
-function CancellationBanner({ endDate, className }: { endDate: string; className?: string }) {
+function CancellationBanner({ endDate, className }: Readonly<{ endDate: string; className?: string }>) {
     const formattedDate = new Date(endDate).toLocaleDateString(undefined, {
         month: "long",
         day: "numeric",

@@ -43,6 +43,7 @@ export default function NewVenuePage() {
             router.push("/venues");
             router.refresh();
         } catch (error) {
+            console.error(error);
             toast({
                 title: "Error",
                 description: "Something went wrong",

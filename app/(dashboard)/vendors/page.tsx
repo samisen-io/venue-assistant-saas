@@ -24,6 +24,27 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
+function VendorEmptyState({ hasFilters, onClearFilters }: Readonly<{ hasFilters: boolean; onClearFilters: () => void }>) {
+    if (hasFilters) {
+        return (
+            <EmptyState
+                title="No matches found"
+                description="Try adjusting your search filters to find more vendors."
+                actionLabel="Clear Filters"
+                onAction={onClearFilters}
+            />
+        );
+    }
+    return (
+        <EmptyState
+            title="No vendors found"
+            description="Add vendors to your database to track performance and get AI-powered recommendations for events."
+            actionLabel="Add Vendor"
+            actionHref="/vendors/new"
+        />
+    );
+}
+
 export default function VendorsPage() {
     const [vendors, setVendors] = useState<Vendor[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -35,14 +56,14 @@ export default function VendorsPage() {
     const isMobile = useIsMobile();
     const { canCreate, reason: limitReason } = useCanCreate("vendor");
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
-        if (typeof window !== "undefined") {
+        if (globalThis.window !== undefined) {
             return (localStorage.getItem("viewMode:vendors") as ViewMode) || "grid";
         }
         return "grid";
     });
 
     // Calculate active filter count for mobile badge
-    const activeFilterCount = (searchTerm ? 1 : 0) + (selectedServiceId !== "all" ? 1 : 0);
+    const activeFilterCount = (searchTerm ? 1 : 0) + (selectedServiceId === "all" ? 0 : 1);
 
     const handleViewModeChange = (mode: ViewMode) => {
         setViewMode(mode);
@@ -150,30 +171,20 @@ export default function VendorsPage() {
                 </div>
             </MobileFilters>
 
-            {filteredVendors.length === 0 ? (
-                <EmptyState
-                    title={searchTerm || selectedServiceId !== "all" ? "No matches found" : "No vendors found"}
-                    description={searchTerm || selectedServiceId !== "all"
-                        ? "Try adjusting your search filters to find more vendors."
-                        : "Add vendors to your database to track performance and get AI-powered recommendations for events."}
-                    actionLabel={searchTerm || selectedServiceId !== "all" ? "Clear Filters" : "Add Vendor"}
-                    {...(searchTerm || selectedServiceId !== "all"
-                        ? {
-                            onAction: () => {
-                                setSearchTerm("");
-                                setSelectedServiceId("all");
-                            }
-                        }
-                        : { actionHref: "/vendors/new" }
-                    )}
+            {filteredVendors.length === 0 && (
+                <VendorEmptyState
+                    hasFilters={!!(searchTerm || selectedServiceId !== "all")}
+                    onClearFilters={() => { setSearchTerm(""); setSelectedServiceId("all"); }}
                 />
-            ) : isMobile || viewMode === "grid" ? (
+            )}
+            {filteredVendors.length > 0 && (isMobile || viewMode === "grid") && (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {filteredVendors.map((vendor) => (
                         <VendorCard key={vendor.id} vendor={vendor} />
                     ))}
                 </div>
-            ) : (
+            )}
+            {filteredVendors.length > 0 && !isMobile && viewMode !== "grid" && (
                 <VendorTable vendors={filteredVendors} />
             )}
 

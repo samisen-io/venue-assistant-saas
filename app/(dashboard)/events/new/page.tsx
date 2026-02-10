@@ -49,6 +49,7 @@ export default function NewEventPage() {
                     setNlEnabled(nlData.status === 'ready');
                 }
             } catch (err) {
+                console.error(err);
                 setError("Could not load spaces required to create an event.");
             } finally {
                 setIsLoading(false);
@@ -131,6 +132,7 @@ export default function NewEventPage() {
             router.push("/events");
             router.refresh();
         } catch (error) {
+            console.error(error);
             toast({
                 title: "Error",
                 description: "Something went wrong",

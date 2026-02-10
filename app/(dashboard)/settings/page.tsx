@@ -47,6 +47,7 @@ export default function SettingsPage() {
                 toast({ title: "Profile Updated", description: "Your changes have been saved." });
             }
         } catch (error) {
+            console.error(error);
             toast({ title: "Error", description: "Failed to update profile", variant: "destructive" });
         } finally {
             setIsSaving(false);

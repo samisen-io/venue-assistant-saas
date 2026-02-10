@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { Plus, Building2, Search, Filter, X } from "lucide-react";
-import { Space, SpaceType } from "@/lib/types";
+import { Space } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -42,7 +42,7 @@ export default function SpacesPage() {
     const isMobile = useIsMobile();
     const { canCreate, reason: limitReason } = useCanCreate("space");
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
-        if (typeof window !== "undefined") {
+        if (globalThis.window !== undefined) {
             return (localStorage.getItem("viewMode:spaces") as ViewMode) || "grid";
         }
         return "grid";
@@ -55,7 +55,7 @@ export default function SpacesPage() {
     const [maxRate, setMaxRate] = useState<string>("");
 
     // Calculate active filter count for mobile badge
-    const activeFilterCount = (searchQuery ? 1 : 0) + (typeFilter !== "all" ? 1 : 0) + (minCapacity ? 1 : 0) + (maxRate ? 1 : 0);
+    const activeFilterCount = (searchQuery ? 1 : 0) + (typeFilter === "all" ? 0 : 1) + (minCapacity ? 1 : 0) + (maxRate ? 1 : 0);
 
     const handleViewModeChange = (mode: ViewMode) => {
         setViewMode(mode);
@@ -71,6 +71,7 @@ export default function SpacesPage() {
             const data = await res.json();
             setSpaces(data);
         } catch (err) {
+            console.error(err);
             setError("Could not load spaces. Please try again.");
         } finally {
             setIsLoading(false);
@@ -99,16 +100,16 @@ export default function SpacesPage() {
 
             // Min capacity filter
             if (minCapacity) {
-                const min = parseInt(minCapacity, 10);
-                if (!isNaN(min) && (space.capacity === null || space.capacity < min)) {
+                const min = Number.parseInt(minCapacity, 10);
+                if (!Number.isNaN(min) && (space.capacity === null || space.capacity < min)) {
                     return false;
                 }
             }
 
             // Max hourly rate filter
             if (maxRate) {
-                const max = parseFloat(maxRate);
-                if (!isNaN(max) && space.hourly_rate !== null && space.hourly_rate > max) {
+                const max = Number.parseFloat(maxRate);
+                if (!Number.isNaN(max) && space.hourly_rate !== null && space.hourly_rate > max) {
                     return false;
                 }
             }
@@ -227,7 +228,7 @@ export default function SpacesPage() {
                 </MobileFilters>
             )}
 
-            {spaces.length === 0 ? (
+            {spaces.length === 0 && (
                 <EmptyState
                     icon={Building2}
                     title="No spaces found"
@@ -235,7 +236,8 @@ export default function SpacesPage() {
                     actionLabel="Add Space"
                     actionHref="/spaces/new"
                 />
-            ) : filteredSpaces.length === 0 ? (
+            )}
+            {spaces.length > 0 && filteredSpaces.length === 0 && (
                 <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed">
                     <Search className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                     <h3 className="text-lg font-medium text-gray-900">No matching spaces</h3>
@@ -246,13 +248,15 @@ export default function SpacesPage() {
                         Clear Filters
                     </Button>
                 </div>
-            ) : isMobile || viewMode === "grid" ? (
+            )}
+            {filteredSpaces.length > 0 && (isMobile || viewMode === "grid") && (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {filteredSpaces.map((space) => (
                         <SpaceCard key={space.id} space={space} />
                     ))}
                 </div>
-            ) : (
+            )}
+            {filteredSpaces.length > 0 && !isMobile && viewMode !== "grid" && (
                 <SpaceTable spaces={filteredSpaces} />
             )}
 

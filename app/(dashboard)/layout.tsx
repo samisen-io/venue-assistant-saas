@@ -4,9 +4,9 @@ import { SubscriptionBanner } from "@/components/subscription/SubscriptionBanner
 
 export default function DashboardLayout({
     children,
-}: {
+}: Readonly<{
     children: React.ReactNode;
-}) {
+}>) {
     return (
         <div className="flex min-h-screen w-full">
             <div className="hidden md:block">
