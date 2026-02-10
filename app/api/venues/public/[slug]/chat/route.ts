@@ -7,6 +7,7 @@ import { extractEventDataFromChat } from "@/lib/ai/extraction/chatDataExtractor"
 import { shouldEscalate } from "@/lib/ai/escalation"
 import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/utils/rateLimit"
 import { fetchVenuePublicPageData } from "@/lib/public-page/fetchPublicVenue"
+import { shouldCreateLead, createLeadFromConversation } from "@/lib/leads/leadCreator"
 import type { ChatResponse, ExtractedEventData, SuggestedAction } from "@/lib/types/conversation.types"
 
 const CHAT_RATE_LIMIT = {
@@ -186,6 +187,20 @@ export async function POST(
           .from("conversations")
           .update({ extracted_data: extracted })
           .eq("id", convId)
+
+        // Auto-create lead if triggers are met
+        const leadCtx = {
+          conversationId: convId!,
+          venueId: venue.id,
+          messageCount: messageCount + 1,
+          extractedData: extracted,
+          lastUserMessage: message.trim(),
+        }
+        if (shouldCreateLead(leadCtx)) {
+          createLeadFromConversation(leadCtx).catch((err) =>
+            console.error("Auto lead creation error:", err)
+          )
+        }
       })
       .catch((err) => {
         console.error("Data extraction error:", err)

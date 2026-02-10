@@ -744,20 +744,20 @@ The following already exists and will be leveraged (not rebuilt):
 ## PHASE 6: LEAD CAPTURE & CRM
 
 ### Task 6.1: Create Lead Management API Routes
-- [ ] Create `app/api/leads/route.ts`:
+- [x] Create `app/api/leads/route.ts`:
   - `GET` — List leads for user's venue (with filters: status, priority, date range, source)
   - `POST` — Create lead manually
-- [ ] Create `app/api/leads/[leadId]/route.ts`:
+- [x] Create `app/api/leads/[leadId]/route.ts`:
   - `GET` — Get lead detail with conversation transcript + activities
   - `PUT` — Update lead (status, notes, assigned_to)
   - `DELETE` — Delete lead
-- [ ] Create `app/api/leads/[leadId]/activities/route.ts`:
+- [x] Create `app/api/leads/[leadId]/activities/route.ts`:
   - `GET` — Get activity timeline
   - `POST` — Add manual activity (note, call, meeting)
 - [ ] Test all endpoints with auth
 
 ### Task 6.2: Implement Automatic Lead Creation
-- [ ] Create `lib/leads/leadCreator.ts`:
+- [x] Create `lib/leads/leadCreator.ts`:
   - `shouldCreateLead(conversation): boolean` — triggers:
     - User provides email in conversation
     - User requests proposal/quote
@@ -769,54 +769,54 @@ The following already exists and will be leveraged (not rebuilt):
     - Calculate priority score
     - Store conversation_id link
     - Set AI insights (recommended package, next steps)
-- [ ] Create `lib/leads/priorityScoring.ts`:
+- [x] Create `lib/leads/priorityScoring.ts`:
   - `calculatePriorityScore(lead): number` (0-100)
   - Factors: estimated budget size, timeline urgency, contact info completeness, message engagement level
-- [ ] Integrate into chat API flow (auto-create lead when triggers met)
-- [ ] Prevent duplicate leads for same conversation_id
+- [x] Integrate into chat API flow (auto-create lead when triggers met)
+- [x] Prevent duplicate leads for same conversation_id
 
 ### Task 6.3: Create Lead Notification System
 > **NOTE**: Leverages existing `lib/email/resend.ts` for email delivery. New templates needed.
-- [ ] Create `lib/leads/leadNotifier.ts`:
+- [x] Create `lib/leads/leadNotifier.ts`:
   - `notifyVenueManager(lead, venue): void` — sends email to venue owner/manager
-- [ ] Create `lib/email/templates/leadAlert.ts`:
+- [x] Create `lib/email/templates/leadAlert.ts`:
   - Manager notification email: event details, guest count, budget, AI confidence, recommended actions
   - Include links: [View Lead], [View Conversation], [Send Proposal]
-- [ ] Create `lib/email/templates/prospectConfirmation.ts`:
+- [x] Create `lib/email/templates/prospectConfirmation.ts`:
   - Prospect confirmation email: thank you, reference number, next steps, expected response time
 - [ ] Test email delivery within 1 minute of lead creation
 
 ### Task 6.4: Create Lead Dashboard Components
-- [ ] Create `components/leads/LeadCard.tsx`:
+- [x] Create `components/leads/LeadCard.tsx`:
   - Contact info, event details, priority badge (🔥/⚡/🟢), status, source
-- [ ] Create `components/leads/LeadDetail.tsx`:
+- [x] Create `components/leads/LeadDetail.tsx`:
   - Full lead detail with all sections
   - Contact card, event details, priority indicator
   - Quick action buttons: Send Proposal, Schedule Tour (Calendly/booking link), Send Email, Mark Won/Lost
-- [ ] Create `components/leads/ConversationTranscript.tsx`:
+- [x] Create `components/leads/ConversationTranscript.tsx`:
   - Collapsible full chat history with timestamps
   - Highlighted extracted data fields
-- [ ] Create `components/leads/AIInsightsPanel.tsx`:
+- [x] Create `components/leads/AIInsightsPanel.tsx`:
   - "What the AI Learned" summary from `leads.ai_insights`
   - Recommended next steps, similar past events
-- [ ] Create `components/leads/ActivityTimeline.tsx`:
+- [x] Create `components/leads/ActivityTimeline.tsx`:
   - Chronological list of lead activities from `lead_activities`
   - Add manual activity form
-- [ ] Create `components/leads/LeadStatusDropdown.tsx`:
+- [x] Create `components/leads/LeadStatusDropdown.tsx`:
   - Status selector; prompts for `lost_reason` when "Lost" selected
 
 ### Task 6.5: Create Leads Dashboard Page
-- [ ] Create `app/(dashboard)/leads/page.tsx`:
+- [x] Create `app/(dashboard)/leads/page.tsx`:
   - List of all leads with filters (status, priority, date range, source)
   - Search by contact name/email/company
   - Sort by date, priority, status
   - Quick status update from list view
-- [ ] Create `app/(dashboard)/leads/[leadId]/page.tsx`:
+- [x] Create `app/(dashboard)/leads/[leadId]/page.tsx`:
   - Full lead detail page integrating all lead components
-- [ ] Test page rendering and data loading
+- [x] Test page rendering and data loading
 
 ### Task 6.6: Create useLeads Hook
-- [ ] Create `hooks/useLeads.ts`:
+- [x] Create `hooks/useLeads.ts`:
   - `useLeads(filters)`: Fetch leads with filters for user's venue
   - `useLead(leadId)`: Fetch single lead with conversation + activities
   - `useLeadActivities(leadId)`: Fetch activity timeline

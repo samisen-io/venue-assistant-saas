@@ -20,7 +20,8 @@
       "Bash(del:*)"
     ],
     "additionalDirectories": [
-      "c:\\Users\\prashant\\repos\\venue-assistant-saas\\app\\api\\venues\\public\\[slug]"
+      "c:\\Users\\prashant\\repos\\venue-assistant-saas\\app\\api\\venues\\public\\[slug]",
+      "c:\\Users\\prashant\\repos\\venue-assistant-saas\\app\\(dashboard)\\leads"
     ]
   }
 }
