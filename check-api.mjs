@@ -1,9 +1,14 @@
 async function checkApi() {
-    const url = 'https://ccyrwgfnvrilqmxlllrd.supabase.co/rest/v1/';
-    const apikey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjeXJ3Z2ZudnJpbHFteGxsbHJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxOTgwMjgsImV4cCI6MjA4Mjc3NDAyOH0.G8cPsGFnhomgCPAxQm-YAl_i7KEQZTfgPy3XKBBeRA0';
+    const restUrl = process.env.SUPABASE_REST_URL || (process.env.SUPABASE_URL ? `${process.env.SUPABASE_URL.replace(/\/+$/,'')}/rest/v1/` : undefined);
+    const apikey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_ANON;
+
+    if (!restUrl || !apikey) {
+        console.error('Environment variables SUPABASE_URL (or SUPABASE_REST_URL) and SUPABASE_ANON_KEY are required.');
+        process.exit(1);
+    }
 
     try {
-        const res = await fetch(url, { headers: { apikey } });
+        const res = await fetch(restUrl, { headers: { apikey } });
         const data = await res.json();
         console.log('Available tables:');
         if (data.definitions) {

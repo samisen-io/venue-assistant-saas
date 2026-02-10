@@ -1,7 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = 'https://ccyrwgfnvrilqmxlllrd.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjeXJ3Z2ZudnJpbHFteGxsbHJkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzE5ODAyOCwiZXhwIjoyMDgyNzc0MDI4fQ.-NuPxuLNijOhpHnacHE1D0TGkzAGtI8dzE0xw9R4Ylk'
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_ANON;
+
+if (!supabaseUrl || !supabaseKey) {
+    console.error('Environment variables SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY are required.');
+    process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 

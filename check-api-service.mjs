@@ -1,9 +1,14 @@
 async function checkApi() {
-    const url = 'https://ccyrwgfnvrilqmxlllrd.supabase.co/rest/v1/';
-    const apikey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjeXJ3Z2ZudnJpbHFteGxsbHJkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzE5ODAyOCwiZXhwIjoyMDgyNzc0MDI4fQ.-NuPxuLNijOhpHnacHE1D0TGkzAGtI8dzE0xw9R4Ylk';
+    const restUrl = process.env.SUPABASE_REST_URL || (process.env.SUPABASE_URL ? `${process.env.SUPABASE_URL.replace(/\/+$/,'')}/rest/v1/` : undefined);
+    const apikey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!restUrl || !apikey) {
+        console.error('Environment variables SUPABASE_URL (or SUPABASE_REST_URL) and SUPABASE_SERVICE_ROLE_KEY are required.');
+        process.exit(1);
+    }
 
     try {
-        const res = await fetch(url, { headers: { apikey } });
+        const res = await fetch(restUrl, { headers: { apikey } });
         const data = await res.json();
         console.log('Available tables (service role):');
         if (data.definitions) {
