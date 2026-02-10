@@ -16,7 +16,11 @@
       "Bash(powershell.exe -Command \"npx shadcn@latest add dialog\")",
       "Bash(npx next build:*)",
       "Bash(npx tsc:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(del:*)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\prashant\\repos\\venue-assistant-saas\\app\\api\\venues\\public\\[slug]"
     ]
   }
 }

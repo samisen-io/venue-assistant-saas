@@ -10,6 +10,8 @@ import { AvailabilityCalendar } from "@/components/public-page/AvailabilityCalen
 import { LocationContact } from "@/components/public-page/LocationContact"
 import { TestimonialsCarousel } from "@/components/public-page/TestimonialsCarousel"
 import { FooterCTA } from "@/components/public-page/FooterCTA"
+import { EmbeddedChat } from "@/components/public-page/EmbeddedChat"
+import { ChatWidget } from "@/components/public-page/ChatWidget"
 import { fetchVenuePublicPageData } from "@/lib/public-page/fetchPublicVenue"
 
 export async function generateMetadata({
@@ -138,12 +140,7 @@ export default async function PublicVenuePage({
 
           <aside className="lg:sticky lg:top-24 lg:h-fit">
             <div className="space-y-4">
-              <section id="ai-chat" className="rounded-xl border p-6">
-                <h2 className="text-2xl font-semibold">Start Planning</h2>
-                <p className="mt-2 text-muted-foreground">
-                  AI chat widget is coming in Phase 4. Use the contact options below to begin your inquiry.
-                </p>
-              </section>
+              <EmbeddedChat slug={venueSlug} greeting={null} />
 
               <FooterCTA
                 phone={venue.phone}
@@ -155,6 +152,12 @@ export default async function PublicVenuePage({
           </aside>
         </div>
       </div>
+
+      <ChatWidget
+        slug={venueSlug}
+        venueName={venue.name}
+        greeting={null}
+      />
     </main>
   )
 }

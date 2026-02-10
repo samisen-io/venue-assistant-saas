@@ -475,8 +475,8 @@ The following already exists and will be leveraged (not rebuilt):
 ## PHASE 3: PUBLIC VENUE PAGE (FRONTEND)
 
 ### Task 3.1: Create Public Page Route & Layout
-- [x] Create `app/[venueSlug]/page.tsx` � main public venue page (Server Component)
-- [x] Create `app/[venueSlug]/layout.tsx` � public page layout (NO dashboard sidebar, standalone layout)
+- [x] Create `app/[venueSlug]/page.tsx` � main public venue page (Server Component)
+- [x] Create `app/[venueSlug]/layout.tsx` � public page layout (NO dashboard sidebar, standalone layout)
 - [x] Implement dynamic slug-based routing via `params.venueSlug`
 - [x] Add `generateMetadata()` for SEO (title, description, OG tags from venue data)
 - [x] Add Schema.org structured data (EventVenue type with name, address, geo, capacity, amenities)
@@ -599,50 +599,50 @@ The following already exists and will be leveraged (not rebuilt):
 ## PHASE 4: AI CHAT INTERFACE (FRONTEND)
 
 ### Task 4.1: Create Chat Widget Container
-- [ ] Create `components/public-page/ChatWidget.tsx`:
+- [x] Create `components/public-page/ChatWidget.tsx`:
   - Floating chat button (bottom-right corner)
   - Expands to chat panel on click
   - Full-screen modal on mobile
   - Embedded section option (below fold, in dedicated section)
-- [ ] Add open/close animations
-- [ ] Focus management (focus goes to input when chat opened)
+- [x] Add open/close animations
+- [x] Focus management (focus goes to input when chat opened)
 
 ### Task 4.2: Create Chat Message Components
-- [ ] Create `components/chat/ChatMessage.tsx`:
+- [x] Create `components/chat/ChatMessage.tsx`:
   - User messages (right-aligned, accent color)
   - AI messages (left-aligned, neutral background)
   - Timestamps
   - Typing indicator animation (three dots)
-- [ ] Create `components/chat/SuggestedActions.tsx`:
+- [x] Create `components/chat/SuggestedActions.tsx`:
   - Clickable action buttons from AI `suggested_actions`
   - Examples: "Check these dates", "Get a quote", "Speak to manager"
-- [ ] Create `components/chat/DataCard.tsx`:
+- [x] Create `components/chat/DataCard.tsx`:
   - Structured data cards inline in chat (pricing summary, available dates)
 
 ### Task 4.3: Create Chat Input Component
-- [ ] Create `components/chat/ChatInput.tsx`:
+- [x] Create `components/chat/ChatInput.tsx`:
   - Multiline, auto-expanding textarea
   - Placeholder: "Describe your event in your own words..."
   - Send button (and Enter to send, Shift+Enter for newline)
   - Disabled state while AI is generating
-- [ ] Create `components/chat/ChatSuggestions.tsx`:
+- [x] Create `components/chat/ChatSuggestions.tsx`:
   - Example suggestions for empty conversations:
     - "I need a venue for 100 people in May"
     - "Corporate retreat for 2 days, 80 attendees"
     - "Wedding reception, 200 guests, September"
 
 ### Task 4.4: Create Chat Container Component
-- [ ] Create `components/chat/ChatContainer.tsx`:
+- [x] Create `components/chat/ChatContainer.tsx`:
   - Combines messages, input, suggestions
   - Auto-scroll to latest message
   - Message history management
   - Loading states, error handling (retry failed messages)
-- [ ] Persist conversation_id in sessionStorage (survives page reload)
+- [x] Persist conversation_id in sessionStorage (survives page reload)
 - [ ] Test multi-turn conversation flow
 - [ ] Test mobile keyboard doesn't obscure input field
 
 ### Task 4.5: Create useChat Hook
-- [ ] Create `hooks/useChat.ts`:
+- [x] Create `hooks/useChat.ts`:
   - `sendMessage(text)`: POST to chat API, get AI response
   - `messages`: Array of conversation messages
   - `isLoading`: AI is generating response
@@ -657,7 +657,7 @@ The following already exists and will be leveraged (not rebuilt):
 
 ### Task 5.1: Create Venue Chat System Prompt Builder
 > **NOTE**: Leverages existing `lib/ai/claude.ts` client and prompt patterns from `lib/ai/prompts/`. New prompt specific to venue public chat.
-- [ ] Create `lib/ai/prompts/venueChat.ts`:
+- [x] Create `lib/ai/prompts/venueChat.ts`:
   - `buildVenueChatPrompt(venue, settings, spaces, packages, availability): string`
   - Includes: venue details, space capacities, amenities, pricing packages
   - Includes: current availability for next 6 months
@@ -674,14 +674,14 @@ The following already exists and will be leveraged (not rebuilt):
 
 ### Task 5.2: Create Event Data Extraction Logic
 > **NOTE**: Existing `lib/ai/prompts/eventExtraction.ts` extracts events from NL descriptions. New extractor is for ongoing CHAT context (multi-turn, incremental extraction). Different flow.
-- [ ] Create `lib/ai/extraction/chatDataExtractor.ts`:
+- [x] Create `lib/ai/extraction/chatDataExtractor.ts`:
   - `extractEventData(conversationMessages): ExtractedEventData`
   - Extract: event_type, guest_count, date, date_flexibility, budget, requirements, contact_info, urgency, confidence_score
   - Runs after each AI response to accumulate structured data
 - [ ] Test with various multi-turn conversation patterns
 
 ### Task 5.3: Create Chat API Endpoint
-- [ ] Create `app/api/venues/public/[slug]/chat/route.ts`:
+- [x] Create `app/api/venues/public/[slug]/chat/route.ts`:
   - `POST` — Process chat message
   - Request: `{ message, conversation_id?, user_email?, pre_filled_date? }`
   - Response: `{ conversation_id, ai_response, extracted_data, suggested_actions, should_create_lead, escalate_to_human }`
@@ -691,13 +691,13 @@ The following already exists and will be leveraged (not rebuilt):
   - Store all messages in `conversation_messages` table
   - Update `conversations.extracted_data` incrementally
   - Update `conversations.message_count` and `last_message_at`
-- [ ] Add rate limiting using existing `lib/utils/rateLimit.ts` (e.g., 30 messages per IP per hour)
+- [x] Add rate limiting using existing `lib/utils/rateLimit.ts` (e.g., 30 messages per IP per hour)
 - [ ] Add spam/trolling detection: AI prompt includes instructions to end abusive conversations gracefully
 - [ ] Test response time (<3 seconds p95)
 
 ### Task 5.4: Implement Availability Checking in Chat
 > **NOTE**: The database already has a `check_space_availability(space_id, date, start_time, end_time)` function and `prevent_double_booking` trigger (Migration 4). The existing `lib/algorithms/space-availability.ts` also handles per-space availability. This new checker operates at the VENUE level (across all spaces) for public-facing chat, and additionally consults `venue_availability`, `venue_blackout_dates`, and `venue_calendar_settings`.
-- [ ] Create `lib/ai/tools/availabilityChecker.ts`:
+- [x] Create `lib/ai/tools/availabilityChecker.ts`:
   - `checkAvailability(venueId, date): AvailabilityResult`
   - `suggestAlternativeDates(venueId, date, range): AlternativeDate[]`
   - Queries `venue_availability` table first; falls back to checking events across all spaces (using existing `check_space_availability()` DB function pattern)
@@ -706,7 +706,7 @@ The following already exists and will be leveraged (not rebuilt):
 - [ ] Test with available, tentative, and booked dates
 
 ### Task 5.5: Implement Pricing Estimation in Chat
-- [ ] Create `lib/ai/tools/pricingEstimator.ts`:
+- [x] Create `lib/ai/tools/pricingEstimator.ts`:
   - `estimatePrice(venueId, eventDetails): PricingEstimate`
   - Queries `venue_packages` and `venue_package_addons`
   - Applies tiered pricing rules from `tiered_pricing` JSONB
@@ -716,18 +716,18 @@ The following already exists and will be leveraged (not rebuilt):
 
 ### Task 5.6: Create Fallback Inquiry Form Endpoint
 > **NOTE**: PRD specifies `POST /api/venues/:slug/inquiries` as fallback when chat is disabled.
-- [ ] Create `app/api/venues/public/[slug]/inquiries/route.ts`:
+- [x] Create `app/api/venues/public/[slug]/inquiries/route.ts`:
   - `POST` — Submit structured inquiry form (no AI)
   - Fields: name, email, phone, event_type, event_date, guest_count, message
   - Creates lead directly (skips conversation)
   - Sends notification to venue manager
-- [ ] Create `components/public-page/InquiryForm.tsx`:
+- [x] Create `components/public-page/InquiryForm.tsx`:
   - Shown when AI chat is disabled or as alternative to chat
   - Standard contact form with event fields
 - [ ] Test form submission → lead creation → notification flow
 
 ### Task 5.7: Implement Escalation Logic
-- [ ] Create `lib/ai/escalation.ts`:
+- [x] Create `lib/ai/escalation.ts`:
   - `shouldEscalate(conversation, venueAISettings): { escalate: boolean, reason: string }`
   - Check triggers from `venue_ai_settings`:
     - Guest count exceeds max space capacity by threshold %
