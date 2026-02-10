@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { PLAN_LIMITS } from "@/lib/stripe/config";
 import type { PlanTier } from "@/lib/stripe/config";
+import { getSafeRedirectUrl } from "@/lib/utils/safeUrl";
 
 interface Subscription {
     plan_tier: string;
@@ -25,17 +26,6 @@ interface Usage {
     spaces_created: number;
     events_created: number;
     vendors_created: number;
-}
-
-function getSafeRedirectUrl(rawUrl: unknown): string | null {
-    if (typeof rawUrl !== "string" || !rawUrl.trim()) return null;
-    try {
-        const parsed = new URL(rawUrl, window.location.origin);
-        const isHttp = parsed.protocol === "http:" || parsed.protocol === "https:";
-        return isHttp ? parsed.toString() : null;
-    } catch {
-        return null;
-    }
 }
 
 export default function SubscriptionPage() {

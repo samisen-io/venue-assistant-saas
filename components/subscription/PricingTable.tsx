@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PricingCard } from "./PricingCard";
 import { useToast } from "@/hooks/use-toast";
+import { getSafeRedirectUrl } from "@/lib/utils/safeUrl";
 
 interface Plan {
     name: string;
@@ -20,17 +21,6 @@ interface PricingTableProps {
 export function PricingTable({ plans, currentTier }: PricingTableProps) {
     const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
     const { toast } = useToast();
-
-    const getSafeRedirectUrl = (rawUrl: unknown): string | null => {
-        if (typeof rawUrl !== "string" || !rawUrl.trim()) return null;
-        try {
-            const parsed = new URL(rawUrl, window.location.origin);
-            const isHttp = parsed.protocol === "http:" || parsed.protocol === "https:";
-            return isHttp ? parsed.toString() : null;
-        } catch {
-            return null;
-        }
-    };
 
     const handleSubscribe = async (priceId: string) => {
         setLoadingPriceId(priceId);

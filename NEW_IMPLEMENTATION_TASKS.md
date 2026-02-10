@@ -41,7 +41,7 @@ The following already exists and will be leveraged (not rebuilt):
 
 ### Task 1.1: Extend Venues Table for Public Pages
 > **NOTE**: The `venues` table already exists with basic fields. We only need to ADD new columns for public page features.
-- [ ] Add new columns to existing `venues` table via ALTER TABLE:
+- [x] Add new columns to existing `venues` table via ALTER TABLE:
   - `slug` (TEXT, UNIQUE) — URL-friendly identifier, auto-generated from name
   - `tagline` (TEXT) — max 120 chars, for hero section
   - `hero_image_url` (TEXT) — main hero image URL
@@ -57,15 +57,15 @@ The following already exists and will be leveraged (not rebuilt):
   - `og_image_url` (TEXT) — Open Graph social sharing image
   - `google_analytics_id` (TEXT)
   - `facebook_pixel_id` (TEXT)
-- [ ] Create slug generation function (auto-generate from venue name, enforce lowercase/hyphens)
-- [ ] Add unique index on `slug`
-- [ ] Backfill slugs for existing venues
-- [ ] Update RLS policies to allow public read of published venues (currently owner-only)
+- [x] Create slug generation function (auto-generate from venue name, enforce lowercase/hyphens)
+- [x] Add unique index on `slug`
+- [x] Backfill slugs for existing venues
+- [x] Update RLS policies to allow public read of published venues (currently owner-only)
 - [ ] Test migration on existing data
 
 ### Task 1.2: Create venue_photos Table
 > **NOTE**: No existing photo storage infrastructure. Brand new table.
-- [ ] Create `venue_photos` table:
+- [x] Create `venue_photos` table:
   ```sql
   CREATE TABLE venue_photos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -79,13 +79,13 @@ The following already exists and will be leveraged (not rebuilt):
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
   ```
-- [ ] Create indexes: `idx_venue_photos_venue_id`, `idx_venue_photos_section`
-- [ ] Enable RLS: venue owner can CRUD, public can read photos of published venues
+- [x] Create indexes: `idx_venue_photos_venue_id`, `idx_venue_photos_section`
+- [x] Enable RLS: venue owner can CRUD, public can read photos of published venues
 - [ ] Test RLS policies
 
 ### Task 1.3: Extend Spaces Table for Public Display
 > **NOTE**: The `spaces` table already exists with `name`, `capacity`, `space_type`, `amenities` (TEXT[]), etc. We only need to ADD columns for public page display. Do NOT create a separate `venue_spaces` table.
-- [ ] Add new columns to existing `spaces` table via ALTER TABLE:
+- [x] Add new columns to existing `spaces` table via ALTER TABLE:
   - `capacity_standing` (INTEGER) — standing capacity (existing `capacity` becomes seated)
   - `capacity_theater` (INTEGER) — theater-style capacity
   - `capacity_custom` (INTEGER) — custom layout capacity
@@ -98,7 +98,7 @@ The following already exists and will be leveraged (not rebuilt):
 
 ### Task 1.4: Create venue_amenities Table
 > **NOTE**: Existing `spaces.amenities` is a TEXT[] per-space. The public page needs venue-LEVEL amenities. New table required.
-- [ ] Create `venue_amenities` table:
+- [x] Create `venue_amenities` table:
   ```sql
   CREATE TABLE venue_amenities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -111,12 +111,12 @@ The following already exists and will be leveraged (not rebuilt):
     UNIQUE(venue_id, amenity_key)
   );
   ```
-- [ ] Enable RLS: venue owner can CRUD, public can read for published venues
+- [x] Enable RLS: venue owner can CRUD, public can read for published venues
 - [ ] Seed pre-defined amenity keys: `av_system`, `wifi`, `parking`, `catering_kitchen`, `accessible`, `climate_control`, `outdoor_space`, `green_room`, `stage`, `dance_floor`, `bar_area`, `overnight`
 
 ### Task 1.5: Create venue_event_types Table
 > **NOTE**: Existing `event_services` table tracks vendor service categories (catering, AV, etc.). This new table tracks what types of EVENTS the venue hosts (weddings, corporate, etc.) — different purpose.
-- [ ] Create `venue_event_types` table:
+- [x] Create `venue_event_types` table:
   ```sql
   CREATE TABLE venue_event_types (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -128,11 +128,11 @@ The following already exists and will be leveraged (not rebuilt):
     UNIQUE(venue_id, event_type_key)
   );
   ```
-- [ ] Enable RLS: venue owner can CRUD, public can read for published venues
+- [x] Enable RLS: venue owner can CRUD, public can read for published venues
 
 ### Task 1.6: Create venue_packages Table
 > **NOTE**: No existing pricing/packages infrastructure. Brand new tables.
-- [ ] Create `venue_packages` table:
+- [x] Create `venue_packages` table:
   ```sql
   CREATE TABLE venue_packages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -149,7 +149,7 @@ The following already exists and will be leveraged (not rebuilt):
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
   ```
-- [ ] Create `venue_package_addons` table:
+- [x] Create `venue_package_addons` table:
   ```sql
   CREATE TABLE venue_package_addons (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -161,10 +161,10 @@ The following already exists and will be leveraged (not rebuilt):
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
   ```
-- [ ] Enable RLS and create policies for both tables
+- [x] Enable RLS and create policies for both tables
 
 ### Task 1.7: Create venue_testimonials Table
-- [ ] Create `venue_testimonials` table:
+- [x] Create `venue_testimonials` table:
   ```sql
   CREATE TABLE venue_testimonials (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -183,12 +183,12 @@ The following already exists and will be leveraged (not rebuilt):
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
   ```
-- [ ] Enable RLS: venue owner can CRUD, public can read published testimonials of published venues
+- [x] Enable RLS: venue owner can CRUD, public can read published testimonials of published venues
 - [ ] Create public testimonial submission endpoint (for post-event testimonial requests)
 
 ### Task 1.8: Create venue_availability Table
 > **NOTE**: Existing `spaces/availability` API handles per-space time-slot conflict detection. This new table provides a simple per-venue per-DATE availability status for the public calendar. Different granularity and purpose.
-- [ ] Create `venue_availability` table:
+- [x] Create `venue_availability` table:
   ```sql
   CREATE TABLE venue_availability (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -201,12 +201,12 @@ The following already exists and will be leveraged (not rebuilt):
     UNIQUE(venue_id, date)
   );
   ```
-- [ ] Create indexes: `idx_venue_availability_venue_date`, `idx_venue_availability_status`
-- [ ] Enable RLS: venue owner can CRUD, public can read for published venues
+- [x] Create indexes: `idx_venue_availability_venue_date`, `idx_venue_availability_status`
+- [x] Enable RLS: venue owner can CRUD, public can read for published venues
 - [ ] Consider auto-populating from existing `events` table (sync events → availability). **Note**: Events are per-space (`space_id NOT NULL`), so sync logic must aggregate across ALL spaces for the venue. A date is "booked" only if ALL spaces are booked that day; "tentative" if some spaces are booked. Also leverage existing `event_end_time` column and `check_space_availability()` DB function for conflict detection.
 
 ### Task 1.9: Create venue_calendar_settings Table
-- [ ] Create `venue_calendar_settings` table:
+- [x] Create `venue_calendar_settings` table:
   ```sql
   CREATE TABLE venue_calendar_settings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -220,10 +220,10 @@ The following already exists and will be leveraged (not rebuilt):
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
   ```
-- [ ] Enable RLS
+- [x] Enable RLS
 
 ### Task 1.10: Create venue_blackout_dates Table
-- [ ] Create `venue_blackout_dates` table:
+- [x] Create `venue_blackout_dates` table:
   ```sql
   CREATE TABLE venue_blackout_dates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -234,11 +234,11 @@ The following already exists and will be leveraged (not rebuilt):
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
   ```
-- [ ] Enable RLS
+- [x] Enable RLS
 
 ### Task 1.11: Create AI Chat Tables (conversations + messages)
 > **NOTE**: The existing `vendor_communications` table handles AI agent ↔ vendor email threads. These new tables handle public prospect ↔ AI chat on the venue page. Completely different flow.
-- [ ] Create `conversations` table:
+- [x] Create `conversations` table:
   ```sql
   CREATE TABLE conversations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -257,7 +257,7 @@ The following already exists and will be leveraged (not rebuilt):
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
   ```
-- [ ] Create `conversation_messages` table:
+- [x] Create `conversation_messages` table:
   ```sql
   CREATE TABLE conversation_messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -269,12 +269,12 @@ The following already exists and will be leveraged (not rebuilt):
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
   ```
-- [ ] Create indexes: `idx_conversations_venue_id`, `idx_conversations_status`, `idx_conv_messages_conversation_id`
+- [x] Create indexes: `idx_conversations_venue_id`, `idx_conversations_status`, `idx_conv_messages_conversation_id`
 - [ ] Enable RLS: venue owner can read conversations for their venues, public can read/write their own conversation (via session_id)
 
 ### Task 1.12: Create leads Table
 > **NOTE**: No existing leads infrastructure. The existing `clients` table tracks known event organizers. Leads are pre-client prospects from AI chat.
-- [ ] Create `leads` table:
+- [x] Create `leads` table:
   ```sql
   CREATE TABLE leads (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -301,7 +301,7 @@ The following already exists and will be leveraged (not rebuilt):
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
   ```
-- [ ] Create `lead_activities` table:
+- [x] Create `lead_activities` table:
   ```sql
   CREATE TABLE lead_activities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -312,12 +312,12 @@ The following already exists and will be leveraged (not rebuilt):
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
   ```
-- [ ] Create indexes on venue_id, status, priority_score, contact_email
-- [ ] Enable RLS: venue owner can CRUD leads for their venues
-- [ ] Add FK from `conversations.lead_id` → `leads.id` after both tables exist
+- [x] Create indexes on venue_id, status, priority_score, contact_email
+- [x] Enable RLS: venue owner can CRUD leads for their venues
+- [x] Add FK from `conversations.lead_id` -> `leads.id` after both tables exist
 
 ### Task 1.13: Create proposals Table
-- [ ] Create `proposals` table:
+- [x] Create `proposals` table:
   ```sql
   CREATE TABLE proposals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -339,10 +339,10 @@ The following already exists and will be leveraged (not rebuilt):
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
   ```
-- [ ] Enable RLS
+- [x] Enable RLS
 
 ### Task 1.14: Create venue_ai_settings Table
-- [ ] Create `venue_ai_settings` table:
+- [x] Create `venue_ai_settings` table:
   ```sql
   CREATE TABLE venue_ai_settings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -375,12 +375,12 @@ The following already exists and will be leveraged (not rebuilt):
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
   ```
-- [ ] Enable RLS
+- [x] Enable RLS
 - [ ] Note: `ai_pricing_rules` stores AI package suggestion rules (small→basic, medium→standard, large→premium per PRD 3.1.5)
 
 ### Task 1.15: Create venue_page_versions Table
 > **NOTE**: PRD requires "Version History" with last 10 published versions and ability to restore.
-- [ ] Create `venue_page_versions` table:
+- [x] Create `venue_page_versions` table:
   ```sql
   CREATE TABLE venue_page_versions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -392,11 +392,11 @@ The following already exists and will be leveraged (not rebuilt):
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
   ```
-- [ ] Enable RLS: venue owner can read/restore versions
+- [x] Enable RLS: venue owner can read/restore versions
 - [ ] Implement auto-snapshot on publish (keep last 10 versions, delete older)
 
 ### Task 1.16: Create page_analytics Table
-- [ ] Create `page_analytics` table:
+- [x] Create `page_analytics` table:
   ```sql
   CREATE TABLE page_analytics (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -410,12 +410,12 @@ The following already exists and will be leveraged (not rebuilt):
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
   ```
-- [ ] Create indexes: `idx_page_analytics_venue_date`, `idx_page_analytics_event_type`
-- [ ] Enable RLS: venue owner can read analytics for their venues
+- [x] Create indexes: `idx_page_analytics_venue_date`, `idx_page_analytics_event_type`
+- [x] Enable RLS: venue owner can read analytics for their venues
 
 ### Task 1.17: Regenerate TypeScript Types
 - [ ] Regenerate database types from Supabase: `npx supabase gen types typescript`
-- [ ] Create `lib/types/public-page.types.ts`:
+- [x] Create `lib/types/public-page.types.ts`:
   - `VenuePublicPage` (combined venue + spaces + amenities + packages + photos + testimonials)
   - `VenuePhoto`, `VenueAmenity`, `VenueEventType`
   - `VenuePackage`, `VenuePackageAddon`
@@ -423,16 +423,16 @@ The following already exists and will be leveraged (not rebuilt):
   - `VenueAvailability`, `CalendarSettings`, `BlackoutDate`
   - `VenueAISettings`
   - `PageAnalyticsEvent`
-- [ ] Create `lib/types/conversation.types.ts`:
+- [x] Create `lib/types/conversation.types.ts`:
   - `Conversation`, `ConversationMessage`
   - `ExtractedEventData`, `SuggestedAction`
   - `ChatRequest`, `ChatResponse`
-- [ ] Create `lib/types/lead.types.ts`:
+- [x] Create `lib/types/lead.types.ts`:
   - `Lead`, `LeadActivity`, `LeadFilters`
   - `LeadPriorityScore`
-- [ ] Create `lib/types/proposal.types.ts`:
+- [x] Create `lib/types/proposal.types.ts`:
   - `Proposal`, `PricingBreakdown`, `ProposalStatus`
-- [ ] Verify all types compile correctly
+- [x] Verify all types compile correctly
 
 ---
 
@@ -1323,3 +1323,5 @@ The following already exists and will be leveraged (not rebuilt):
 | 13 | Performance & SEO Optimization | Image opt, sitemap, Schema.org, LocalBusiness, canonical | Next.js Image |
 | 14 | Polish & Deployment | UI polish, tier updates, seed data, deploy | seedData, subscription limits |
 | **Total** | | **~100 tasks across 14 phases** | |
+
+

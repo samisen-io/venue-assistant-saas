@@ -13,6 +13,23 @@ export type Event = Database['public']['Tables']['events']['Row']
 export type EventServiceRequirement = Database['public']['Tables']['event_service_requirements']['Row']
 export type EventVendor = Database['public']['Tables']['event_vendors']['Row']
 export type VendorReview = Database['public']['Tables']['vendor_reviews']['Row']
+export type VenuePhoto = Database['public']['Tables']['venue_photos']['Row']
+export type VenueAmenity = Database['public']['Tables']['venue_amenities']['Row']
+export type VenueEventType = Database['public']['Tables']['venue_event_types']['Row']
+export type VenuePackage = Database['public']['Tables']['venue_packages']['Row']
+export type VenuePackageAddon = Database['public']['Tables']['venue_package_addons']['Row']
+export type VenueTestimonial = Database['public']['Tables']['venue_testimonials']['Row']
+export type VenueAvailability = Database['public']['Tables']['venue_availability']['Row']
+export type VenueCalendarSettings = Database['public']['Tables']['venue_calendar_settings']['Row']
+export type VenueBlackoutDate = Database['public']['Tables']['venue_blackout_dates']['Row']
+export type VenueAISettings = Database['public']['Tables']['venue_ai_settings']['Row']
+export type VenuePageVersion = Database['public']['Tables']['venue_page_versions']['Row']
+export type PageAnalyticsEvent = Database['public']['Tables']['page_analytics']['Row']
+export type Lead = Database['public']['Tables']['leads']['Row']
+export type LeadActivity = Database['public']['Tables']['lead_activities']['Row']
+export type Conversation = Database['public']['Tables']['conversations']['Row']
+export type ConversationMessage = Database['public']['Tables']['conversation_messages']['Row']
+export type Proposal = Database['public']['Tables']['proposals']['Row']
 
 // AI feature database types
 export type VendorCommunication = Database['public']['Tables']['vendor_communications']['Row']
@@ -24,6 +41,10 @@ export * from './agent.types'
 export * from './communication.types'
 export * from './quote.types'
 export * from './client.types'
+export * from './public-page.types'
+export * from './conversation.types'
+export * from './lead.types'
+export * from './proposal.types'
 
 // Re-export calendar types
 export * from './calendar.types'

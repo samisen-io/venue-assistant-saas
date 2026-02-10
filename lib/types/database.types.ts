@@ -51,6 +51,24 @@ export interface Database {
                     email: string | null
                     capacity: number | null
                     venue_type: string | null
+                    description: string | null
+                    website: string | null
+                    contact_name: string | null
+                    slug: string | null
+                    tagline: string | null
+                    hero_image_url: string | null
+                    page_status: string | null
+                    latitude: number | null
+                    longitude: number | null
+                    social_links: Json | null
+                    privacy_settings: Json | null
+                    business_hours: Json | null
+                    seo_title: string | null
+                    seo_description: string | null
+                    seo_keywords: string | null
+                    og_image_url: string | null
+                    google_analytics_id: string | null
+                    facebook_pixel_id: string | null
                     created_at: string | null
                     updated_at: string | null
                 }
@@ -66,6 +84,24 @@ export interface Database {
                     email?: string | null
                     capacity?: number | null
                     venue_type?: string | null
+                    description?: string | null
+                    website?: string | null
+                    contact_name?: string | null
+                    slug?: string | null
+                    tagline?: string | null
+                    hero_image_url?: string | null
+                    page_status?: string | null
+                    latitude?: number | null
+                    longitude?: number | null
+                    social_links?: Json | null
+                    privacy_settings?: Json | null
+                    business_hours?: Json | null
+                    seo_title?: string | null
+                    seo_description?: string | null
+                    seo_keywords?: string | null
+                    og_image_url?: string | null
+                    google_analytics_id?: string | null
+                    facebook_pixel_id?: string | null
                     created_at?: string | null
                     updated_at?: string | null
                 }
@@ -81,6 +117,24 @@ export interface Database {
                     email?: string | null
                     capacity?: number | null
                     venue_type?: string | null
+                    description?: string | null
+                    website?: string | null
+                    contact_name?: string | null
+                    slug?: string | null
+                    tagline?: string | null
+                    hero_image_url?: string | null
+                    page_status?: string | null
+                    latitude?: number | null
+                    longitude?: number | null
+                    social_links?: Json | null
+                    privacy_settings?: Json | null
+                    business_hours?: Json | null
+                    seo_title?: string | null
+                    seo_description?: string | null
+                    seo_keywords?: string | null
+                    og_image_url?: string | null
+                    google_analytics_id?: string | null
+                    facebook_pixel_id?: string | null
                     created_at?: string | null
                     updated_at?: string | null
                 }
@@ -138,6 +192,13 @@ export interface Database {
                     amenities: string[] | null
                     notes: string | null
                     is_active: boolean | null
+                    capacity_standing: number | null
+                    capacity_theater: number | null
+                    capacity_custom: number | null
+                    capacity_custom_label: string | null
+                    photo_url: string | null
+                    display_order: number | null
+                    public_description: string | null
                     created_at: string | null
                     updated_at: string | null
                 }
@@ -155,6 +216,13 @@ export interface Database {
                     amenities?: string[] | null
                     notes?: string | null
                     is_active?: boolean | null
+                    capacity_standing?: number | null
+                    capacity_theater?: number | null
+                    capacity_custom?: number | null
+                    capacity_custom_label?: string | null
+                    photo_url?: string | null
+                    display_order?: number | null
+                    public_description?: string | null
                     created_at?: string | null
                     updated_at?: string | null
                 }
@@ -172,6 +240,13 @@ export interface Database {
                     amenities?: string[] | null
                     notes?: string | null
                     is_active?: boolean | null
+                    capacity_standing?: number | null
+                    capacity_theater?: number | null
+                    capacity_custom?: number | null
+                    capacity_custom_label?: string | null
+                    photo_url?: string | null
+                    display_order?: number | null
+                    public_description?: string | null
                     created_at?: string | null
                     updated_at?: string | null
                 }
@@ -297,6 +372,7 @@ export interface Database {
                     event_type: string
                     event_date: string
                     event_time: string | null
+                    event_end_time: string | null
                     guest_count: number
                     budget_total: number
                     budget_breakdown: Json | null
@@ -316,6 +392,7 @@ export interface Database {
                     event_type: string
                     event_date: string
                     event_time?: string | null
+                    event_end_time?: string | null
                     guest_count: number
                     budget_total: number
                     budget_breakdown?: Json | null
@@ -335,6 +412,7 @@ export interface Database {
                     event_type?: string
                     event_date?: string
                     event_time?: string | null
+                    event_end_time?: string | null
                     guest_count?: number
                     budget_total?: number
                     budget_breakdown?: Json | null
@@ -688,6 +766,703 @@ export interface Database {
                     last_error_at?: string | null
                     logs?: Json | null
                     created_at?: string | null
+                }
+            }
+            venue_photos: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    section_name: string
+                    image_url: string
+                    caption: string | null
+                    alt_text: string | null
+                    display_order: number | null
+                    is_section_thumbnail: boolean | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    section_name?: string
+                    image_url: string
+                    caption?: string | null
+                    alt_text?: string | null
+                    display_order?: number | null
+                    is_section_thumbnail?: boolean | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    section_name?: string
+                    image_url?: string
+                    caption?: string | null
+                    alt_text?: string | null
+                    display_order?: number | null
+                    is_section_thumbnail?: boolean | null
+                    created_at?: string | null
+                }
+            }
+            venue_amenities: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    amenity_key: string
+                    amenity_label: string
+                    is_custom: boolean | null
+                    extra_info: string | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    amenity_key: string
+                    amenity_label: string
+                    is_custom?: boolean | null
+                    extra_info?: string | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    amenity_key?: string
+                    amenity_label?: string
+                    is_custom?: boolean | null
+                    extra_info?: string | null
+                    created_at?: string | null
+                }
+            }
+            venue_event_types: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    event_type_key: string
+                    event_type_label: string
+                    is_custom: boolean | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    event_type_key: string
+                    event_type_label: string
+                    is_custom?: boolean | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    event_type_key?: string
+                    event_type_label?: string
+                    is_custom?: boolean | null
+                    created_at?: string | null
+                }
+            }
+            venue_packages: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    name: string
+                    description: string | null
+                    base_price: number
+                    pricing_model: string | null
+                    tiered_pricing: Json | null
+                    inclusions: Json | null
+                    is_visible_on_public_page: boolean | null
+                    display_order: number | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    name: string
+                    description?: string | null
+                    base_price: number
+                    pricing_model?: string | null
+                    tiered_pricing?: Json | null
+                    inclusions?: Json | null
+                    is_visible_on_public_page?: boolean | null
+                    display_order?: number | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    name?: string
+                    description?: string | null
+                    base_price?: number
+                    pricing_model?: string | null
+                    tiered_pricing?: Json | null
+                    inclusions?: Json | null
+                    is_visible_on_public_page?: boolean | null
+                    display_order?: number | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+            }
+            venue_package_addons: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    name: string
+                    description: string | null
+                    price: number
+                    available_with_packages: string[] | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    name: string
+                    description?: string | null
+                    price: number
+                    available_with_packages?: string[] | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    name?: string
+                    description?: string | null
+                    price?: number
+                    available_with_packages?: string[] | null
+                    created_at?: string | null
+                }
+            }
+            venue_testimonials: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    client_name: string
+                    client_company: string | null
+                    event_type: string | null
+                    quote: string
+                    star_rating: number | null
+                    client_photo_url: string | null
+                    event_date: string | null
+                    event_id: string | null
+                    is_published: boolean | null
+                    display_order: number | null
+                    source: string | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    client_name: string
+                    client_company?: string | null
+                    event_type?: string | null
+                    quote: string
+                    star_rating?: number | null
+                    client_photo_url?: string | null
+                    event_date?: string | null
+                    event_id?: string | null
+                    is_published?: boolean | null
+                    display_order?: number | null
+                    source?: string | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    client_name?: string
+                    client_company?: string | null
+                    event_type?: string | null
+                    quote?: string
+                    star_rating?: number | null
+                    client_photo_url?: string | null
+                    event_date?: string | null
+                    event_id?: string | null
+                    is_published?: boolean | null
+                    display_order?: number | null
+                    source?: string | null
+                    created_at?: string | null
+                }
+            }
+            venue_availability: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    date: string
+                    status: string | null
+                    note: string | null
+                    event_id: string | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    date: string
+                    status?: string | null
+                    note?: string | null
+                    event_id?: string | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    date?: string
+                    status?: string | null
+                    note?: string | null
+                    event_id?: string | null
+                    created_at?: string | null
+                }
+            }
+            venue_calendar_settings: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    show_availability: boolean | null
+                    setup_buffer_days: number | null
+                    teardown_buffer_days: number | null
+                    min_advance_booking_days: number | null
+                    max_advance_booking_months: number | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    show_availability?: boolean | null
+                    setup_buffer_days?: number | null
+                    teardown_buffer_days?: number | null
+                    min_advance_booking_days?: number | null
+                    max_advance_booking_months?: number | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    show_availability?: boolean | null
+                    setup_buffer_days?: number | null
+                    teardown_buffer_days?: number | null
+                    min_advance_booking_days?: number | null
+                    max_advance_booking_months?: number | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+            }
+            venue_blackout_dates: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    start_date: string
+                    end_date: string
+                    reason: string | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    start_date: string
+                    end_date: string
+                    reason?: string | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    start_date?: string
+                    end_date?: string
+                    reason?: string | null
+                    created_at?: string | null
+                }
+            }
+            venue_ai_settings: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    tone: string | null
+                    custom_tone_description: string | null
+                    response_length: string | null
+                    greeting_message: string | null
+                    after_hours_message: string | null
+                    business_hours_start: string | null
+                    business_hours_end: string | null
+                    business_days: number[] | null
+                    suggest_alternative_dates: boolean | null
+                    upsell_addons: boolean | null
+                    mention_promotions: boolean | null
+                    request_contact_after_messages: number | null
+                    auto_send_proposal: boolean | null
+                    escalate_capacity_threshold: number | null
+                    escalate_min_days_away: number | null
+                    escalate_on_budget_concerns: boolean | null
+                    escalate_on_complex_questions: boolean | null
+                    escalate_on_negative_sentiment: boolean | null
+                    escalate_after_messages: number | null
+                    show_pricing_in_chat: boolean | null
+                    require_manager_approval_for_quotes: boolean | null
+                    manager_name: string | null
+                    manager_email: string | null
+                    ai_pricing_rules: Json | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    tone?: string | null
+                    custom_tone_description?: string | null
+                    response_length?: string | null
+                    greeting_message?: string | null
+                    after_hours_message?: string | null
+                    business_hours_start?: string | null
+                    business_hours_end?: string | null
+                    business_days?: number[] | null
+                    suggest_alternative_dates?: boolean | null
+                    upsell_addons?: boolean | null
+                    mention_promotions?: boolean | null
+                    request_contact_after_messages?: number | null
+                    auto_send_proposal?: boolean | null
+                    escalate_capacity_threshold?: number | null
+                    escalate_min_days_away?: number | null
+                    escalate_on_budget_concerns?: boolean | null
+                    escalate_on_complex_questions?: boolean | null
+                    escalate_on_negative_sentiment?: boolean | null
+                    escalate_after_messages?: number | null
+                    show_pricing_in_chat?: boolean | null
+                    require_manager_approval_for_quotes?: boolean | null
+                    manager_name?: string | null
+                    manager_email?: string | null
+                    ai_pricing_rules?: Json | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    tone?: string | null
+                    custom_tone_description?: string | null
+                    response_length?: string | null
+                    greeting_message?: string | null
+                    after_hours_message?: string | null
+                    business_hours_start?: string | null
+                    business_hours_end?: string | null
+                    business_days?: number[] | null
+                    suggest_alternative_dates?: boolean | null
+                    upsell_addons?: boolean | null
+                    mention_promotions?: boolean | null
+                    request_contact_after_messages?: number | null
+                    auto_send_proposal?: boolean | null
+                    escalate_capacity_threshold?: number | null
+                    escalate_min_days_away?: number | null
+                    escalate_on_budget_concerns?: boolean | null
+                    escalate_on_complex_questions?: boolean | null
+                    escalate_on_negative_sentiment?: boolean | null
+                    escalate_after_messages?: number | null
+                    show_pricing_in_chat?: boolean | null
+                    require_manager_approval_for_quotes?: boolean | null
+                    manager_name?: string | null
+                    manager_email?: string | null
+                    ai_pricing_rules?: Json | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+            }
+            venue_page_versions: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    version_number: number
+                    snapshot: Json
+                    published_by: string | null
+                    change_summary: string | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    version_number: number
+                    snapshot: Json
+                    published_by?: string | null
+                    change_summary?: string | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    version_number?: number
+                    snapshot?: Json
+                    published_by?: string | null
+                    change_summary?: string | null
+                    created_at?: string | null
+                }
+            }
+            page_analytics: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    event_type: string
+                    metadata: Json | null
+                    referrer: string | null
+                    user_agent: string | null
+                    ip_hash: string | null
+                    session_id: string | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    event_type: string
+                    metadata?: Json | null
+                    referrer?: string | null
+                    user_agent?: string | null
+                    ip_hash?: string | null
+                    session_id?: string | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    event_type?: string
+                    metadata?: Json | null
+                    referrer?: string | null
+                    user_agent?: string | null
+                    ip_hash?: string | null
+                    session_id?: string | null
+                    created_at?: string | null
+                }
+            }
+            leads: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    source: string | null
+                    contact_name: string | null
+                    contact_email: string | null
+                    contact_phone: string | null
+                    company: string | null
+                    event_type: string | null
+                    event_date: string | null
+                    date_is_flexible: boolean | null
+                    guest_count: number | null
+                    estimated_budget: number | null
+                    requirements: Json | null
+                    status: string | null
+                    lost_reason: string | null
+                    priority_score: number | null
+                    assigned_to: string | null
+                    conversation_id: string | null
+                    ai_insights: Json | null
+                    notes: string | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    source?: string | null
+                    contact_name?: string | null
+                    contact_email?: string | null
+                    contact_phone?: string | null
+                    company?: string | null
+                    event_type?: string | null
+                    event_date?: string | null
+                    date_is_flexible?: boolean | null
+                    guest_count?: number | null
+                    estimated_budget?: number | null
+                    requirements?: Json | null
+                    status?: string | null
+                    lost_reason?: string | null
+                    priority_score?: number | null
+                    assigned_to?: string | null
+                    conversation_id?: string | null
+                    ai_insights?: Json | null
+                    notes?: string | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    source?: string | null
+                    contact_name?: string | null
+                    contact_email?: string | null
+                    contact_phone?: string | null
+                    company?: string | null
+                    event_type?: string | null
+                    event_date?: string | null
+                    date_is_flexible?: boolean | null
+                    guest_count?: number | null
+                    estimated_budget?: number | null
+                    requirements?: Json | null
+                    status?: string | null
+                    lost_reason?: string | null
+                    priority_score?: number | null
+                    assigned_to?: string | null
+                    conversation_id?: string | null
+                    ai_insights?: Json | null
+                    notes?: string | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+            }
+            lead_activities: {
+                Row: {
+                    id: string
+                    lead_id: string
+                    activity_type: string
+                    description: string
+                    metadata: Json | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    lead_id: string
+                    activity_type: string
+                    description: string
+                    metadata?: Json | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    lead_id?: string
+                    activity_type?: string
+                    description?: string
+                    metadata?: Json | null
+                    created_at?: string | null
+                }
+            }
+            conversations: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    prospect_email: string | null
+                    prospect_name: string | null
+                    prospect_phone: string | null
+                    prospect_company: string | null
+                    started_at: string | null
+                    last_message_at: string | null
+                    status: string | null
+                    extracted_data: Json | null
+                    lead_id: string | null
+                    message_count: number | null
+                    session_id: string | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    prospect_email?: string | null
+                    prospect_name?: string | null
+                    prospect_phone?: string | null
+                    prospect_company?: string | null
+                    started_at?: string | null
+                    last_message_at?: string | null
+                    status?: string | null
+                    extracted_data?: Json | null
+                    lead_id?: string | null
+                    message_count?: number | null
+                    session_id?: string | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    prospect_email?: string | null
+                    prospect_name?: string | null
+                    prospect_phone?: string | null
+                    prospect_company?: string | null
+                    started_at?: string | null
+                    last_message_at?: string | null
+                    status?: string | null
+                    extracted_data?: Json | null
+                    lead_id?: string | null
+                    message_count?: number | null
+                    session_id?: string | null
+                    created_at?: string | null
+                }
+            }
+            conversation_messages: {
+                Row: {
+                    id: string
+                    conversation_id: string
+                    role: string
+                    content: string
+                    extracted_data: Json | null
+                    suggested_actions: Json | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    conversation_id: string
+                    role: string
+                    content: string
+                    extracted_data?: Json | null
+                    suggested_actions?: Json | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    conversation_id?: string
+                    role?: string
+                    content?: string
+                    extracted_data?: Json | null
+                    suggested_actions?: Json | null
+                    created_at?: string | null
+                }
+            }
+            proposals: {
+                Row: {
+                    id: string
+                    lead_id: string
+                    venue_id: string
+                    reference_number: string
+                    event_summary: Json
+                    pricing_breakdown: Json
+                    inclusions: Json | null
+                    terms_and_policies: string | null
+                    total_estimated: number | null
+                    deposit_amount: number | null
+                    valid_until: string | null
+                    status: string | null
+                    pdf_url: string | null
+                    sent_at: string | null
+                    viewed_at: string | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    lead_id: string
+                    venue_id: string
+                    reference_number: string
+                    event_summary: Json
+                    pricing_breakdown: Json
+                    inclusions?: Json | null
+                    terms_and_policies?: string | null
+                    total_estimated?: number | null
+                    deposit_amount?: number | null
+                    valid_until?: string | null
+                    status?: string | null
+                    pdf_url?: string | null
+                    sent_at?: string | null
+                    viewed_at?: string | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    lead_id?: string
+                    venue_id?: string
+                    reference_number?: string
+                    event_summary?: Json
+                    pricing_breakdown?: Json
+                    inclusions?: Json | null
+                    terms_and_policies?: string | null
+                    total_estimated?: number | null
+                    deposit_amount?: number | null
+                    valid_until?: string | null
+                    status?: string | null
+                    pdf_url?: string | null
+                    sent_at?: string | null
+                    viewed_at?: string | null
+                    created_at?: string | null
+                    updated_at?: string | null
                 }
             }
         }

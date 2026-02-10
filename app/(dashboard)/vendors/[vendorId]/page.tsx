@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Edit, Mail, Phone, ExternalLink, Star, Calendar, CheckCircle, XCircle, ThumbsUp } from "lucide-react";
@@ -13,12 +13,22 @@ import { Loading } from "@/components/shared/Loading";
 import { ErrorMessage } from "@/components/shared/ErrorMessage";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { normalizeDisplayText } from "@/lib/utils/safeUrl";
 
 interface VendorReviewWithEvent extends VendorReview {
   event?: {
     name: string;
     event_date: string;
   };
+}
+
+interface VendorWithServices extends Vendor {
+  vendor_services?: Array<{
+    event_service_id: string;
+    event_services?: {
+      name?: string | null;
+    } | null;
+  }>;
 }
 
 function getSafeWebsiteUrl(rawUrl: unknown): string | null {
@@ -52,12 +62,12 @@ export default function VendorDetailPage() {
   const router = useRouter();
   const vendorId = params?.vendorId as string;
 
-  const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [vendor, setVendor] = useState<VendorWithServices | null>(null);
   const [reviews, setReviews] = useState<VendorReviewWithEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const fetchVendorData = async () => {
+  const fetchVendorData = useCallback(async () => {
     setIsLoading(true);
     setError("");
 
@@ -67,7 +77,7 @@ export default function VendorDetailPage() {
       if (!vendorRes.ok) {
         throw new Error("Failed to fetch vendor details");
       }
-      const vendorData = await vendorRes.json();
+      const vendorData: VendorWithServices = await vendorRes.json();
       setVendor(vendorData);
 
       // Fetch vendor reviews
@@ -81,19 +91,20 @@ export default function VendorDetailPage() {
         console.error("Failed to fetch reviews:", err);
         // Continue even if reviews fail to load
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || "Failed to load vendor data");
+      const message = err instanceof Error ? err.message : "Failed to load vendor data";
+      setError(message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [vendorId]);
 
   useEffect(() => {
     if (vendorId) {
       fetchVendorData();
     }
-  }, [vendorId]);
+  }, [vendorId, fetchVendorData]);
 
   if (isLoading) return <Loading />;
 
@@ -123,7 +134,7 @@ export default function VendorDetailPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{vendor.name}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{normalizeDisplayText(vendor.name)}</h1>
             <p className="text-gray-500 mt-1">Vendor Details</p>
           </div>
         </div>
@@ -146,10 +157,10 @@ export default function VendorDetailPage() {
             <div>
               <p className="text-sm text-gray-500">Services</p>
               <div className="flex flex-wrap gap-2 mt-1">
-                {((vendor as any).vendor_services || []).length > 0 ? (
-                  (vendor as any).vendor_services.map((service: any) => (
+                {(vendor.vendor_services || []).length > 0 ? (
+                  (vendor.vendor_services || []).map((service) => (
                     <Badge key={service.event_service_id} variant="secondary">
-                      {service.event_services?.name || "Service"}
+                      {normalizeDisplayText(service.event_services?.name) || "Service"}
                     </Badge>
                   ))
                 ) : (
@@ -160,14 +171,14 @@ export default function VendorDetailPage() {
             <Separator />
             <div>
               <p className="text-sm text-gray-500">Contact Person</p>
-              <p className="font-medium mt-1">{vendor.contact_name || "N/A"}</p>
+              <p className="font-medium mt-1">{normalizeDisplayText(vendor.contact_name) || "N/A"}</p>
             </div>
             {safeMailtoLink && (
               <>
                 <div className="flex items-center gap-2 text-gray-700">
                   <Mail className="h-4 w-4" />
                   <a href={safeMailtoLink} className="hover:underline">
-                    {vendor.contact_email}
+                    {normalizeDisplayText(vendor.contact_email)}
                   </a>
                 </div>
               </>
@@ -176,7 +187,7 @@ export default function VendorDetailPage() {
               <div className="flex items-center gap-2 text-gray-700">
                 <Phone className="h-4 w-4" />
                 <a href={safeTelLink} className="hover:underline">
-                  {vendor.contact_phone}
+                  {normalizeDisplayText(vendor.contact_phone)}
                 </a>
               </div>
             )}
@@ -234,7 +245,7 @@ export default function VendorDetailPage() {
                 {vendor.cost_per_unit ? formatCurrency(vendor.cost_per_unit) : "Contact for Quote"}
               </p>
               {vendor.cost_structure && (
-                <p className="text-sm text-gray-500 mt-1">{vendor.cost_structure}</p>
+                <p className="text-sm text-gray-500 mt-1">{normalizeDisplayText(vendor.cost_structure)}</p>
               )}
             </div>
           </CardContent>
@@ -269,7 +280,7 @@ export default function VendorDetailPage() {
                     <div>
                       {review.event && (
                         <>
-                          <h4 className="font-semibold text-lg">{review.event.name}</h4>
+                          <h4 className="font-semibold text-lg">{normalizeDisplayText(review.event.name)}</h4>
                           <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
                             <Calendar className="h-4 w-4" />
                             {formatDate(review.event.event_date)}
@@ -316,7 +327,7 @@ export default function VendorDetailPage() {
 
                   {review.notes && (
                     <div className="mt-3 p-3 bg-gray-50 rounded border">
-                      <p className="text-sm text-gray-700">{review.notes}</p>
+                      <p className="text-sm text-gray-700">{normalizeDisplayText(review.notes)}</p>
                     </div>
                   )}
 
