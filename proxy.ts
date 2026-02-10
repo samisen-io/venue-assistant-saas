@@ -75,7 +75,7 @@ function checkRateLimit(
   };
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Skip middleware for webhook endpoints (they have their own auth)

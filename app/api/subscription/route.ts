@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe/client'
 import { getPlanByPriceId } from '@/lib/stripe/config'
+import type Stripe from 'stripe'
 
 export async function GET() {
     try {
@@ -80,6 +81,20 @@ async function syncSubscriptionFromStripe(userId: string, userEmail: string, adm
         const plan = priceId ? getPlanByPriceId(priceId) : null
         const planTier = plan?.tier || 'starter'
 
+        // Stripe typing/version differences: period fields may exist on either
+        // subscription or the first subscription item depending on API version.
+        const periodStartSeconds =
+            (stripeSubscription as Stripe.Subscription & { current_period_start?: number }).current_period_start ??
+            stripeSubscription.items.data[0]?.current_period_start
+        const periodEndSeconds =
+            (stripeSubscription as Stripe.Subscription & { current_period_end?: number }).current_period_end ??
+            stripeSubscription.items.data[0]?.current_period_end
+
+        if (!periodStartSeconds || !periodEndSeconds) {
+            console.error('Subscription period fields missing for Stripe subscription:', stripeSubscription.id)
+            return null
+        }
+
         // Sync to local database
         const subscriptionData = {
             user_id: userId,
@@ -87,8 +102,8 @@ async function syncSubscriptionFromStripe(userId: string, userEmail: string, adm
             stripe_subscription_id: stripeSubscription.id,
             plan_tier: planTier,
             status: stripeSubscription.status === 'active' ? 'active' : stripeSubscription.status,
-            current_period_start: new Date(stripeSubscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(stripeSubscription.current_period_end * 1000).toISOString(),
+            current_period_start: new Date(periodStartSeconds * 1000).toISOString(),
+            current_period_end: new Date(periodEndSeconds * 1000).toISOString(),
             cancel_at_period_end: stripeSubscription.cancel_at_period_end,
             updated_at: new Date().toISOString(),
         }
