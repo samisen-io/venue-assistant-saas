@@ -12,43 +12,92 @@ export interface SeedDataResult {
       reviews: number;
       clients?: number;
       client_communications?: number;
+      venue_photos?: number;
+      venue_amenities?: number;
+      venue_event_types?: number;
+      venue_packages?: number;
+      venue_package_addons?: number;
+      venue_testimonials?: number;
+      venue_availability?: number;
+      venue_blackout_dates?: number;
+      conversations?: number;
+      conversation_messages?: number;
+      leads?: number;
+      lead_activities?: number;
+      proposals?: number;
     };
+}
+
+async function safeDeleteWhereNotEq(
+  supabase: SupabaseClient,
+  table: string,
+  column: string = 'id'
+): Promise<void> {
+  const { error } = await supabase
+    .from(table as unknown as never)
+    .delete()
+    .neq(column, '00000000-0000-0000-0000-000000000000');
+
+  if (error) {
+    const code = (error as { code?: string })?.code;
+    if (code === '42P01') return;
+    throw error;
+  }
 }
 
 export async function clearAllData(
   supabase: SupabaseClient,
   userId: string
 ): Promise<void> {
+  // New public-page and AI tables (delete first due FK dependencies)
+  await safeDeleteWhereNotEq(supabase, 'conversation_messages');
+  await safeDeleteWhereNotEq(supabase, 'conversations');
+  await safeDeleteWhereNotEq(supabase, 'lead_activities');
+  await safeDeleteWhereNotEq(supabase, 'proposals');
+  await safeDeleteWhereNotEq(supabase, 'leads');
+  await safeDeleteWhereNotEq(supabase, 'page_analytics');
+  await safeDeleteWhereNotEq(supabase, 'venue_page_versions');
+  await safeDeleteWhereNotEq(supabase, 'venue_ai_settings');
+  await safeDeleteWhereNotEq(supabase, 'venue_blackout_dates');
+  await safeDeleteWhereNotEq(supabase, 'venue_calendar_settings');
+  await safeDeleteWhereNotEq(supabase, 'venue_availability');
+  await safeDeleteWhereNotEq(supabase, 'venue_testimonials');
+  await safeDeleteWhereNotEq(supabase, 'venue_package_addons');
+  await safeDeleteWhereNotEq(supabase, 'venue_packages');
+  await safeDeleteWhereNotEq(supabase, 'venue_event_types');
+  await safeDeleteWhereNotEq(supabase, 'venue_amenities');
+  await safeDeleteWhereNotEq(supabase, 'venue_photos');
+
   // Delete in correct order due to foreign key constraints
   // Reviews first (references events and vendors)
-  await supabase.from('vendor_reviews').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await safeDeleteWhereNotEq(supabase, 'vendor_reviews');
 
   // Event vendors (references events and vendors)
-  await supabase.from('event_vendors').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await safeDeleteWhereNotEq(supabase, 'event_vendors');
 
   // Event service requirements
-  await supabase.from('event_service_requirements').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await safeDeleteWhereNotEq(supabase, 'event_service_requirements');
 
   // Vendor services
-  await supabase.from('vendor_services').delete().neq('vendor_id', '00000000-0000-0000-0000-000000000000');
+  await safeDeleteWhereNotEq(supabase, 'vendor_services', 'vendor_id');
 
   // Event services
-  await supabase.from('event_services').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await safeDeleteWhereNotEq(supabase, 'event_services');
 
   // Client communications
-  await supabase.from('client_communications').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await safeDeleteWhereNotEq(supabase, 'client_communications');
 
   // Events (references spaces and venues)
-  await supabase.from('events').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await safeDeleteWhereNotEq(supabase, 'events');
 
   // Vendors (references venues)
-  await supabase.from('vendors').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await safeDeleteWhereNotEq(supabase, 'vendors');
 
   // Clients (references venues)
-  await supabase.from('clients').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await safeDeleteWhereNotEq(supabase, 'clients');
 
   // Spaces (references venues)
-  await supabase.from('spaces').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await safeDeleteWhereNotEq(supabase, 'spaces');
 
   // Venues (references user)
   await supabase.from('venues').delete().eq('owner_id', userId);
@@ -78,6 +127,36 @@ export async function seedDemoData(
         email: `events+${demoEmailSuffix}@example.com`,
         venue_type: 'hotel',
         description: 'Premier event venue in downtown San Francisco',
+        website: 'https://grandhotel.example.com',
+        slug: `grand-hotel-conference-center-${demoEmailSuffix.toLowerCase()}`,
+        tagline: 'Where memorable events come to life in downtown San Francisco',
+        hero_image_url: 'https://images.unsplash.com/photo-1519167758481-83f29c89b7b5?auto=format&fit=crop&w=1920&q=80',
+        page_status: 'published',
+        latitude: 37.7749,
+        longitude: -122.4194,
+        social_links: {
+          facebook: 'https://facebook.com/grandhotel',
+          instagram: 'https://instagram.com/grandhotel',
+          linkedin: 'https://linkedin.com/company/grandhotel',
+        },
+        privacy_settings: {
+          hide_address: false,
+          hide_phone: false,
+          hide_email: false,
+        },
+        business_hours: {
+          mon: { open: '08:00', close: '19:00' },
+          tue: { open: '08:00', close: '19:00' },
+          wed: { open: '08:00', close: '19:00' },
+          thu: { open: '08:00', close: '19:00' },
+          fri: { open: '08:00', close: '20:00' },
+          sat: { open: '09:00', close: '17:00' },
+          sun: { open: '10:00', close: '16:00' },
+        },
+        seo_title: 'Grand Hotel & Conference Center | San Francisco Event Venue',
+        seo_description: 'Book a premium San Francisco venue with ballroom, rooftop, and AI-powered instant inquiry support.',
+        seo_keywords: 'san francisco event venue, ballroom rental, conference venue, wedding venue',
+        og_image_url: 'https://images.unsplash.com/photo-1473091534298-04dcbce3278c?auto=format&fit=crop&w=1200&q=80',
       })
       .select()
       .single();
@@ -100,6 +179,11 @@ export async function seedDemoData(
           square_footage: 5000,
           hourly_rate: 1500,
           notes: 'Our largest space with chandelier and stage',
+          capacity_standing: 650,
+          capacity_theater: 550,
+          photo_url: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=1200&q=80',
+          display_order: 1,
+          public_description: 'A grand ballroom ideal for conferences, galas, and large receptions.',
         },
         {
           venue_id: venue.id,
@@ -110,6 +194,11 @@ export async function seedDemoData(
           square_footage: 4200,
           hourly_rate: 1300,
           notes: 'Elegant ballroom with crystal fixtures',
+          capacity_standing: 500,
+          capacity_theater: 430,
+          photo_url: 'https://images.unsplash.com/photo-1519167758481-83f29c89b7b5?auto=format&fit=crop&w=1200&q=80',
+          display_order: 2,
+          public_description: 'Elegant setting for weddings and upscale social events.',
         },
         {
           venue_id: venue.id,
@@ -120,6 +209,11 @@ export async function seedDemoData(
           square_footage: 500,
           hourly_rate: 300,
           notes: 'Professional meeting space with AV equipment',
+          capacity_standing: 30,
+          capacity_theater: 24,
+          photo_url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80',
+          display_order: 3,
+          public_description: 'Private boardroom designed for executive strategy sessions.',
         },
         {
           venue_id: venue.id,
@@ -130,6 +224,11 @@ export async function seedDemoData(
           square_footage: 800,
           hourly_rate: 450,
           notes: 'Modern conference room with panoramic views',
+          capacity_standing: 70,
+          capacity_theater: 60,
+          photo_url: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=1200&q=80',
+          display_order: 4,
+          public_description: 'Bright conference space with skyline views and modern AV.',
         },
         {
           venue_id: venue.id,
@@ -140,6 +239,11 @@ export async function seedDemoData(
           square_footage: 2000,
           hourly_rate: 800,
           notes: 'Beautiful outdoor space with fountain',
+          capacity_standing: 220,
+          capacity_theater: 160,
+          photo_url: 'https://images.unsplash.com/photo-1478146896981-b80fe463b330?auto=format&fit=crop&w=1200&q=80',
+          display_order: 5,
+          public_description: 'Outdoor garden perfect for ceremonies and cocktail receptions.',
         },
         {
           venue_id: venue.id,
@@ -150,6 +254,11 @@ export async function seedDemoData(
           square_footage: 1500,
           hourly_rate: 1000,
           notes: 'Stunning city views, perfect for cocktail events',
+          capacity_standing: 180,
+          capacity_theater: 110,
+          photo_url: 'https://images.unsplash.com/photo-1501117716987-c8e1ecb2104f?auto=format&fit=crop&w=1200&q=80',
+          display_order: 6,
+          public_description: 'Rooftop venue with sweeping city views and sunset ambiance.',
         },
         {
           venue_id: venue.id,
@@ -160,6 +269,11 @@ export async function seedDemoData(
           square_footage: 3000,
           hourly_rate: 950,
           notes: 'Traditional banquet hall with classic decor',
+          capacity_standing: 320,
+          capacity_theater: 270,
+          photo_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1200&q=80',
+          display_order: 7,
+          public_description: 'Classic banquet hall for receptions, dinners, and celebrations.',
         },
       ])
       .select();
@@ -252,7 +366,11 @@ export async function seedDemoData(
       { venue_id: venue.id, name: 'Symphony Strings Quartet', category: 'entertainment', contact_name: 'Victoria Clark', contact_email: 'victoria@symphonystrings.com', contact_phone: '(415) 555-1037', cost_per_unit: 1800, reliability_score: 96, total_events: 22, on_time_count: 22, on_time_percentage: 100, avg_quality_rating: 4.9 },
     ];
 
-    const vendorData = vendorSeedData.map(({ category, ...vendor }) => vendor);
+    const vendorData = vendorSeedData.map((vendorSeed) => {
+      const { category, ...vendor } = vendorSeed;
+      void category;
+      return vendor;
+    });
 
     const { data: vendors, error: vendorsError } = await supabase
       .from('vendors')
@@ -393,10 +511,10 @@ export async function seedDemoData(
     }
 
     const eventByName = new Map(events.map((event) => [event.event_name, event]));
-    const clientByCompany = new Map(
+    const clientByCompany = new Map<string, { id: string }>(
       clients
         .map((client) => [client.company_name || client.contact_name, client])
-        .filter((entry): entry is [string, any] => Boolean(entry[0]))
+        .filter((entry): entry is [string, { id: string }] => Boolean(entry[0]))
     );
 
     const clientEventLinks = [
@@ -639,6 +757,466 @@ export async function seedDemoData(
       console.error('Client communications error:', communicationsError);
     }
 
+    // 9. Seed public page tables
+    const photosSeed = [
+      { section_name: 'Main Venue', image_url: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=1600&q=80', caption: 'Grand ballroom setup', alt_text: 'Grand ballroom with round tables', display_order: 1, is_section_thumbnail: true },
+      { section_name: 'Main Venue', image_url: 'https://images.unsplash.com/photo-1478146896981-b80fe463b330?auto=format&fit=crop&w=1600&q=80', caption: 'Garden ceremony', alt_text: 'Outdoor ceremony aisle in garden', display_order: 2, is_section_thumbnail: false },
+      { section_name: 'Main Venue', image_url: 'https://images.unsplash.com/photo-1501117716987-c8e1ecb2104f?auto=format&fit=crop&w=1600&q=80', caption: 'Rooftop reception', alt_text: 'Guests mingling on rooftop at sunset', display_order: 3, is_section_thumbnail: false },
+      { section_name: 'Event Spaces', image_url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1600&q=80', caption: 'Executive boardroom', alt_text: 'Boardroom meeting table and chairs', display_order: 4, is_section_thumbnail: true },
+      { section_name: 'Event Spaces', image_url: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=1600&q=80', caption: 'Conference format', alt_text: 'Conference room with presentation setup', display_order: 5, is_section_thumbnail: false },
+      { section_name: 'Event Spaces', image_url: 'https://images.unsplash.com/photo-1519167758481-83f29c89b7b5?auto=format&fit=crop&w=1600&q=80', caption: 'Wedding reception', alt_text: 'Decorated ballroom for wedding', display_order: 6, is_section_thumbnail: false },
+      { section_name: 'Past Events', image_url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1600&q=80', caption: 'Corporate gala evening', alt_text: 'Formal gala dinner event', display_order: 7, is_section_thumbnail: true },
+      { section_name: 'Past Events', image_url: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=1600&q=80', caption: 'Awards stage moment', alt_text: 'Award stage with lighting', display_order: 8, is_section_thumbnail: false },
+      { section_name: 'Amenities', image_url: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=1600&q=80', caption: 'Catering service', alt_text: 'Catering spread for event guests', display_order: 9, is_section_thumbnail: true },
+      { section_name: 'Amenities', image_url: 'https://images.unsplash.com/photo-1522199710521-72d69614c702?auto=format&fit=crop&w=1600&q=80', caption: 'AV and lighting', alt_text: 'Stage with AV and lighting setup', display_order: 10, is_section_thumbnail: false },
+    ];
+    const { data: venuePhotos, error: venuePhotosError } = await supabase
+      .from('venue_photos')
+      .insert(photosSeed.map((p) => ({ venue_id: venue.id, ...p })))
+      .select();
+    if (venuePhotosError) {
+      console.error('Venue photos error:', venuePhotosError);
+      throw new Error(venuePhotosError.message || 'Failed to seed venue photos');
+    }
+
+    const amenitiesSeed = [
+      { amenity_key: 'av_system', amenity_label: 'Built-in AV System' },
+      { amenity_key: 'wifi', amenity_label: 'High-Speed WiFi' },
+      { amenity_key: 'parking', amenity_label: 'On-site Parking (200 spots)' },
+      { amenity_key: 'catering_kitchen', amenity_label: 'Commercial Catering Kitchen' },
+      { amenity_key: 'accessible', amenity_label: 'Accessible Facilities' },
+      { amenity_key: 'climate_control', amenity_label: 'Climate Controlled Spaces' },
+      { amenity_key: 'outdoor_space', amenity_label: 'Outdoor Garden Area' },
+      { amenity_key: 'bar_area', amenity_label: 'Dedicated Bar Area' },
+    ];
+    const { data: venueAmenities, error: venueAmenitiesError } = await supabase
+      .from('venue_amenities')
+      .insert(amenitiesSeed.map((a) => ({ venue_id: venue.id, ...a })))
+      .select();
+    if (venueAmenitiesError) {
+      console.error('Venue amenities error:', venueAmenitiesError);
+      throw new Error(venueAmenitiesError.message || 'Failed to seed venue amenities');
+    }
+
+    const eventTypesSeed = [
+      { event_type_key: 'corporate_meetings', event_type_label: 'Corporate Meetings' },
+      { event_type_key: 'weddings', event_type_label: 'Weddings' },
+      { event_type_key: 'conferences', event_type_label: 'Conferences' },
+      { event_type_key: 'product_launches', event_type_label: 'Product Launches' },
+      { event_type_key: 'galas', event_type_label: 'Galas & Fundraisers' },
+    ];
+    const { data: venueEventTypes, error: venueEventTypesError } = await supabase
+      .from('venue_event_types')
+      .insert(eventTypesSeed.map((e) => ({ venue_id: venue.id, ...e })))
+      .select();
+    if (venueEventTypesError) {
+      console.error('Venue event types error:', venueEventTypesError);
+      throw new Error(venueEventTypesError.message || 'Failed to seed venue event types');
+    }
+
+    const { data: venuePackages, error: venuePackagesError } = await supabase
+      .from('venue_packages')
+      .insert([
+        {
+          venue_id: venue.id,
+          name: 'Essential Package',
+          description: 'Venue rental with tables, chairs, and basic AV.',
+          base_price: 4500,
+          pricing_model: 'flat',
+          inclusions: ['Venue rental (6 hours)', 'Tables and chairs', 'Basic AV setup'],
+          is_visible_on_public_page: true,
+          display_order: 1,
+        },
+        {
+          venue_id: venue.id,
+          name: 'Signature Package',
+          description: 'Most popular package with catering and staffing.',
+          base_price: 95,
+          pricing_model: 'per_person',
+          inclusions: ['Venue rental (8 hours)', 'Standard catering', 'Service staff'],
+          is_visible_on_public_page: true,
+          display_order: 2,
+        },
+        {
+          venue_id: venue.id,
+          name: 'Premium Experience',
+          description: 'High-touch premium package for flagship events.',
+          base_price: 12000,
+          pricing_model: 'tiered',
+          tiered_pricing: [
+            { minGuests: 1, maxGuests: 100, price: 12000 },
+            { minGuests: 101, maxGuests: 250, price: 18000 },
+            { minGuests: 251, maxGuests: 500, price: 25000 },
+          ],
+          inclusions: ['Full-day rental', 'Premium AV', 'Coordinator', 'Custom floor plan'],
+          is_visible_on_public_page: true,
+          display_order: 3,
+        },
+      ])
+      .select();
+    if (venuePackagesError || !venuePackages) {
+      console.error('Venue packages error:', venuePackagesError);
+      throw new Error(venuePackagesError?.message || 'Failed to seed venue packages');
+    }
+
+    const essentialPkg = venuePackages.find((p) => p.name === 'Essential Package');
+    const signaturePkg = venuePackages.find((p) => p.name === 'Signature Package');
+    const premiumPkg = venuePackages.find((p) => p.name === 'Premium Experience');
+    const { data: venuePackageAddons, error: venuePackageAddonsError } = await supabase
+      .from('venue_package_addons')
+      .insert([
+        {
+          venue_id: venue.id,
+          name: 'Extended AV Production',
+          description: 'Advanced lighting, live stream, and sound technician.',
+          price: 1800,
+          available_with_packages: [signaturePkg?.id, premiumPkg?.id].filter(Boolean),
+        },
+        {
+          venue_id: venue.id,
+          name: 'Welcome Cocktail Hour',
+          description: '60-minute cocktail service prior to main event.',
+          price: 2200,
+          available_with_packages: [essentialPkg?.id, signaturePkg?.id, premiumPkg?.id].filter(Boolean),
+        },
+      ])
+      .select();
+    if (venuePackageAddonsError) {
+      console.error('Venue package addons error:', venuePackageAddonsError);
+      throw new Error(venuePackageAddonsError.message || 'Failed to seed venue package addons');
+    }
+
+    const { data: venueTestimonials, error: venueTestimonialsError } = await supabase
+      .from('venue_testimonials')
+      .insert([
+        {
+          venue_id: venue.id,
+          client_name: 'Alex Morgan',
+          client_company: 'Northwind Labs',
+          event_type: 'Corporate Conference',
+          quote: 'The team delivered flawlessly. The venue, AV, and service were top-tier.',
+          star_rating: 5,
+          event_date: events[0]?.event_date,
+          event_id: events[0]?.id,
+          is_published: true,
+          display_order: 1,
+          source: 'event_import',
+        },
+        {
+          venue_id: venue.id,
+          client_name: 'Sophie Reed',
+          client_company: 'Brightside Weddings',
+          event_type: 'Wedding Reception',
+          quote: 'Beautiful spaces and incredible support. Our clients loved every moment.',
+          star_rating: 5,
+          event_date: events[1]?.event_date,
+          event_id: events[1]?.id,
+          is_published: true,
+          display_order: 2,
+          source: 'event_import',
+        },
+        {
+          venue_id: venue.id,
+          client_name: 'Jordan Lee',
+          client_company: 'Apex Consulting',
+          event_type: 'Leadership Summit',
+          quote: 'Strong operations and responsive staff. We would gladly return.',
+          star_rating: 4,
+          is_published: false,
+          display_order: 3,
+          source: 'manual',
+        },
+        {
+          venue_id: venue.id,
+          client_name: 'Priya Patel',
+          client_company: 'Lumen Foundation',
+          event_type: 'Fundraising Dinner',
+          quote: 'Excellent atmosphere and execution for our nonprofit gala.',
+          star_rating: 5,
+          is_published: false,
+          display_order: 4,
+          source: 'manual',
+        },
+      ])
+      .select();
+    if (venueTestimonialsError) {
+      console.error('Venue testimonials error:', venueTestimonialsError);
+      throw new Error(venueTestimonialsError.message || 'Failed to seed venue testimonials');
+    }
+
+    const { error: venueCalendarSettingsError } = await supabase
+      .from('venue_calendar_settings')
+      .insert({
+        venue_id: venue.id,
+        show_availability: true,
+        setup_buffer_days: 1,
+        teardown_buffer_days: 1,
+        min_advance_booking_days: 14,
+        max_advance_booking_months: 12,
+      });
+    if (venueCalendarSettingsError) {
+      console.error('Venue calendar settings error:', venueCalendarSettingsError);
+      throw new Error(venueCalendarSettingsError.message || 'Failed to seed venue calendar settings');
+    }
+
+    const todayForPublic = new Date();
+    const blackout1Start = new Date(todayForPublic); blackout1Start.setDate(todayForPublic.getDate() + 40);
+    const blackout1End = new Date(todayForPublic); blackout1End.setDate(todayForPublic.getDate() + 41);
+    const blackout2Start = new Date(todayForPublic); blackout2Start.setDate(todayForPublic.getDate() + 80);
+    const blackout2End = new Date(todayForPublic); blackout2End.setDate(todayForPublic.getDate() + 82);
+    const blackout3Start = new Date(todayForPublic); blackout3Start.setDate(todayForPublic.getDate() + 120);
+    const blackout3End = new Date(todayForPublic); blackout3End.setDate(todayForPublic.getDate() + 120);
+    const { data: venueBlackoutDates, error: venueBlackoutDatesError } = await supabase
+      .from('venue_blackout_dates')
+      .insert([
+        { venue_id: venue.id, start_date: blackout1Start.toISOString().split('T')[0], end_date: blackout1End.toISOString().split('T')[0], reason: 'Maintenance' },
+        { venue_id: venue.id, start_date: blackout2Start.toISOString().split('T')[0], end_date: blackout2End.toISOString().split('T')[0], reason: 'Private Buyout' },
+        { venue_id: venue.id, start_date: blackout3Start.toISOString().split('T')[0], end_date: blackout3End.toISOString().split('T')[0], reason: 'Holiday Closure' },
+      ])
+      .select();
+    if (venueBlackoutDatesError) {
+      console.error('Venue blackout dates error:', venueBlackoutDatesError);
+      throw new Error(venueBlackoutDatesError.message || 'Failed to seed venue blackout dates');
+    }
+
+    const { error: venueAISettingsError } = await supabase
+      .from('venue_ai_settings')
+      .insert({
+        venue_id: venue.id,
+        tone: 'friendly',
+        response_length: 'balanced',
+        greeting_message: 'Hi! I can help you check dates, capacities, and pricing packages.',
+        show_pricing_in_chat: true,
+        request_contact_after_messages: 3,
+        suggest_alternative_dates: true,
+        manager_name: 'Sarah Johnson',
+        manager_email: `manager+${demoEmailSuffix}@example.com`,
+      });
+    if (venueAISettingsError) {
+      console.error('Venue AI settings error:', venueAISettingsError);
+      throw new Error(venueAISettingsError.message || 'Failed to seed venue AI settings');
+    }
+
+    const availabilitySeed: Array<{
+      venue_id: string;
+      date: string;
+      status: 'available' | 'tentative' | 'booked';
+      note?: string;
+      event_id?: string;
+    }> = [];
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(todayForPublic);
+      d.setDate(todayForPublic.getDate() + i);
+      const dateStr = d.toISOString().split('T')[0];
+      let status: 'available' | 'tentative' | 'booked' = 'available';
+      let note: string | undefined;
+      let eventId: string | undefined;
+      if (i % 11 === 0) {
+        status = 'booked';
+        note = 'Confirmed booking';
+        eventId = events[0]?.id;
+      } else if (i % 7 === 0) {
+        status = 'tentative';
+        note = 'Tentative hold';
+      }
+      availabilitySeed.push({ venue_id: venue.id, date: dateStr, status, note, event_id: eventId });
+    }
+    const { data: venueAvailability, error: venueAvailabilityError } = await supabase
+      .from('venue_availability')
+      .insert(availabilitySeed)
+      .select();
+    if (venueAvailabilityError) {
+      console.error('Venue availability error:', venueAvailabilityError);
+      throw new Error(venueAvailabilityError.message || 'Failed to seed venue availability');
+    }
+
+    // 10. Seed leads, conversations, messages, activities, and proposal
+    const { data: leads, error: leadsError } = await supabase
+      .from('leads')
+      .insert([
+        {
+          venue_id: venue.id,
+          source: 'ai_chat',
+          contact_name: 'Emily Carter',
+          contact_email: `emily+${demoEmailSuffix}@example.com`,
+          contact_phone: '(415) 555-3011',
+          company: 'Carter Creative',
+          event_type: 'Product Launch',
+          event_date: events[6]?.event_date,
+          guest_count: 85,
+          estimated_budget: 18000,
+          status: 'qualified',
+          priority_score: 82,
+        },
+        {
+          venue_id: venue.id,
+          source: 'ai_chat',
+          contact_name: 'Michael Thompson',
+          contact_email: `michael+${demoEmailSuffix}@example.com`,
+          contact_phone: '(415) 555-3012',
+          company: 'Thompson Legal',
+          event_type: 'Corporate Meeting',
+          event_date: events[10]?.event_date,
+          guest_count: 25,
+          estimated_budget: 6000,
+          status: 'new',
+          priority_score: 55,
+        },
+        {
+          venue_id: venue.id,
+          source: 'manual',
+          contact_name: 'Lena Patel',
+          contact_email: `lena+${demoEmailSuffix}@example.com`,
+          contact_phone: '(415) 555-3013',
+          company: 'Patel Family',
+          event_type: 'Wedding',
+          event_date: events[2]?.event_date,
+          guest_count: 220,
+          estimated_budget: 45000,
+          status: 'proposal_sent',
+          priority_score: 91,
+        },
+        {
+          venue_id: venue.id,
+          source: 'email',
+          contact_name: 'Noah Rivera',
+          contact_email: `noah+${demoEmailSuffix}@example.com`,
+          event_type: 'Fundraiser',
+          guest_count: 180,
+          estimated_budget: 28000,
+          status: 'contacted',
+          priority_score: 72,
+        },
+        {
+          venue_id: venue.id,
+          source: 'phone',
+          contact_name: 'Grace Kim',
+          contact_email: `grace+${demoEmailSuffix}@example.com`,
+          event_type: 'Conference',
+          guest_count: 320,
+          estimated_budget: 52000,
+          status: 'new',
+          priority_score: 88,
+        },
+      ])
+      .select();
+    if (leadsError || !leads) {
+      console.error('Leads error:', leadsError);
+      throw new Error(leadsError?.message || 'Failed to seed leads');
+    }
+
+    const { data: conversations, error: conversationsError } = await supabase
+      .from('conversations')
+      .insert([
+        {
+          venue_id: venue.id,
+          prospect_email: leads[0]?.contact_email,
+          prospect_name: leads[0]?.contact_name,
+          prospect_phone: leads[0]?.contact_phone,
+          prospect_company: leads[0]?.company,
+          status: 'active',
+          lead_id: leads[0]?.id,
+          message_count: 4,
+          session_id: `session-${demoEmailSuffix}-1`,
+        },
+        {
+          venue_id: venue.id,
+          prospect_email: leads[1]?.contact_email,
+          prospect_name: leads[1]?.contact_name,
+          prospect_phone: leads[1]?.contact_phone,
+          prospect_company: leads[1]?.company,
+          status: 'active',
+          lead_id: leads[1]?.id,
+          message_count: 3,
+          session_id: `session-${demoEmailSuffix}-2`,
+        },
+        {
+          venue_id: venue.id,
+          prospect_email: leads[2]?.contact_email,
+          prospect_name: leads[2]?.contact_name,
+          prospect_phone: leads[2]?.contact_phone,
+          prospect_company: leads[2]?.company,
+          status: 'completed',
+          lead_id: leads[2]?.id,
+          message_count: 6,
+          session_id: `session-${demoEmailSuffix}-3`,
+        },
+      ])
+      .select();
+    if (conversationsError || !conversations) {
+      console.error('Conversations error:', conversationsError);
+      throw new Error(conversationsError?.message || 'Failed to seed conversations');
+    }
+
+    await supabase.from('leads').update({ conversation_id: conversations[0]?.id }).eq('id', leads[0]?.id);
+    await supabase.from('leads').update({ conversation_id: conversations[1]?.id }).eq('id', leads[1]?.id);
+    await supabase.from('leads').update({ conversation_id: conversations[2]?.id }).eq('id', leads[2]?.id);
+
+    const { data: conversationMessages, error: conversationMessagesError } = await supabase
+      .from('conversation_messages')
+      .insert([
+        { conversation_id: conversations[0].id, role: 'user', content: 'I need a venue for a product launch in about six weeks.' },
+        { conversation_id: conversations[0].id, role: 'assistant', content: 'Great! How many guests are you expecting and what date range are you considering?' },
+        { conversation_id: conversations[0].id, role: 'user', content: 'Around 80-90 guests, ideally a Thursday evening.' },
+        { conversation_id: conversations[0].id, role: 'assistant', content: 'Perfect. We have availability and packages starting at $4,500.' },
+        { conversation_id: conversations[1].id, role: 'user', content: 'Can you host a board meeting for 25 people?' },
+        { conversation_id: conversations[1].id, role: 'assistant', content: 'Yes, our Executive Boardroom is a strong fit. Would you like a sample quote?' },
+        { conversation_id: conversations[2].id, role: 'user', content: 'We are planning a 220-guest wedding.' },
+        { conversation_id: conversations[2].id, role: 'assistant', content: 'Congratulations! Our team can help with ceremony + reception planning.' },
+        { conversation_id: conversations[2].id, role: 'user', content: 'Please send a detailed proposal.' },
+      ])
+      .select();
+    if (conversationMessagesError) {
+      console.error('Conversation messages error:', conversationMessagesError);
+      throw new Error(conversationMessagesError.message || 'Failed to seed conversation messages');
+    }
+
+    const leadActivitiesSeed = leads.flatMap((lead, index) => ([
+      { lead_id: lead.id, activity_type: 'created', description: 'Lead created from seed data', metadata: { source: lead.source } },
+      { lead_id: lead.id, activity_type: 'status_changed', description: `Status set to ${lead.status}`, metadata: { status: lead.status } },
+      ...(index === 2 ? [{ lead_id: lead.id, activity_type: 'proposal_sent', description: 'Proposal sent to lead', metadata: {} }] : []),
+    ]));
+    const { data: leadActivities, error: leadActivitiesError } = await supabase
+      .from('lead_activities')
+      .insert(leadActivitiesSeed)
+      .select();
+    if (leadActivitiesError) {
+      console.error('Lead activities error:', leadActivitiesError);
+      throw new Error(leadActivitiesError.message || 'Failed to seed lead activities');
+    }
+
+    const proposalReference = `PROP-${new Date().getFullYear()}-${demoEmailSuffix.toUpperCase()}-001`;
+    const { data: proposals, error: proposalsError } = await supabase
+      .from('proposals')
+      .insert({
+        lead_id: leads[2].id,
+        venue_id: venue.id,
+        reference_number: proposalReference,
+        event_summary: {
+          event_type: 'Wedding',
+          guest_count: 220,
+          target_date: leads[2].event_date,
+        },
+        pricing_breakdown: {
+          venue: 12000,
+          catering: 13200,
+          av: 2200,
+          total: 27400,
+        },
+        inclusions: ['Full-day venue access', 'Premium AV package', 'Event coordinator'],
+        terms_and_policies: '50% deposit required. Final headcount due 14 days prior.',
+        total_estimated: 27400,
+        deposit_amount: 13700,
+        valid_until: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString().split('T')[0],
+        status: 'sent',
+        sent_at: new Date().toISOString(),
+      })
+      .select();
+    if (proposalsError) {
+      console.error('Proposals error:', proposalsError);
+      throw new Error(proposalsError.message || 'Failed to seed proposals');
+    }
+
     return {
       success: true,
       message: 'Demo data seeded successfully!',
@@ -651,13 +1229,26 @@ export async function seedDemoData(
         reviews: reviews.length,
         clients: clients.length,
         client_communications: clientCommunications?.length || 0,
+        venue_photos: venuePhotos?.length || 0,
+        venue_amenities: venueAmenities?.length || 0,
+        venue_event_types: venueEventTypes?.length || 0,
+        venue_packages: venuePackages?.length || 0,
+        venue_package_addons: venuePackageAddons?.length || 0,
+        venue_testimonials: venueTestimonials?.length || 0,
+        venue_availability: venueAvailability?.length || 0,
+        venue_blackout_dates: venueBlackoutDates?.length || 0,
+        conversations: conversations?.length || 0,
+        conversation_messages: conversationMessages?.length || 0,
+        leads: leads?.length || 0,
+        lead_activities: leadActivities?.length || 0,
+        proposals: proposals?.length || 0,
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Seed data error:', error);
     return {
       success: false,
-      message: error.message || 'Failed to seed demo data',
+      message: error instanceof Error ? error.message : 'Failed to seed demo data',
     };
   }
 }
