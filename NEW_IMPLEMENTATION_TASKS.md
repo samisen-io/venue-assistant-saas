@@ -827,53 +827,53 @@ The following already exists and will be leveraged (not rebuilt):
 ## PHASE 7: PROPOSAL GENERATION
 
 ### Task 7.1: Create Proposal Generation Logic
-- [ ] Create `lib/proposals/proposalGenerator.ts`:
+- [x] Create `lib/proposals/proposalGenerator.ts`:
   - `generateProposal(lead, venue, packages): Proposal`
   - Auto-select package based on event details (guest count, type)
   - Calculate pricing breakdown from `venue_packages` and `venue_package_addons`
   - Generate reference number (INQ-YYYY-NNNN format)
   - Set valid_until (30 days default)
-- [ ] Create `lib/proposals/pricingCalculator.ts`:
+- [x] Create `lib/proposals/pricingCalculator.ts`:
   - `calculateTotalPrice(eventDetails, package, addons): PricingBreakdown`
   - Handle all pricing models: flat, per_person, per_hour, tiered
   - Calculate subtotal, tax, deposit
 - [ ] Test pricing accuracy with various scenarios
 
 ### Task 7.2: Create Proposal PDF Generation
-- [ ] Install PDF generation library (`@react-pdf/renderer` or `jspdf`)
-- [ ] Create `lib/proposals/pdfGenerator.ts`:
+- [x] Install PDF generation library (`pdf-lib`)
+- [x] Create `lib/proposals/pdfGenerator.ts`:
   - `generateProposalPDF(proposal, venue): Buffer`
   - Sections: cover page, event summary, venue details (with space photos), pricing breakdown, inclusions, terms, next steps
   - Include floor plan/layout diagram if available (space photo + capacity info)
   - Professional formatting with venue branding
-- [ ] Upload generated PDF to Supabase Storage (`proposals` bucket)
+- [x] Upload generated PDF to Supabase Storage (`proposals` bucket)
 - [ ] Test PDF generation quality
 
 ### Task 7.3: Create Proposal API Routes
-- [ ] Create `app/api/leads/[leadId]/proposal/route.ts`:
+- [x] Create `app/api/leads/[leadId]/proposal/route.ts`:
   - `POST` — Generate proposal (and optionally send)
   - `GET` — Get existing proposal for lead
-- [ ] Create `app/api/proposals/[proposalId]/route.ts`:
+- [x] Create `app/api/proposals/[proposalId]/route.ts`:
   - `GET` — Get proposal detail
   - `PUT` — Update proposal before sending
-- [ ] Create `app/api/proposals/[proposalId]/send/route.ts`:
+- [x] Create `app/api/proposals/[proposalId]/send/route.ts`:
   - `POST` — Send proposal email to prospect (leverages existing Resend client)
 - [ ] Test full proposal generate → send flow
 
 ### Task 7.4: Create Proposal Email Template
 > **NOTE**: Leverages existing `lib/email/resend.ts` for sending. New template only.
-- [ ] Create `lib/email/templates/proposal.ts`:
+- [x] Create `lib/email/templates/proposal.ts`:
   - Professional email with proposal summary inline
   - PDF download link
   - CTA: "Accept Proposal" / "Schedule Tour"
 - [ ] Test email formatting and delivery
 
 ### Task 7.5: Create Proposal Components
-- [ ] Create `components/proposals/ProposalPreview.tsx`:
+- [x] Create `components/proposals/ProposalPreview.tsx`:
   - Preview proposal before sending
   - Edit pricing, inclusions, terms
   - Send / Save Draft buttons
-- [ ] Create `components/proposals/ProposalStatusBadge.tsx`:
+- [x] Create `components/proposals/ProposalStatusBadge.tsx`:
   - Status indicator (draft, sent, viewed, accepted, declined, expired)
 
 ---
@@ -881,27 +881,27 @@ The following already exists and will be leveraged (not rebuilt):
 ## PHASE 8: PAGE MANAGEMENT DASHBOARD (BACKEND EDITOR)
 
 ### Task 8.1: Create Page Editor Layout
-- [ ] Create `app/(dashboard)/venues/[venueId]/public-page/page.tsx`:
+- [x] Create `app/(dashboard)/venues/[venueId]/public-page/page.tsx`:
   - Split view: editor (left) + live preview (right) on desktop
   - Stacked view on tablet/mobile
   - Tab navigation for editor sections
   - Publish button (top-right)
   - Auto-save indicator
-- [ ] Create `app/(dashboard)/venues/[venueId]/public-page/layout.tsx` if needed
+- [x] Create `app/(dashboard)/venues/[venueId]/public-page/layout.tsx` if needed
 
 ### Task 8.2: Create Basic Information Editor
-- [ ] Create `components/page-editor/BasicInfoEditor.tsx`:
+- [x] Create `components/page-editor/BasicInfoEditor.tsx`:
   - Venue name (from existing `venues.name`), tagline (new), description (existing)
   - Location (existing address/city/state/zip + new lat/lng geocoding)
   - URL slug editor with real-time uniqueness validation
   - Page status toggle (Published/Draft/Unpublished)
   - Auto-save every 30 seconds
-- [ ] Create `app/api/venues/check-slug/route.ts`:
+- [x] Create `app/api/venues/check-slug/route.ts`:
   - `GET ?slug=xxx` — returns slug availability
 - [ ] Test real-time slug validation
 
 ### Task 8.3: Create Photos & Media Editor
-- [ ] Create `components/page-editor/PhotosMediaEditor.tsx`:
+- [x] Create `components/page-editor/PhotosMediaEditor.tsx`:
   - Hero image upload with crop tool (uses `PhotoUploader` from Phase 2)
   - Gallery sections manager (add/rename/delete sections)
   - Photo upload per section (bulk upload)
@@ -913,45 +913,45 @@ The following already exists and will be leveraged (not rebuilt):
 - [ ] Test bulk upload, reordering, and deletion
 
 ### Task 8.4: Create Venue Details Editor
-- [ ] Create `components/page-editor/SpacesEditor.tsx`:
+- [x] Create `components/page-editor/SpacesEditor.tsx`:
   - Reads from / writes to existing `spaces` table
   - Add new capacity fields (standing, theater, custom)
   - Add photo_url and display_order
   - Drag-and-drop reordering
-- [ ] Create `components/page-editor/AmenitiesEditor.tsx`:
+- [x] Create `components/page-editor/AmenitiesEditor.tsx`:
   - Pre-defined amenity checkboxes + custom amenity text fields
   - Writes to `venue_amenities` table
-- [ ] Create `components/page-editor/EventTypesEditor.tsx`:
+- [x] Create `components/page-editor/EventTypesEditor.tsx`:
   - Pre-defined event type checkboxes + custom types
   - Writes to `venue_event_types` table
-- [ ] Create `components/page-editor/AboutEditor.tsx`:
+- [x] Create `components/page-editor/AboutEditor.tsx`:
   - Rich text editor (bold, italic, bullets, links) for `venues.description`
   - Max 1000 chars
 
 ### Task 8.5: Create Availability & Calendar Settings Editor
-- [ ] Create `components/page-editor/CalendarSettingsEditor.tsx`:
+- [x] Create `components/page-editor/CalendarSettingsEditor.tsx`:
   - Toggle: show/hide availability on public page
   - Buffer days (setup/teardown)
   - Lead time settings (min advance / max advance booking)
-- [ ] Create `components/page-editor/BlackoutDatesEditor.tsx`:
+- [x] Create `components/page-editor/BlackoutDatesEditor.tsx`:
   - Add/remove blackout date ranges with optional reason
 - [ ] Test settings apply correctly to public calendar API
 
 ### Task 8.6: Create Pricing & Packages Editor
-- [ ] Create `components/page-editor/PackagesEditor.tsx`:
+- [x] Create `components/page-editor/PackagesEditor.tsx`:
   - Add/edit/delete packages
   - Fields: name, description, base_price, pricing_model, tiered_pricing config, inclusions
   - Visibility toggle (show/hide on public page)
-- [ ] Create `components/page-editor/AddonsEditor.tsx`:
+- [x] Create `components/page-editor/AddonsEditor.tsx`:
   - Add/edit/delete add-ons with name, description, price, package restrictions
-- [ ] Create `components/page-editor/PricingSettingsEditor.tsx`:
+- [x] Create `components/page-editor/PricingSettingsEditor.tsx`:
   - Show exact pricing: Yes/No
   - Show pricing in AI chat: Yes/No
   - Require manager approval: Yes/No
 - [ ] Test tiered pricing configuration saves and reads correctly
 
 ### Task 8.7: Create AI Chat Settings Editor
-- [ ] Create `components/page-editor/AIChatSettingsEditor.tsx`:
+- [x] Create `components/page-editor/AIChatSettingsEditor.tsx`:
   - Tone dropdown (Professional/Friendly/Casual/Luxury/Custom)
   - Custom tone description field
   - Response length (Concise/Balanced/Detailed)
@@ -963,14 +963,14 @@ The following already exists and will be leveraged (not rebuilt):
   - Manager name/email for escalation
 
 ### Task 8.8: Create Contact & Social Editor
-- [ ] Create `components/page-editor/ContactSocialEditor.tsx`:
+- [x] Create `components/page-editor/ContactSocialEditor.tsx`:
   - Phone, email, business hours (writes to existing `venues` fields + new `business_hours` JSONB)
   - Social media URLs (Facebook, Instagram, LinkedIn, Twitter, YouTube, TikTok)
   - Map settings (show/hide, auto lat/lng from address)
   - Privacy options (hide address/phone/email)
 
 ### Task 8.9: Create SEO & Marketing Editor
-- [ ] Create `components/page-editor/SEOEditor.tsx`:
+- [x] Create `components/page-editor/SEOEditor.tsx`:
   - Page title (auto-generated or custom, max 60 chars)
   - Meta description (auto-generated or custom, max 160 chars)
   - Keywords
@@ -979,7 +979,7 @@ The following already exists and will be leveraged (not rebuilt):
   - Google Analytics ID, Facebook Pixel ID
 
 ### Task 8.10: Create Testimonials Editor
-- [ ] Create `components/page-editor/TestimonialsEditor.tsx`:
+- [x] Create `components/page-editor/TestimonialsEditor.tsx`:
   - Add/edit/delete testimonials
   - Fields: quote, name, company, event_type, star_rating, photo, event_date
   - Published toggle per testimonial
@@ -994,29 +994,29 @@ The following already exists and will be leveraged (not rebuilt):
   - Create `app/api/venues/[venueId]/testimonials/submit/route.ts` (public endpoint)
 
 ### Task 8.11: Create Page Editor API Routes
-- [ ] Create `app/api/venues/[venueId]/public-page/route.ts`:
+- [x] Create `app/api/venues/[venueId]/public-page/route.ts`:
   - `GET` — Get all public page data for editor (joins all related tables)
   - `PUT` — Batch save public page changes
-- [ ] Create `app/api/venues/[venueId]/photos/route.ts`:
+- [x] Create `app/api/venues/[venueId]/photos/route.ts`:
   - `POST` — Upload photo(s)
   - `PUT` — Reorder photos
   - `DELETE` — Delete photo
-- [ ] Create `app/api/venues/[venueId]/amenities/route.ts`:
+- [x] Create `app/api/venues/[venueId]/amenities/route.ts`:
   - `GET`, `PUT` — Bulk set amenities
-- [ ] Create `app/api/venues/[venueId]/event-types/route.ts`:
+- [x] Create `app/api/venues/[venueId]/event-types/route.ts`:
   - `GET`, `PUT` — Bulk set event types
-- [ ] Create `app/api/venues/[venueId]/packages/route.ts`:
+- [x] Create `app/api/venues/[venueId]/packages/route.ts`:
   - Full CRUD for venue packages and add-ons
-- [ ] Create `app/api/venues/[venueId]/testimonials/route.ts`:
+- [x] Create `app/api/venues/[venueId]/testimonials/route.ts`:
   - Full CRUD for testimonials
-- [ ] Create `app/api/venues/[venueId]/ai-settings/route.ts`:
+- [x] Create `app/api/venues/[venueId]/ai-settings/route.ts`:
   - `GET` and `PUT` for AI chat settings
-- [ ] Create `app/api/venues/[venueId]/calendar-settings/route.ts`:
+- [x] Create `app/api/venues/[venueId]/calendar-settings/route.ts`:
   - `GET` and `PUT` for calendar settings + blackout dates
 - [ ] Test all API routes with authentication
 
 ### Task 8.12: Create Live Preview Component
-- [ ] Create `components/page-editor/LivePreview.tsx`:
+- [x] Create `components/page-editor/LivePreview.tsx`:
   - Renders public page preview using same components from Phase 3
   - Updates in real-time as editor changes (debounced)
   - Device preview modes: desktop, tablet (768px), mobile (375px)
@@ -1323,6 +1323,7 @@ The following already exists and will be leveraged (not rebuilt):
 | 13 | Performance & SEO Optimization | Image opt, sitemap, Schema.org, LocalBusiness, canonical | Next.js Image |
 | 14 | Polish & Deployment | UI polish, tier updates, seed data, deploy | seedData, subscription limits |
 | **Total** | | **~100 tasks across 14 phases** | |
+
 
 
 

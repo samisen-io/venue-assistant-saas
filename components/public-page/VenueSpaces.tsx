@@ -1,3 +1,5 @@
+"use client"
+
 import { Building2, Trees, Users, WavesLadder, Briefcase, Landmark } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ComponentType } from "react"

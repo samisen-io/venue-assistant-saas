@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Edit } from "lucide-react";
+import { Edit, Globe } from "lucide-react";
 import { Venue } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,11 +42,18 @@ export function VenueTable({ venues }: VenueTableProps) {
                                 {[venue.address, venue.city, venue.state].filter(Boolean).join(", ") || "—"}
                             </TableCell>
                             <TableCell className="text-right">
-                                <Button asChild variant="ghost" size="sm">
-                                    <Link href={`/venues/${venue.id}/edit`}>
-                                        <Edit className="h-4 w-4" />
-                                    </Link>
-                                </Button>
+                                <div className="flex justify-end gap-1">
+                                    <Button asChild variant="ghost" size="sm">
+                                        <Link href={`/venues/${venue.id}/public-page`}>
+                                            <Globe className="h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                    <Button asChild variant="ghost" size="sm">
+                                        <Link href={`/venues/${venue.id}/edit`}>
+                                            <Edit className="h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                </div>
                             </TableCell>
                         </TableRow>
                     ))}

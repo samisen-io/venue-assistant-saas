@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Edit, MapPin, Users } from "lucide-react";
+import { Edit, Globe, MapPin, Users } from "lucide-react";
 import { Venue } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,11 +41,17 @@ export function VenueCard({ venue }: VenueCardProps) {
                     )}
                 </div>
             </CardContent>
-            <CardFooter>
-                <Button asChild variant="outline" className="w-full">
+            <CardFooter className="grid w-full grid-cols-2 gap-2">
+                <Button asChild variant="outline">
+                    <Link href={`/venues/${venue.id}/public-page`}>
+                        <Globe className="mr-2 h-4 w-4" />
+                        Public Page
+                    </Link>
+                </Button>
+                <Button asChild variant="outline">
                     <Link href={`/venues/${venue.id}/edit`}>
                         <Edit className="mr-2 h-4 w-4" />
-                        Edit Details
+                        Edit
                     </Link>
                 </Button>
             </CardFooter>
