@@ -21,6 +21,8 @@ import { ErrorMessage } from "@/components/shared/ErrorMessage";
 import { ViewToggle, ViewMode } from "@/components/shared/ViewToggle";
 import { MobileFilters } from "@/components/shared/MobileFilters";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCanCreate } from "@/hooks/useSubscription";
+import { UpgradePrompt } from "@/components/subscription/UpgradePrompt";
 
 const spaceTypes: { value: string; label: string }[] = [
     { value: "ballroom", label: "Ballroom" },
@@ -36,7 +38,9 @@ export default function SpacesPage() {
     const [spaces, setSpaces] = useState<Space[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
+    const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
     const isMobile = useIsMobile();
+    const { canCreate, reason: limitReason } = useCanCreate("space");
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         if (typeof window !== "undefined") {
             return (localStorage.getItem("viewMode:spaces") as ViewMode) || "grid";
@@ -135,12 +139,19 @@ export default function SpacesPage() {
                 </div>
                 <div className="flex items-center gap-3">
                     <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
-                    <Button asChild>
-                        <Link href="/spaces/new">
+                    {canCreate ? (
+                        <Button asChild>
+                            <Link href="/spaces/new">
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Space
+                            </Link>
+                        </Button>
+                    ) : (
+                        <Button onClick={() => setShowUpgradePrompt(true)}>
                             <Plus className="mr-2 h-4 w-4" />
                             Add Space
-                        </Link>
-                    </Button>
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -244,6 +255,13 @@ export default function SpacesPage() {
             ) : (
                 <SpaceTable spaces={filteredSpaces} />
             )}
+
+            <UpgradePrompt
+                open={showUpgradePrompt}
+                onOpenChange={setShowUpgradePrompt}
+                message={limitReason || undefined}
+                resource="space"
+            />
         </div>
     );
 }

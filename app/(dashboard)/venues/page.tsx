@@ -12,12 +12,16 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorMessage } from "@/components/shared/ErrorMessage";
 import { ViewToggle, ViewMode } from "@/components/shared/ViewToggle";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCanCreate } from "@/hooks/useSubscription";
+import { UpgradePrompt } from "@/components/subscription/UpgradePrompt";
 
 export default function VenuesPage() {
     const [venues, setVenues] = useState<Venue[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
+    const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
     const isMobile = useIsMobile();
+    const { canCreate, reason: limitReason } = useCanCreate("space");
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         if (typeof window !== "undefined") {
             return (localStorage.getItem("viewMode:venues") as ViewMode) || "grid";
@@ -59,12 +63,19 @@ export default function VenuesPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Venues</h1>
                 <div className="flex items-center gap-3">
                     <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
-                    <Button asChild>
-                        <Link href="/venues/new">
+                    {canCreate ? (
+                        <Button asChild>
+                            <Link href="/venues/new">
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Venue
+                            </Link>
+                        </Button>
+                    ) : (
+                        <Button onClick={() => setShowUpgradePrompt(true)}>
                             <Plus className="mr-2 h-4 w-4" />
                             Add Venue
-                        </Link>
-                    </Button>
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -84,6 +95,13 @@ export default function VenuesPage() {
             ) : (
                 <VenueTable venues={venues} />
             )}
+
+            <UpgradePrompt
+                open={showUpgradePrompt}
+                onOpenChange={setShowUpgradePrompt}
+                message={limitReason || undefined}
+                resource="venue"
+            />
         </div>
     );
 }

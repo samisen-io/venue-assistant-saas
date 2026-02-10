@@ -12,6 +12,8 @@ export async function GET() {
         }
 
         const adminClient = createServiceRoleClient()
+
+        // First check local database
         const { data: subscription, error } = await (adminClient as any)
             .from('subscriptions')
             .select('*')
@@ -22,10 +24,91 @@ export async function GET() {
             throw error
         }
 
-        return NextResponse.json(subscription || null)
+        // If we have a local subscription, return it
+        if (subscription) {
+            return NextResponse.json(subscription)
+        }
+
+        // No local subscription - try to find and sync from Stripe
+        const syncedSubscription = await syncSubscriptionFromStripe(user.id, user.email!, adminClient)
+        return NextResponse.json(syncedSubscription)
     } catch (error) {
         console.error('Error fetching subscription:', error)
         return new NextResponse('Internal Error', { status: 500 })
+    }
+}
+
+async function syncSubscriptionFromStripe(userId: string, userEmail: string, adminClient: any) {
+    try {
+        // Search for customer by email in Stripe
+        const customers = await stripe.customers.list({
+            email: userEmail,
+            limit: 1,
+        })
+
+        if (customers.data.length === 0) {
+            return null
+        }
+
+        const customer = customers.data[0]
+
+        // Get active subscriptions for this customer
+        const subscriptions = await stripe.subscriptions.list({
+            customer: customer.id,
+            status: 'active',
+            limit: 1,
+        })
+
+        // Also check for trialing subscriptions
+        if (subscriptions.data.length === 0) {
+            const trialingSubscriptions = await stripe.subscriptions.list({
+                customer: customer.id,
+                status: 'trialing',
+                limit: 1,
+            })
+            if (trialingSubscriptions.data.length > 0) {
+                subscriptions.data = trialingSubscriptions.data
+            }
+        }
+
+        if (subscriptions.data.length === 0) {
+            return null
+        }
+
+        const stripeSubscription = subscriptions.data[0]
+        const priceId = stripeSubscription.items.data[0]?.price?.id
+        const plan = priceId ? getPlanByPriceId(priceId) : null
+        const planTier = plan?.tier || 'starter'
+
+        // Sync to local database
+        const subscriptionData = {
+            user_id: userId,
+            stripe_customer_id: customer.id,
+            stripe_subscription_id: stripeSubscription.id,
+            plan_tier: planTier,
+            status: stripeSubscription.status === 'active' ? 'active' : stripeSubscription.status,
+            current_period_start: new Date(stripeSubscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(stripeSubscription.current_period_end * 1000).toISOString(),
+            cancel_at_period_end: stripeSubscription.cancel_at_period_end,
+            updated_at: new Date().toISOString(),
+        }
+
+        const { data: upsertedSubscription, error } = await adminClient
+            .from('subscriptions')
+            .upsert(subscriptionData, { onConflict: 'user_id' })
+            .select()
+            .single()
+
+        if (error) {
+            console.error('Error syncing subscription from Stripe:', error)
+            return null
+        }
+
+        console.log(`Synced subscription from Stripe for user ${userId}`)
+        return upsertedSubscription
+    } catch (error) {
+        console.error('Error syncing from Stripe:', error)
+        return null
     }
 }
 

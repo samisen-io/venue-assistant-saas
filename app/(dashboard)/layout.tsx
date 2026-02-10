@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
+import { SubscriptionBanner } from "@/components/subscription/SubscriptionBanner";
 
 export default function DashboardLayout({
     children,
@@ -13,6 +14,7 @@ export default function DashboardLayout({
             </div>
             <div className="flex flex-1 flex-col">
                 <Header />
+                <SubscriptionBanner />
                 <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6 bg-white">
                     {children}
                 </main>

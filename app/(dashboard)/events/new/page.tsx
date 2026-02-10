@@ -11,6 +11,7 @@ import { Loading } from "@/components/shared/Loading";
 import { ErrorMessage } from "@/components/shared/ErrorMessage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, FileText } from "lucide-react";
+import { UpgradePrompt } from "@/components/subscription/UpgradePrompt";
 
 export default function NewEventPage() {
     const router = useRouter();
@@ -22,6 +23,8 @@ export default function NewEventPage() {
     const [error, setError] = useState("");
     const [extractedData, setExtractedData] = useState<any>(null);
     const [nlEnabled, setNlEnabled] = useState(false);
+    const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+    const [limitMessage, setLimitMessage] = useState<string | undefined>();
 
     useEffect(() => {
         const fetchData = async () => {
@@ -93,6 +96,15 @@ export default function NewEventPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(values),
             });
+
+            if (res.status === 403) {
+                const data = await res.json();
+                if (data.code === "LIMIT_REACHED") {
+                    setLimitMessage(data.error);
+                    setShowUpgradePrompt(true);
+                    return;
+                }
+            }
 
             if (res.status === 409) {
                 const data = await res.json();
@@ -190,6 +202,13 @@ export default function NewEventPage() {
                     <EventForm spaces={spaces} onSubmit={handleSubmit} isLoading={isSubmitting} />
                 </div>
             )}
+
+            <UpgradePrompt
+                open={showUpgradePrompt}
+                onOpenChange={setShowUpgradePrompt}
+                message={limitMessage}
+                resource="event"
+            />
         </div>
     );
 }

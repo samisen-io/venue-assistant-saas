@@ -14,6 +14,8 @@ import { ErrorMessage } from "@/components/shared/ErrorMessage";
 import { ViewToggle, ViewMode } from "@/components/shared/ViewToggle";
 import { MobileFilters } from "@/components/shared/MobileFilters";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCanCreate } from "@/hooks/useSubscription";
+import { UpgradePrompt } from "@/components/subscription/UpgradePrompt";
 import {
     Select,
     SelectContent,
@@ -37,7 +39,9 @@ export default function EventsPage() {
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedStatus, setSelectedStatus] = useState<EventStatus | "all">("all");
+    const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
     const isMobile = useIsMobile();
+    const { canCreate, reason: limitReason } = useCanCreate("event");
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         if (typeof window !== "undefined") {
             return (localStorage.getItem("viewMode:events") as ViewMode) || "grid";
@@ -88,12 +92,19 @@ export default function EventsPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Events</h1>
                 <div className="flex items-center gap-3">
                     <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
-                    <Button asChild>
-                        <Link href="/events/new">
+                    {canCreate ? (
+                        <Button asChild>
+                            <Link href="/events/new">
+                                <Plus className="mr-2 h-4 w-4" />
+                                Create Event
+                            </Link>
+                        </Button>
+                    ) : (
+                        <Button onClick={() => setShowUpgradePrompt(true)}>
                             <Plus className="mr-2 h-4 w-4" />
                             Create Event
-                        </Link>
-                    </Button>
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -151,6 +162,13 @@ export default function EventsPage() {
             ) : (
                 <EventTable events={filteredEvents} />
             )}
+
+            <UpgradePrompt
+                open={showUpgradePrompt}
+                onOpenChange={setShowUpgradePrompt}
+                message={limitReason || undefined}
+                resource="event"
+            />
         </div>
     );
 }

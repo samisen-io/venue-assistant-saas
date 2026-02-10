@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { User, Shield, Bell, Building } from "lucide-react";
+import { User, Shield, Bell, CreditCard } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -135,6 +136,27 @@ export default function SettingsPage() {
                                 <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
                             </div>
                             <Button variant="outline">Enable</Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <CreditCard className="h-5 w-5" />
+                            Billing & Subscription
+                        </CardTitle>
+                        <CardDescription>Manage your subscription plan and billing details.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                            <div>
+                                <p className="font-medium">Subscription</p>
+                                <p className="text-sm text-muted-foreground">View and manage your plan, usage, and payment method</p>
+                            </div>
+                            <Button variant="outline" asChild>
+                                <Link href="/settings/subscription">Manage</Link>
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>

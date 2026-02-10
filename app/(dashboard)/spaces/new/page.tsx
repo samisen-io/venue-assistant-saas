@@ -4,11 +4,14 @@ import { useRouter } from "next/navigation";
 import { SpaceForm } from "@/components/spaces/SpaceForm";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { UpgradePrompt } from "@/components/subscription/UpgradePrompt";
 
 export default function NewSpacePage() {
     const router = useRouter();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+    const [limitMessage, setLimitMessage] = useState<string | undefined>();
 
     const handleSubmit = async (values: any) => {
         setIsSubmitting(true);
@@ -18,6 +21,15 @@ export default function NewSpacePage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(values),
             });
+
+            if (res.status === 403) {
+                const data = await res.json();
+                if (data.code === "LIMIT_REACHED") {
+                    setLimitMessage(data.error);
+                    setShowUpgradePrompt(true);
+                    return;
+                }
+            }
 
             if (!res.ok) {
                 const error = await res.text();
@@ -52,6 +64,13 @@ export default function NewSpacePage() {
             <div className="bg-white rounded-lg border p-6 shadow-sm">
                 <SpaceForm onSubmit={handleSubmit} isLoading={isSubmitting} />
             </div>
+
+            <UpgradePrompt
+                open={showUpgradePrompt}
+                onOpenChange={setShowUpgradePrompt}
+                message={limitMessage}
+                resource="space"
+            />
         </div>
     );
 }

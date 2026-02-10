@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Venue } from "@/lib/types";
 import { Loading } from "@/components/shared/Loading";
 import { ErrorMessage } from "@/components/shared/ErrorMessage";
+import { UpgradePrompt } from "@/components/subscription/UpgradePrompt";
 
 export default function NewVendorPage() {
     const router = useRouter();
@@ -15,6 +16,8 @@ export default function NewVendorPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
+    const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+    const [limitMessage, setLimitMessage] = useState<string | undefined>();
 
     useEffect(() => {
         const fetchVenues = async () => {
@@ -41,6 +44,15 @@ export default function NewVendorPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(values),
             });
+
+            if (res.status === 403) {
+                const data = await res.json();
+                if (data.code === "LIMIT_REACHED") {
+                    setLimitMessage(data.error);
+                    setShowUpgradePrompt(true);
+                    return;
+                }
+            }
 
             if (!res.ok) throw new Error("Failed to create vendor");
 
@@ -87,6 +99,13 @@ export default function NewVendorPage() {
             <div className="bg-white rounded-lg border p-6 shadow-sm">
                 <VendorForm venues={venues} onSubmit={handleSubmit} isLoading={isSubmitting} />
             </div>
+
+            <UpgradePrompt
+                open={showUpgradePrompt}
+                onOpenChange={setShowUpgradePrompt}
+                message={limitMessage}
+                resource="vendor"
+            />
         </div>
     );
 }

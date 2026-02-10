@@ -14,6 +14,8 @@ import { ErrorMessage } from "@/components/shared/ErrorMessage";
 import { ViewToggle, ViewMode } from "@/components/shared/ViewToggle";
 import { MobileFilters } from "@/components/shared/MobileFilters";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCanCreate } from "@/hooks/useSubscription";
+import { UpgradePrompt } from "@/components/subscription/UpgradePrompt";
 import {
     Select,
     SelectContent,
@@ -29,7 +31,9 @@ export default function VendorsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [eventServices, setEventServices] = useState<EventService[]>([]);
     const [selectedServiceId, setSelectedServiceId] = useState("all");
+    const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
     const isMobile = useIsMobile();
+    const { canCreate, reason: limitReason } = useCanCreate("vendor");
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         if (typeof window !== "undefined") {
             return (localStorage.getItem("viewMode:vendors") as ViewMode) || "grid";
@@ -101,12 +105,19 @@ export default function VendorsPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Vendors</h1>
                 <div className="flex items-center gap-3">
                     <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
-                    <Button asChild>
-                        <Link href="/vendors/new">
+                    {canCreate ? (
+                        <Button asChild>
+                            <Link href="/vendors/new">
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Vendor
+                            </Link>
+                        </Button>
+                    ) : (
+                        <Button onClick={() => setShowUpgradePrompt(true)}>
                             <Plus className="mr-2 h-4 w-4" />
                             Add Vendor
-                        </Link>
-                    </Button>
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -165,6 +176,13 @@ export default function VendorsPage() {
             ) : (
                 <VendorTable vendors={filteredVendors} />
             )}
+
+            <UpgradePrompt
+                open={showUpgradePrompt}
+                onOpenChange={setShowUpgradePrompt}
+                message={limitReason || undefined}
+                resource="vendor"
+            />
         </div>
     );
 }

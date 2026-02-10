@@ -3,3 +3,6 @@
 
 [functions.resend-webhook]
 verify_jwt = false  # Allow public access without authentication
+
+[functions.stripe-webhook]
+verify_jwt = false  # Allow public access without authentication

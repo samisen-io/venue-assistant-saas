@@ -6,11 +6,14 @@ import { VenueForm } from "@/components/venues/VenueForm";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { venueFormSchema } from "@/lib/utils/validation";
+import { UpgradePrompt } from "@/components/subscription/UpgradePrompt";
 
 export default function NewVenuePage() {
     const router = useRouter();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
+    const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+    const [limitMessage, setLimitMessage] = useState<string | undefined>();
 
     const handleSubmit = async (values: z.infer<typeof venueFormSchema>) => {
         setIsLoading(true);
@@ -20,6 +23,15 @@ export default function NewVenuePage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(values),
             });
+
+            if (res.status === 403) {
+                const data = await res.json();
+                if (data.code === "LIMIT_REACHED") {
+                    setLimitMessage(data.error);
+                    setShowUpgradePrompt(true);
+                    return;
+                }
+            }
 
             if (!res.ok) throw new Error("Failed to create venue");
 
@@ -47,6 +59,13 @@ export default function NewVenuePage() {
             <div className="bg-white rounded-lg border p-6 shadow-sm">
                 <VenueForm onSubmit={handleSubmit} isLoading={isLoading} />
             </div>
+
+            <UpgradePrompt
+                open={showUpgradePrompt}
+                onOpenChange={setShowUpgradePrompt}
+                message={limitMessage}
+                resource="venue"
+            />
         </div>
     );
 }
