@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { use, useState } from 'react'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { DateRangeSelector } from '@/components/analytics/DateRangeSelector'
 import { AnalyticsMetricCard } from '@/components/analytics/AnalyticsMetricCard'
@@ -11,33 +11,23 @@ import { TrafficSourcesChart } from '@/components/analytics/AnalyticsChart'
 import { Loading } from '@/components/shared/Loading'
 import { ErrorMessage } from '@/components/shared/ErrorMessage'
 import { Eye, MessageCircle, Users, BarChart3 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState as useStateEarly } from 'react'
 
 interface PageProps {
-  params: { venueId: string }
+  params: Promise<{ venueId: string }>
 }
 
 export default function AnalyticsDashboard({ params }: PageProps) {
-  const router = useRouter()
-  const [mounted, setMounted] = useState(false)
+  const resolvedParams = use(params)
   const [range, setRange] = useState('30d')
   const [customStart, setCustomStart] = useState<string>()
   const [customEnd, setCustomEnd] = useState<string>()
 
-  // Verify venue ownership on mount
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
   const { data: analytics, loading, error } = useAnalytics(
-    params.venueId,
+    resolvedParams.venueId,
     range,
     customStart,
     customEnd
   )
-
-  if (!mounted) return null
 
   if (loading) return <Loading />
 

@@ -13,7 +13,10 @@ import {
     Briefcase,
     LogOut,
     RefreshCw,
-    Building2
+    Building2,
+    TrendingUp,
+    Globe,
+    ChevronLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -54,11 +57,33 @@ const sidebarItems = [
         icon: Users,
     },
     {
+        title: "Leads",
+        href: "/leads",
+        icon: Users,
+    },
+    {
         title: "Settings",
         href: "/settings",
         icon: Settings,
     },
 ];
+
+const dynamicItems = (venueId?: string) => {
+    const items = [];
+    if (venueId) {
+        items.push({
+            title: "Public Page",
+            href: `/venues/${venueId}/public-page`,
+            icon: Globe,
+        });
+        items.push({
+            title: "Analytics",
+            href: `/venues/${venueId}/analytics`,
+            icon: TrendingUp,
+        });
+    }
+    return items;
+};
 
 export function Sidebar() {
     const pathname = usePathname();
@@ -67,11 +92,24 @@ export function Sidebar() {
     const { toast } = useToast();
     const [isSeeding, setIsSeeding] = useState(false);
     const [planTier, setPlanTier] = useState<string | null>(null);
+    const [venueId, setVenueId] = useState<string | null>(null);
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     useEffect(() => {
+        // Fetch subscription plan tier
         fetch("/api/subscription")
             .then(res => res.ok ? res.json() : null)
             .then(data => { if (data?.plan_tier) setPlanTier(data.plan_tier); })
+            .catch(() => {});
+        
+        // Fetch user's venue ID
+        fetch("/api/venues")
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+                if (data && data.length > 0) {
+                    setVenueId(data[0].id);
+                }
+            })
             .catch(() => {});
     }, []);
 
@@ -118,68 +156,123 @@ export function Sidebar() {
     };
 
     return (
-        <div className="flex h-screen w-64 flex-col border-r bg-gray-50/40">
-            <div className="flex h-14 items-center border-b px-6">
-                <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                    <Store className="h-6 w-6" />
-                    <span className="">VenueManager</span>
-                </Link>
+        <div className={cn("flex flex-col border-r bg-gray-50/40 transition-all duration-300", isCollapsed ? "w-20 h-screen" : "w-64 h-screen")}>
+            <div className="flex h-14 items-center justify-between border-b px-4">
+                {!isCollapsed && (
+                    <Link href="/dashboard" className="flex items-center gap-2 font-semibold flex-1">
+                        <Store className="h-6 w-6 flex-shrink-0" />
+                        <span className="text-sm">VenueManager</span>
+                    </Link>
+                )}
+                {isCollapsed && (
+                    <Link href="/dashboard" className="flex items-center justify-center flex-1">
+                        <Store className="h-6 w-6" />
+                    </Link>
+                )}
+                <button
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    className="p-1 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
+                    aria-label="Toggle sidebar"
+                >
+                    <ChevronLeft className={cn("h-4 w-4 transition-transform", isCollapsed && "rotate-180")} />
+                </button>
             </div>
             <div className="flex-1 overflow-auto py-4">
-                <nav className="grid items-start px-4 text-sm font-medium">
+                <nav className="grid items-start px-2 text-sm font-medium gap-1">
                     {sidebarItems.map((item, index) => {
                         const Icon = item.icon;
                         return (
                             <Link
                                 key={index}
                                 href={item.href}
+                                title={isCollapsed ? item.title : ""}
                                 className={cn(
                                     "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+                                    isCollapsed && "justify-center",
                                     pathname.startsWith(item.href)
                                         ? "bg-gray-100 text-primary"
                                         : "text-gray-500 hover:bg-gray-100"
                                 )}
                             >
-                                <Icon className="h-4 w-4" />
-                                {item.title}
+                                <Icon className="h-4 w-4 flex-shrink-0" />
+                                {!isCollapsed && <span>{item.title}</span>}
                             </Link>
                         );
                     })}
+                    
+                    {/* Divider and Venue Management Section */}
+                    {venueId && (
+                        <>
+                            <div className={cn("my-2", isCollapsed ? "hidden" : "border-t")} />
+                            {dynamicItems(venueId).map((item, index) => {
+                                const Icon = item.icon;
+                                return (
+                                    <Link
+                                        key={`dynamic-${index}`}
+                                        href={item.href}
+                                        title={isCollapsed ? item.title : ""}
+                                        className={cn(
+                                            "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+                                            isCollapsed && "justify-center",
+                                            pathname.startsWith(item.href)
+                                                ? "bg-gray-100 text-primary"
+                                                : "text-gray-500 hover:bg-gray-100"
+                                        )}
+                                    >
+                                        <Icon className="h-4 w-4 flex-shrink-0" />
+                                        {!isCollapsed && <span>{item.title}</span>}
+                                    </Link>
+                                );
+                            })}
+                        </>
+                    )}
                 </nav>
             </div>
-            <div className="border-t p-4 space-y-2">
+            <div className={cn("border-t p-2 space-y-2", !isCollapsed && "p-4")}>
                 {planTier && planTier !== "enterprise" && (
                     <Link href="/pricing">
                         <Button
                             variant="outline"
-                            className="w-full justify-start gap-3 text-purple-600 border-purple-200 hover:bg-purple-50 hover:text-purple-700 mb-1"
+                            className={cn(
+                                "justify-start gap-3 text-purple-600 border-purple-200 hover:bg-purple-50 hover:text-purple-700 mb-1",
+                                isCollapsed ? "w-10 h-10 justify-center p-0" : "w-full"
+                            )}
+                            title={isCollapsed ? "Upgrade Plan" : ""}
                         >
-                            <ArrowUpCircle className="h-4 w-4" />
-                            Upgrade Plan
+                            <ArrowUpCircle className="h-4 w-4 flex-shrink-0" />
+                            {!isCollapsed && <span>Upgrade</span>}
                         </Button>
                     </Link>
                 )}
-                {planTier && (
+                {planTier && !isCollapsed && (
                     <div className="px-3 py-1 text-xs text-muted-foreground">
                         {planTier.charAt(0).toUpperCase() + planTier.slice(1)} Plan
                     </div>
                 )}
                 <Button
                     variant="outline"
-                    className="w-full justify-start gap-3 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                    className={cn(
+                        "justify-start gap-3 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700",
+                        isCollapsed ? "w-10 h-10 justify-center p-0" : "w-full"
+                    )}
                     onClick={handleRefreshData}
                     disabled={isSeeding}
+                    title={isCollapsed ? "Refresh Demo Data" : ""}
                 >
-                    <RefreshCw className={cn("h-4 w-4", isSeeding && "animate-spin")} />
-                    {isSeeding ? "Loading..." : "Refresh Demo Data"}
+                    <RefreshCw className={cn("h-4 w-4 flex-shrink-0", isSeeding && "animate-spin")} />
+                    {!isCollapsed && <span>{isSeeding ? "Loading..." : "Refresh"}</span>}
                 </Button>
                 <Button
                     variant="ghost"
-                    className="w-full justify-start gap-3 text-gray-500 hover:text-red-500"
+                    className={cn(
+                        "justify-start gap-3 text-gray-500 hover:text-red-500",
+                        isCollapsed ? "w-10 h-10 justify-center p-0" : "w-full"
+                    )}
                     onClick={handleSignOut}
+                    title={isCollapsed ? "Sign Out" : ""}
                 >
-                    <LogOut className="h-4 w-4" />
-                    Sign Out
+                    <LogOut className="h-4 w-4 flex-shrink-0" />
+                    {!isCollapsed && <span>Sign Out</span>}
                 </Button>
             </div>
         </div>
