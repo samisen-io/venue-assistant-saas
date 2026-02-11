@@ -184,7 +184,7 @@ The following already exists and will be leveraged (not rebuilt):
   );
   ```
 - [x] Enable RLS: venue owner can CRUD, public can read published testimonials of published venues
-- [ ] Create public testimonial submission endpoint (for post-event testimonial requests)
+- [x] Create public testimonial submission endpoint (for post-event testimonial requests)
 
 ### Task 1.8: Create venue_availability Table
 > **NOTE**: Existing `spaces/availability` API handles per-space time-slot conflict detection. This new table provides a simple per-venue per-DATE availability status for the public calendar. Different granularity and purpose.
@@ -987,11 +987,11 @@ The following already exists and will be leveraged (not rebuilt):
   - "Import from Past Events" button → select completed event, pre-fill client info
   - Display settings: carousel/grid/list layout, auto-rotate speed (5/8/10 seconds)
 - [ ] Create testimonial request automation:
-  - Toggle: "Auto-request testimonials after events"
-  - Send request X days after event ends
-  - Public submission form URL (creates unpublished testimonial for review)
-  - Create `lib/email/templates/testimonialRequest.ts`
-  - Create `app/api/venues/[venueId]/testimonials/submit/route.ts` (public endpoint)
+  - [ ] Toggle: "Auto-request testimonials after events"
+  - [ ] Send request X days after event ends
+  - [x] Public submission form URL (creates unpublished testimonial for review)
+  - [x] Create `lib/email/templates/testimonialRequest.ts`
+  - [x] Create `app/api/venues/[venueId]/testimonials/submit/route.ts` (public endpoint)
 
 ### Task 8.11: Create Page Editor API Routes
 - [x] Create `app/api/venues/[venueId]/public-page/route.ts`:
@@ -1131,34 +1131,34 @@ The following already exists and will be leveraged (not rebuilt):
 ## PHASE 11: LEAD MANAGEMENT INTEGRATION
 
 ### Task 11.1: Create Notification System
-- [ ] Create `components/layout/NotificationBell.tsx`:
+- [x] Create `components/layout/NotificationBell.tsx`:
   - Real-time notification badge in existing `Header.tsx`
   - Dropdown notification center
   - Mark as read/unread
-- [ ] Create `app/api/notifications/route.ts`:
+- [x] Create `app/api/notifications/route.ts`:
   - `GET` — Fetch notifications for user
   - `PUT` — Mark as read
-- [ ] Add toast notifications for new leads (using existing `use-toast` hook)
+- [x] Add toast notifications for new leads (using existing `use-toast` hook)
 
 ### Task 11.2: Create Lead Notification Settings
-- [ ] Add notification preferences to `app/(dashboard)/settings/page.tsx`:
+- [x] Add notification preferences to `app/(dashboard)/settings/page.tsx`:
   - Email notification toggle and frequency (immediate/digest/off)
   - Priority filter (all leads / high-priority only)
   - Include conversation transcript in email: Yes/No
 
 ### Task 11.3: Create Follow-Up Automation
-- [ ] Create `lib/leads/followUpAutomation.ts`:
+- [x] Create `lib/leads/followUpAutomation.ts`:
   - Rules: no response in 24h → follow-up email, no response in 3 days → reminder task, proposal viewed but no response in 2 days → nudge
   - `scheduleFollowUp(lead, rule): void`
   - `processScheduledFollowUps(): void` (cron job or Inngest function via existing `lib/inngest/`)
-- [ ] Create `lib/email/templates/leadFollowUp.ts`
+- [x] Create `lib/email/templates/leadFollowUp.ts`
 - [ ] Test automation triggers
 
 ### Task 11.4: Add Leads to Dashboard Navigation
-- [ ] Update existing `components/layout/Sidebar.tsx` to include "Leads" nav item
+- [x] Update existing `components/layout/Sidebar.tsx` to include "Leads" nav item
 - [ ] Add lead count badge to sidebar
-- [ ] Update `app/(dashboard)/dashboard/page.tsx` with recent leads summary card
-- [ ] Add "Public Page" and "Analytics" links to venue detail/management
+- [x] Update `app/(dashboard)/dashboard/page.tsx` with recent leads summary card
+- [x] Add "Public Page" and "Analytics" links to venue detail/management
 
 ---
 
@@ -1232,8 +1232,8 @@ The following already exists and will be leveraged (not rebuilt):
 - [ ] Verify semantic HTML structure (header, nav, main, section, footer)
 - [ ] Verify proper heading hierarchy (H1: venue name, H2: section headings)
 - [ ] All images have alt text (from `venue_photos.alt_text` or auto-generated)
-- [ ] Generate XML sitemap including all published venue pages
-- [ ] Configure robots.txt
+- [x] Generate XML sitemap including all published venue pages
+- [x] Configure robots.txt
 - [ ] Add LocalBusiness schema markup in addition to EventVenue (for local SEO)
 - [ ] Test Schema.org markup with Google Rich Results Test
 - [ ] Test social sharing cards (OG tags) on Facebook/LinkedIn
@@ -1257,16 +1257,16 @@ The following already exists and will be leveraged (not rebuilt):
 - [ ] Review accessibility: keyboard nav, ARIA labels, color contrast
 
 ### Task 14.2: Error Handling
-- [ ] Add error boundaries to public page sections
+- [x] Add error boundaries to public page sections
 - [ ] Handle chat API errors gracefully (retry button, friendly message)
 - [ ] Handle image upload failures (retry, clear message)
 - [ ] Handle offline/network error scenarios
 
 ### Task 14.3: Update Navigation & Settings
-- [ ] Add "Public Page" link to venue management (Sidebar or venue detail page)
-- [ ] Add "Leads" to sidebar nav with count badge
-- [ ] Add "Analytics" under venue management
-- [ ] Update settings page with lead notification preferences
+- [x] Add "Public Page" link to venue management (Sidebar or venue detail page)
+- [ ] Add "Leads" to sidebar nav with count badge (Leads link exists, badge not yet)
+- [x] Add "Analytics" under venue management
+- [x] Update settings page with lead notification preferences
 - [ ] Add "Edit Public Page" quick action on existing venue detail page
 
 ### Task 14.4: Update Subscription Tiers

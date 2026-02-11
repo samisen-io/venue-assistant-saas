@@ -25,6 +25,11 @@ export interface SeedDataResult {
       leads?: number;
       lead_activities?: number;
       proposals?: number;
+      agent_runs?: number;
+      vendor_communications?: number;
+      vendor_quotes?: number;
+      page_analytics?: number;
+      venue_page_versions?: number;
     };
 }
 
@@ -67,6 +72,12 @@ export async function clearAllData(
   await safeDeleteWhereNotEq(supabase, 'venue_event_types');
   await safeDeleteWhereNotEq(supabase, 'venue_amenities');
   await safeDeleteWhereNotEq(supabase, 'venue_photos');
+
+  // Agent/vendor outreach tables (delete before events/vendors due to FK deps)
+  await safeDeleteWhereNotEq(supabase, 'vendor_quotes');
+  await safeDeleteWhereNotEq(supabase, 'vendor_communications');
+  await safeDeleteWhereNotEq(supabase, 'agent_runs');
+  await safeDeleteWhereNotEq(supabase, 'preview_tokens');
 
   // Delete in correct order due to foreign key constraints
   // Reviews first (references events and vendors)
@@ -1217,6 +1228,427 @@ export async function seedDemoData(
       throw new Error(proposalsError.message || 'Failed to seed proposals');
     }
 
+    // 11. Seed Agent Runs for completed past events
+    const holidayGala = events[12]; // Holiday Gala 2025 (completed)
+    const awardsEvent = events[14]; // Industry Awards Ceremony (completed)
+    const agentRunStarted1 = new Date(pastDate2);
+    agentRunStarted1.setDate(agentRunStarted1.getDate() - 7); // Started a week before event
+    const agentRunCompleted1 = new Date(agentRunStarted1);
+    agentRunCompleted1.setDate(agentRunStarted1.getDate() + 2);
+    const agentRunStarted2 = new Date(pastDate1);
+    agentRunStarted2.setDate(agentRunStarted2.getDate() - 10);
+    const agentRunCompleted2 = new Date(agentRunStarted2);
+    agentRunCompleted2.setDate(agentRunStarted2.getDate() + 1);
+
+    const { data: agentRuns, error: agentRunsError } = await supabase
+      .from('agent_runs')
+      .insert([
+        {
+          event_id: holidayGala.id,
+          trigger_type: 'manual',
+          status: 'completed',
+          started_at: agentRunStarted1.toISOString(),
+          completed_at: agentRunCompleted1.toISOString(),
+          last_activity_at: agentRunCompleted1.toISOString(),
+          vendors_targeted: 5,
+          vendors_contacted: 4,
+          vendors_responded: 3,
+          quotes_received: 3,
+          error_count: 0,
+          logs: [
+            { ts: agentRunStarted1.toISOString(), msg: 'Agent run started for Holiday Gala 2025' },
+            { ts: agentRunCompleted1.toISOString(), msg: 'All vendors responded. Run complete.' },
+          ],
+        },
+        {
+          event_id: awardsEvent.id,
+          trigger_type: 'manual',
+          status: 'completed',
+          started_at: agentRunStarted2.toISOString(),
+          completed_at: agentRunCompleted2.toISOString(),
+          last_activity_at: agentRunCompleted2.toISOString(),
+          vendors_targeted: 3,
+          vendors_contacted: 3,
+          vendors_responded: 2,
+          quotes_received: 2,
+          error_count: 0,
+          logs: [
+            { ts: agentRunStarted2.toISOString(), msg: 'Agent run started for Industry Awards Ceremony' },
+            { ts: agentRunCompleted2.toISOString(), msg: 'Vendor responses collected. Run complete.' },
+          ],
+        },
+      ])
+      .select();
+    if (agentRunsError) {
+      console.error('Agent runs error:', agentRunsError);
+      throw new Error(agentRunsError.message || 'Failed to seed agent runs');
+    }
+
+    // 12. Seed Vendor Communications (outbound + inbound pairs)
+    const gourmetCatering = vendors.find((v) => v.name === 'Gourmet Catering Co.');
+    const techSoundAV = vendors.find((v) => v.name === 'TechSound Audio Visual');
+    const vipValet = vendors.find((v) => v.name === 'VIP Valet Services');
+    const premiumFeast = vendors.find((v) => v.name === 'Premium Feast Services');
+    const proAV = vendors.find((v) => v.name === 'ProAV Solutions');
+
+    const commSentAt1 = new Date(agentRunStarted1);
+    commSentAt1.setHours(commSentAt1.getHours() + 1);
+    const commReplyAt1 = new Date(commSentAt1);
+    commReplyAt1.setHours(commSentAt1.getHours() + 8);
+
+    const commSentAt2 = new Date(agentRunStarted2);
+    commSentAt2.setHours(commSentAt2.getHours() + 1);
+    const commReplyAt2 = new Date(commSentAt2);
+    commReplyAt2.setHours(commSentAt2.getHours() + 6);
+
+    const vendorCommsSeed = [
+      // Holiday Gala outreach
+      {
+        event_id: holidayGala.id,
+        vendor_id: gourmetCatering!.id,
+        direction: 'outbound',
+        subject: 'Catering Inquiry - Holiday Gala 2025 (400 guests)',
+        body: 'Hi Sarah, we are hosting a Holiday Gala for 400 guests and would love to get a quote from Gourmet Catering Co.',
+        from_email: `events+${demoEmailSuffix}@example.com`,
+        to_email: 'sarah@gourmetcatering.com',
+        status: 'delivered',
+        sent_at: commSentAt1.toISOString(),
+      },
+      {
+        event_id: holidayGala.id,
+        vendor_id: gourmetCatering!.id,
+        direction: 'inbound',
+        subject: 'Re: Catering Inquiry - Holiday Gala 2025 (400 guests)',
+        body: 'Hi! We would be happy to cater your Holiday Gala. For 400 guests, our standard package is $45/person ($18,000 total). We can customize the menu to your preferences.',
+        from_email: 'sarah@gourmetcatering.com',
+        to_email: `events+${demoEmailSuffix}@example.com`,
+        status: 'received',
+        received_at: commReplyAt1.toISOString(),
+        processed: true,
+      },
+      {
+        event_id: holidayGala.id,
+        vendor_id: techSoundAV!.id,
+        direction: 'outbound',
+        subject: 'AV Setup Inquiry - Holiday Gala 2025',
+        body: 'Hi David, we need full AV setup for a 400-guest corporate gala in the Grand Ballroom. Can you provide a quote?',
+        from_email: `events+${demoEmailSuffix}@example.com`,
+        to_email: 'david@techsound.com',
+        status: 'delivered',
+        sent_at: commSentAt1.toISOString(),
+      },
+      {
+        event_id: holidayGala.id,
+        vendor_id: techSoundAV!.id,
+        direction: 'inbound',
+        subject: 'Re: AV Setup Inquiry - Holiday Gala 2025',
+        body: 'David here. Full AV package for the Grand Ballroom would be $1,650 including sound system, projectors, and lighting. Setup starts 3 hours before event.',
+        from_email: 'david@techsound.com',
+        to_email: `events+${demoEmailSuffix}@example.com`,
+        status: 'received',
+        received_at: commReplyAt1.toISOString(),
+        processed: true,
+      },
+      {
+        event_id: holidayGala.id,
+        vendor_id: vipValet!.id,
+        direction: 'outbound',
+        subject: 'Valet Parking - Holiday Gala 2025 (300 cars estimated)',
+        body: 'Hi Tom, we expect around 300 vehicles for our Holiday Gala. Can you provide valet parking services?',
+        from_email: `events+${demoEmailSuffix}@example.com`,
+        to_email: 'tom@vipvalet.com',
+        status: 'delivered',
+        sent_at: commSentAt1.toISOString(),
+      },
+      {
+        event_id: holidayGala.id,
+        vendor_id: vipValet!.id,
+        direction: 'inbound',
+        subject: 'Re: Valet Parking - Holiday Gala 2025 (300 cars estimated)',
+        body: 'We can handle 300 vehicles. Rate is $15/car, estimated total $4,500. We will have 6 valets on site.',
+        from_email: 'tom@vipvalet.com',
+        to_email: `events+${demoEmailSuffix}@example.com`,
+        status: 'received',
+        received_at: commReplyAt1.toISOString(),
+        processed: true,
+      },
+      // Awards event outreach
+      {
+        event_id: awardsEvent.id,
+        vendor_id: premiumFeast!.id,
+        direction: 'outbound',
+        subject: 'Catering Quote - Industry Awards Ceremony (280 guests)',
+        body: 'Hi Emily, requesting a catering quote for our Industry Awards Ceremony, 280 guests, formal dinner service.',
+        from_email: `events+${demoEmailSuffix}@example.com`,
+        to_email: 'emily@premiumfeast.com',
+        status: 'delivered',
+        sent_at: commSentAt2.toISOString(),
+      },
+      {
+        event_id: awardsEvent.id,
+        vendor_id: premiumFeast!.id,
+        direction: 'inbound',
+        subject: 'Re: Catering Quote - Industry Awards Ceremony (280 guests)',
+        body: 'Emily here. For a formal 280-guest dinner, our premium package runs $65/person ($18,200 total). Includes passed appetizers, plated dinner, and dessert station.',
+        from_email: 'emily@premiumfeast.com',
+        to_email: `events+${demoEmailSuffix}@example.com`,
+        status: 'received',
+        received_at: commReplyAt2.toISOString(),
+        processed: true,
+      },
+    ];
+
+    const { data: vendorComms, error: vendorCommsError } = await supabase
+      .from('vendor_communications')
+      .insert(vendorCommsSeed)
+      .select();
+    if (vendorCommsError) {
+      console.error('Vendor communications error:', vendorCommsError);
+      throw new Error(vendorCommsError.message || 'Failed to seed vendor communications');
+    }
+
+    // 13. Seed Vendor Quotes (from inbound replies)
+    const inboundComms = vendorComms?.filter((c) => c.direction === 'inbound') || [];
+    const gourmetInbound = inboundComms.find((c) => c.vendor_id === gourmetCatering!.id && c.event_id === holidayGala.id);
+    const techSoundInbound = inboundComms.find((c) => c.vendor_id === techSoundAV!.id);
+    const vipValetInbound = inboundComms.find((c) => c.vendor_id === vipValet!.id);
+    const premiumFeastInbound = inboundComms.find((c) => c.vendor_id === premiumFeast!.id);
+
+    const { data: vendorQuotes, error: vendorQuotesError } = await supabase
+      .from('vendor_quotes')
+      .insert([
+        {
+          event_id: holidayGala.id,
+          vendor_id: gourmetCatering!.id,
+          communication_id: gourmetInbound?.id,
+          total_cost: 18000,
+          breakdown: { per_person: 45, guests: 400, total: 18000 },
+          availability_confirmed: true,
+          available_date: holidayGala.event_date,
+          payment_terms: 'Net 30, 50% deposit',
+          status: 'approved',
+          approved_at: agentRunCompleted1.toISOString(),
+        },
+        {
+          event_id: holidayGala.id,
+          vendor_id: techSoundAV!.id,
+          communication_id: techSoundInbound?.id,
+          total_cost: 1650,
+          breakdown: { sound_system: 600, projectors: 400, lighting: 450, setup: 200 },
+          availability_confirmed: true,
+          available_date: holidayGala.event_date,
+          setup_time: '3 hours before event',
+          payment_terms: 'Due on event day',
+          status: 'approved',
+          approved_at: agentRunCompleted1.toISOString(),
+        },
+        {
+          event_id: holidayGala.id,
+          vendor_id: vipValet!.id,
+          communication_id: vipValetInbound?.id,
+          total_cost: 4500,
+          breakdown: { rate_per_car: 15, estimated_cars: 300, valets: 6 },
+          availability_confirmed: true,
+          available_date: holidayGala.event_date,
+          payment_terms: 'Net 15',
+          status: 'approved',
+          approved_at: agentRunCompleted1.toISOString(),
+        },
+        {
+          event_id: awardsEvent.id,
+          vendor_id: premiumFeast!.id,
+          communication_id: premiumFeastInbound?.id,
+          total_cost: 18200,
+          breakdown: { per_person: 65, guests: 280, includes: 'appetizers, plated dinner, dessert station' },
+          availability_confirmed: true,
+          available_date: awardsEvent.event_date,
+          payment_terms: '50% deposit, balance due 7 days before event',
+          status: 'approved',
+          approved_at: agentRunCompleted2.toISOString(),
+        },
+      ])
+      .select();
+    if (vendorQuotesError) {
+      console.error('Vendor quotes error:', vendorQuotesError);
+      throw new Error(vendorQuotesError.message || 'Failed to seed vendor quotes');
+    }
+
+    // 14. Seed Page Analytics (sample events over last 14 days)
+    const analyticsSeed: Array<{
+      venue_id: string;
+      event_type: string;
+      metadata: Record<string, unknown>;
+      referrer?: string;
+      session_id: string;
+      created_at: string;
+    }> = [];
+
+    const referrers = [
+      'https://www.google.com',
+      'https://www.instagram.com',
+      'https://www.facebook.com',
+      null,
+      'https://www.theknot.com',
+      'https://www.yelp.com',
+    ];
+
+    for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
+      const dayDate = new Date(todayForPublic);
+      dayDate.setDate(todayForPublic.getDate() - dayOffset);
+      const sessionBase = `analytics-${demoEmailSuffix}-d${dayOffset}`;
+
+      // 1-3 page views per day
+      const viewsCount = dayOffset < 3 ? 3 : dayOffset < 7 ? 2 : 1;
+      for (let v = 0; v < viewsCount; v++) {
+        const viewTime = new Date(dayDate);
+        viewTime.setHours(9 + v * 3, Math.floor(Math.random() * 60));
+        analyticsSeed.push({
+          venue_id: venue.id,
+          event_type: 'page_view',
+          metadata: { page: '/' },
+          referrer: referrers[dayOffset % referrers.length] || undefined,
+          session_id: `${sessionBase}-v${v}`,
+          created_at: viewTime.toISOString(),
+        });
+      }
+
+      // chat_opened on some days
+      if (dayOffset % 3 === 0) {
+        const chatTime = new Date(dayDate);
+        chatTime.setHours(14, 30);
+        analyticsSeed.push({
+          venue_id: venue.id,
+          event_type: 'chat_opened',
+          metadata: { trigger: 'cta_button' },
+          session_id: `${sessionBase}-chat`,
+          created_at: chatTime.toISOString(),
+        });
+      }
+
+      // cta_click on some days
+      if (dayOffset % 4 === 0) {
+        const ctaTime = new Date(dayDate);
+        ctaTime.setHours(16, 15);
+        analyticsSeed.push({
+          venue_id: venue.id,
+          event_type: 'cta_click',
+          metadata: { button: 'check_availability' },
+          session_id: `${sessionBase}-cta`,
+          created_at: ctaTime.toISOString(),
+        });
+      }
+
+      // gallery_view on some days
+      if (dayOffset % 5 === 0) {
+        const galleryTime = new Date(dayDate);
+        galleryTime.setHours(11, 45);
+        analyticsSeed.push({
+          venue_id: venue.id,
+          event_type: 'gallery_view',
+          metadata: { section: 'Main Venue' },
+          session_id: `${sessionBase}-gal`,
+          created_at: galleryTime.toISOString(),
+        });
+      }
+    }
+
+    // Add a few lead_captured and other events
+    const leadCaptureDate1 = new Date(todayForPublic);
+    leadCaptureDate1.setDate(todayForPublic.getDate() - 2);
+    leadCaptureDate1.setHours(15, 20);
+    const leadCaptureDate2 = new Date(todayForPublic);
+    leadCaptureDate2.setDate(todayForPublic.getDate() - 6);
+    leadCaptureDate2.setHours(10, 45);
+    analyticsSeed.push(
+      {
+        venue_id: venue.id,
+        event_type: 'lead_captured',
+        metadata: { source: 'ai_chat' },
+        session_id: `analytics-${demoEmailSuffix}-lead1`,
+        created_at: leadCaptureDate1.toISOString(),
+      },
+      {
+        venue_id: venue.id,
+        event_type: 'lead_captured',
+        metadata: { source: 'inquiry_form' },
+        session_id: `analytics-${demoEmailSuffix}-lead2`,
+        created_at: leadCaptureDate2.toISOString(),
+      },
+      {
+        venue_id: venue.id,
+        event_type: 'calendar_click',
+        metadata: { month: '2026-03' },
+        session_id: `analytics-${demoEmailSuffix}-cal`,
+        created_at: new Date(todayForPublic.getTime() - 3 * 86400000).toISOString(),
+      },
+      {
+        venue_id: venue.id,
+        event_type: 'phone_click',
+        metadata: {},
+        session_id: `analytics-${demoEmailSuffix}-phone`,
+        created_at: new Date(todayForPublic.getTime() - 5 * 86400000).toISOString(),
+      },
+    );
+
+    const { data: pageAnalytics, error: pageAnalyticsError } = await supabase
+      .from('page_analytics')
+      .insert(analyticsSeed)
+      .select();
+    if (pageAnalyticsError) {
+      console.error('Page analytics error:', pageAnalyticsError);
+      throw new Error(pageAnalyticsError.message || 'Failed to seed page analytics');
+    }
+
+    // 15. Seed Venue Page Versions (2 version snapshots)
+    const version1Date = new Date(todayForPublic);
+    version1Date.setDate(todayForPublic.getDate() - 30);
+    const version2Date = new Date(todayForPublic);
+    version2Date.setDate(todayForPublic.getDate() - 7);
+
+    const { data: pageVersions, error: pageVersionsError } = await supabase
+      .from('venue_page_versions')
+      .insert([
+        {
+          venue_id: venue.id,
+          version_number: 1,
+          snapshot: {
+            name: venue.name,
+            tagline: 'Premier event venue in downtown San Francisco',
+            description: venue.description,
+            page_status: 'published',
+            photos_count: 6,
+            packages_count: 2,
+            amenities_count: 5,
+          },
+          published_by: userId,
+          change_summary: 'Initial page publish with basic venue info and photos',
+          created_at: version1Date.toISOString(),
+        },
+        {
+          venue_id: venue.id,
+          version_number: 2,
+          snapshot: {
+            name: venue.name,
+            tagline: venue.tagline,
+            description: venue.description,
+            page_status: 'published',
+            photos_count: 10,
+            packages_count: 3,
+            amenities_count: 8,
+            testimonials_count: 2,
+            ai_chat_enabled: true,
+          },
+          published_by: userId,
+          change_summary: 'Added gallery photos, pricing packages, testimonials, and AI chat',
+          created_at: version2Date.toISOString(),
+        },
+      ])
+      .select();
+    if (pageVersionsError) {
+      console.error('Page versions error:', pageVersionsError);
+      throw new Error(pageVersionsError.message || 'Failed to seed page versions');
+    }
+
     return {
       success: true,
       message: 'Demo data seeded successfully!',
@@ -1242,6 +1674,11 @@ export async function seedDemoData(
         leads: leads?.length || 0,
         lead_activities: leadActivities?.length || 0,
         proposals: proposals?.length || 0,
+        agent_runs: agentRuns?.length || 0,
+        vendor_communications: vendorComms?.length || 0,
+        vendor_quotes: vendorQuotes?.length || 0,
+        page_analytics: pageAnalytics?.length || 0,
+        venue_page_versions: pageVersions?.length || 0,
       },
     };
   } catch (error: unknown) {
