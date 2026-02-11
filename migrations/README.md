@@ -12,6 +12,9 @@
 |------|---------|
 | `setup-database.sql` (root) | Complete schema setup for fresh databases. Drops and recreates all tables. |
 | `all-migrations.sql` | All incremental migrations consolidated into one file. Safe to re-run. |
+| `public-pages-migration.sql` | Public venue pages feature: venues, spaces, photos, packages, testimonials, calendar settings, preview tokens, leads, conversations, etc. |
+| `setup-preview-tokens.sql` | Creates `preview_tokens` table with anonymous access for preview links (run this if table doesn't exist). |
+| `venue-photos-storage.sql` | Supabase Storage setup for venue photos and media. |
 
 ## What `all-migrations.sql` Contains
 

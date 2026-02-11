@@ -30,9 +30,9 @@ export async function POST(
     // Otherwise, return the token directly
     const previewToken = {
       token,
-      expiresAt: expiresAt.toISOString(),
-      venueId,
-      createdAt: new Date().toISOString(),
+      expires_at: expiresAt.toISOString(),
+      venue_id: venueId,
+      created_at: new Date().toISOString(),
     }
 
     // Try to store in database if table exists

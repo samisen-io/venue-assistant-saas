@@ -74,11 +74,11 @@ export function PreviewLinkButton({ venueId, venueSlug }: PreviewLinkButtonProps
         size="sm"
         onClick={handleOpenClick}
         disabled={!venueSlug}
-        title={!venueSlug ? "Save venue slug first" : "Preview your page"}
+        title={!venueSlug ? "Save venue slug first" : "Get shareable preview link"}
         className="gap-2"
       >
         <Eye className="w-4 h-4" />
-        Preview
+        Preview Link
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>

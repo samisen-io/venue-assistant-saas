@@ -1,6 +1,5 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { VenuePublicPage } from "@/lib/types/public-page.types"
 
 function changed(a: unknown, b: unknown): boolean {
@@ -33,19 +32,20 @@ export function ChangesSummaryPanel({
   const changedCount = rows.filter((r) => r[1]).length
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Changes Since Last Load ({changedCount})</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-1 text-sm">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium">Changes Since Last Load</h3>
+        <span className="text-xs text-muted-foreground">{changedCount} changed</span>
+      </div>
+      <div className="space-y-1 text-sm">
         {rows.map(([label, isChanged]) => (
           <p key={label} className={isChanged ? "text-foreground" : "text-muted-foreground"}>
             {isChanged ? "• " : "○ "}
             {label}
           </p>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 

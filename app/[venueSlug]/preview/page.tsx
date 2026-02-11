@@ -29,13 +29,17 @@ export default async function PreviewPage({ params, searchParams }: PreviewPageP
 
   try {
     // Verify token is valid
-    await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/venues/preview-verify`, {
+    const verifyResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/venues/preview-verify`, {
       method: "GET",
       headers: {
         "x-preview-token": token,
         "x-venue-slug": venueSlug,
       },
     })
+
+    if (!verifyResponse.ok) {
+      notFound()
+    }
   } catch (error) {
     notFound()
   }

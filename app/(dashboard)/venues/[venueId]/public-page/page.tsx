@@ -31,6 +31,8 @@ import { PublishButton } from "@/components/page-editor/PublishButton"
 import { VersionHistory } from "@/components/page-editor/VersionHistory"
 import { UnpublishDialog } from "@/components/page-editor/UnpublishDialog"
 import { PreviewLinkButton } from "@/components/page-editor/PreviewLinkButton"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Monitor, ListChecks } from "lucide-react"
 
 type VenuePackage = Database["public"]["Tables"]["venue_packages"]["Row"]
 type VenuePackageAddon = Database["public"]["Tables"]["venue_package_addons"]["Row"]
@@ -60,6 +62,10 @@ export default function VenuePublicPageEditorPage() {
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   const isSavingRef = useRef(false)
   const historyRef = useRef<VenuePublicPage[]>([])
+
+  // Panel visibility state
+  const [previewPanelOpen, setPreviewPanelOpen] = useState(false)
+  const [changesPanelOpen, setChangesPanelOpen] = useState(false)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -314,6 +320,63 @@ export default function VenuePublicPageEditorPage() {
     return () => clearTimeout(t)
   }, [data])
 
+  // Load panel state from localStorage on mount
+  useEffect(() => {
+    const savedPreviewOpen = localStorage.getItem('publicPageEditor:previewOpen')
+    const savedChangesOpen = localStorage.getItem('publicPageEditor:changesOpen')
+    if (savedPreviewOpen !== null) setPreviewPanelOpen(savedPreviewOpen === 'true')
+    if (savedChangesOpen !== null) setChangesPanelOpen(savedChangesOpen === 'true')
+  }, [])
+
+  // Persist preview panel state
+  useEffect(() => {
+    localStorage.setItem('publicPageEditor:previewOpen', String(previewPanelOpen))
+  }, [previewPanelOpen])
+
+  // Persist changes panel state
+  useEffect(() => {
+    localStorage.setItem('publicPageEditor:changesOpen', String(changesPanelOpen))
+  }, [changesPanelOpen])
+
+  // Keyboard shortcuts: Cmd/Ctrl+P for Preview, Cmd/Ctrl+K for Changes
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey) {
+        if (e.key === 'p') {
+          e.preventDefault()
+          setPreviewPanelOpen(prev => !prev)
+        }
+        if (e.key === 'k') {
+          e.preventDefault()
+          setChangesPanelOpen(prev => !prev)
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  // Count changes for badge
+  const changedCount = useMemo(() => {
+    if (!baselineData || !data) return 0
+    let count = 0
+    function changed(a: unknown, b: unknown): boolean {
+      return JSON.stringify(a) !== JSON.stringify(b)
+    }
+    if (changed(baselineData.venue, data.venue)) count++
+    if (changed(baselineData.spaces, data.spaces)) count++
+    if (changed(baselineData.amenities, data.amenities)) count++
+    if (changed(baselineData.eventTypes, data.eventTypes)) count++
+    if (changed(baselineData.photos, data.photos)) count++
+    if (changed(baselineData.packages, data.packages)) count++
+    if (changed(baselineData.addons, data.packageAddons)) count++
+    if (changed(baselineData.calendarSettings, data.calendarSettings)) count++
+    if (changed(baselineData.blackoutDates, data.blackoutDates)) count++
+    if (changed(baselineData.aiSettings, data.aiSettings)) count++
+    if (changed(baselineData.testimonials, data.testimonials)) count++
+    return count
+  }, [baselineData, data])
+
   const saveStatus = useMemo(() => {
     if (saving) return "Saving..."
     if (dirty) return "Unsaved changes"
@@ -350,6 +413,28 @@ export default function VenuePublicPageEditorPage() {
           <Button onClick={() => saveAll().catch(() => {})} disabled={saving}>
             {saving ? "Saving..." : "Save"}
           </Button>
+          <Button
+            variant={changesPanelOpen ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setChangesPanelOpen(prev => !prev)}
+            className="relative"
+          >
+            <ListChecks className="mr-2 h-4 w-4" />
+            Changes
+            {changedCount > 0 && (
+              <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                {changedCount}
+              </span>
+            )}
+          </Button>
+          <Button
+            variant={previewPanelOpen ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setPreviewPanelOpen(prev => !prev)}
+          >
+            <Monitor className="mr-2 h-4 w-4" />
+            Preview
+          </Button>
           {data && (
             <PreviewLinkButton 
               venueId={venueId}
@@ -385,8 +470,7 @@ export default function VenuePublicPageEditorPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <div className="space-y-4">
+      <div className="space-y-4">
           <Tabs defaultValue="basic" className="space-y-4">
             <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10">
               <TabsTrigger value="basic">Basic</TabsTrigger>
@@ -543,13 +627,40 @@ export default function VenuePublicPageEditorPage() {
               />
             </TabsContent>
           </Tabs>
-        </div>
-
-        <div>
-          <ChangesSummaryPanel baseline={baselineData} current={data} />
-          {previewData ? <LivePreview data={previewData} device={device} onDeviceChange={setDevice} /> : null}
-        </div>
       </div>
+
+      {/* Changes Summary Slide Panel */}
+      <Sheet open={changesPanelOpen} onOpenChange={setChangesPanelOpen}>
+        <SheetContent side="right" className="w-[90vw] sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Changes Tracker</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            <ChangesSummaryPanel baseline={baselineData} current={data} />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Live Preview Slide Panel */}
+      <Sheet open={previewPanelOpen} onOpenChange={setPreviewPanelOpen}>
+        <SheetContent
+          side="right"
+          className={`w-[95vw] overflow-y-auto ${
+            device === 'desktop' ? 'sm:max-w-[1400px]' :
+            device === 'tablet' ? 'sm:max-w-[900px]' :
+            'sm:max-w-md'
+          }`}
+        >
+          <SheetHeader>
+            <SheetTitle>Live Preview</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            {previewData ? (
+              <LivePreview data={previewData} device={device} onDeviceChange={setDevice} />
+            ) : null}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
