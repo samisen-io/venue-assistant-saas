@@ -8,7 +8,11 @@ import {
     Plus,
     ArrowRight,
     TrendingUp,
-    Clock
+    Clock,
+    UserPlus,
+    Flame,
+    Zap,
+    CircleDot
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -25,6 +29,33 @@ interface SubscriptionData {
     trial_ends_at: string | null;
 }
 
+interface DashboardLead {
+    id: string;
+    contact_name: string | null;
+    event_type: string | null;
+    status: string;
+    priority_score: number;
+    source: string;
+    created_at: string;
+}
+
+function getPriorityBadge(score: number) {
+    if (score >= 80) return { icon: Flame, label: "Hot", className: "text-red-600 bg-red-50" };
+    if (score >= 60) return { icon: Zap, label: "Warm", className: "text-amber-600 bg-amber-50" };
+    return { icon: CircleDot, label: "New", className: "text-green-600 bg-green-50" };
+}
+
+function timeAgo(dateStr: string): string {
+    const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+    if (seconds < 60) return "just now";
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+}
+
 export default function DashboardPage() {
     const [stats, setStats] = useState({
         totalEvents: 0,
@@ -33,6 +64,7 @@ export default function DashboardPage() {
         totalBudget: 0
     });
     const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+    const [recentLeads, setRecentLeads] = useState<DashboardLead[]>([]);
     const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
     const [trialDaysRemaining, setTrialDaysRemaining] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -41,10 +73,11 @@ export default function DashboardPage() {
         const fetchDashboardData = async () => {
             setIsLoading(true);
             try {
-                const [eventsRes, vendorsRes, subRes] = await Promise.all([
+                const [eventsRes, vendorsRes, subRes, leadsRes] = await Promise.all([
                     fetch("/api/events"),
                     fetch("/api/vendors"),
                     fetch("/api/subscription"),
+                    fetch("/api/leads"),
                 ]);
 
                 if (eventsRes.ok && vendorsRes.ok) {
@@ -63,6 +96,13 @@ export default function DashboardPage() {
                         upcomingEvents: upcoming.length,
                         totalBudget: eventsData.reduce((acc, curr) => acc + (curr.budget_total || 0), 0)
                     });
+                }
+
+                if (leadsRes.ok) {
+                    const leadsData = await leadsRes.json();
+                    if (Array.isArray(leadsData)) {
+                        setRecentLeads(leadsData.slice(0, 5));
+                    }
                 }
 
                 if (subRes.ok) {
@@ -86,6 +126,8 @@ export default function DashboardPage() {
     }, []);
 
     if (isLoading) return <Loading />;
+
+    const newLeadCount = recentLeads.filter(l => l.status === "new").length;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -177,38 +219,97 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                <div className="md:col-span-3 space-y-4">
-                    <h2 className="text-xl font-semibold">Venue Quick Links</h2>
-                    <div className="grid gap-4">
-                        <Link href="/venues" className="group block p-4 bg-white rounded-xl border hover:border-primary hover:shadow-md transition-all">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-blue-50 p-2 rounded-lg text-blue-600 group-hover:bg-primary group-hover:text-white transition-colors">
-                                        <Users className="h-5 w-5" />
+                <div className="md:col-span-3 space-y-6">
+                    <div className="space-y-4">
+                        <h2 className="text-xl font-semibold">Venue Quick Links</h2>
+                        <div className="grid gap-4">
+                            <Link href="/venues" className="group block p-4 bg-white rounded-xl border hover:border-primary hover:shadow-md transition-all">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-blue-50 p-2 rounded-lg text-blue-600 group-hover:bg-primary group-hover:text-white transition-colors">
+                                            <Users className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold">My Venues</p>
+                                            <p className="text-xs text-muted-foreground">Manage locations and details</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="font-bold">My Venues</p>
-                                        <p className="text-xs text-muted-foreground">Manage locations and details</p>
-                                    </div>
+                                    <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                                 </div>
-                                <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                            </div>
-                        </Link>
+                            </Link>
 
-                        <Link href="/vendors" className="group block p-4 bg-white rounded-xl border hover:border-primary hover:shadow-md transition-all">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-purple-50 p-2 rounded-lg text-purple-600 group-hover:bg-primary group-hover:text-white transition-colors">
-                                        <TrendingUp className="h-5 w-5" />
+                            <Link href="/vendors" className="group block p-4 bg-white rounded-xl border hover:border-primary hover:shadow-md transition-all">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-purple-50 p-2 rounded-lg text-purple-600 group-hover:bg-primary group-hover:text-white transition-colors">
+                                            <TrendingUp className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold">Preferred Vendors</p>
+                                            <p className="text-xs text-muted-foreground">View performance and scores</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="font-bold">Preferred Vendors</p>
-                                        <p className="text-xs text-muted-foreground">View performance and scores</p>
-                                    </div>
+                                    <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                                 </div>
-                                <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                            </Link>
+                        </div>
+                    </div>
+
+                    {/* Recent Leads */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-xl font-semibold">Recent Leads</h2>
+                                {newLeadCount > 0 && (
+                                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                                        {newLeadCount}
+                                    </span>
+                                )}
                             </div>
-                        </Link>
+                            <Button variant="ghost" asChild className="text-primary">
+                                <Link href="/leads">
+                                    View All
+                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                </Link>
+                            </Button>
+                        </div>
+
+                        {recentLeads.length > 0 ? (
+                            <div className="grid gap-2">
+                                {recentLeads.map((lead) => {
+                                    const priority = getPriorityBadge(lead.priority_score);
+                                    const PriorityIcon = priority.icon;
+                                    return (
+                                        <Link
+                                            key={lead.id}
+                                            href={`/leads/${lead.id}`}
+                                            className="group flex items-center gap-3 p-3 bg-white rounded-xl border hover:border-primary hover:shadow-sm transition-all"
+                                        >
+                                            <div className={`p-1.5 rounded-lg ${priority.className}`}>
+                                                <PriorityIcon className="h-4 w-4" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium truncate">
+                                                    {lead.contact_name || "Unknown"}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground truncate">
+                                                    {lead.event_type || "Event"} &middot; {lead.status}
+                                                </p>
+                                            </div>
+                                            <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                                                {timeAgo(lead.created_at)}
+                                            </span>
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed">
+                                <UserPlus className="mx-auto h-8 w-8 text-gray-300 mb-2" />
+                                <p className="text-sm text-gray-500">No leads yet</p>
+                                <p className="text-xs text-muted-foreground mt-1">Leads from your public page will appear here</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

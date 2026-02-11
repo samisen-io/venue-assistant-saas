@@ -4,6 +4,9 @@ export interface PlanLimits {
     maxSpaces: number
     maxEventsPerMonth: number
     maxVendors: number
+    maxPhotos: number
+    maxAIChatMessagesPerMonth: number
+    maxLeadsPerMonth: number
     apiAccess: boolean
 }
 
@@ -21,24 +24,36 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
         maxSpaces: 1,
         maxEventsPerMonth: 5,
         maxVendors: 10,
+        maxPhotos: 10,
+        maxAIChatMessagesPerMonth: 50,
+        maxLeadsPerMonth: 10,
         apiAccess: false,
     },
     starter: {
         maxSpaces: 1,
         maxEventsPerMonth: 10,
         maxVendors: 50,
+        maxPhotos: 20,
+        maxAIChatMessagesPerMonth: 100,
+        maxLeadsPerMonth: 20,
         apiAccess: false,
     },
     professional: {
         maxSpaces: 3,
         maxEventsPerMonth: 50,
         maxVendors: Infinity,
+        maxPhotos: 50,
+        maxAIChatMessagesPerMonth: 500,
+        maxLeadsPerMonth: 100,
         apiAccess: false,
     },
     enterprise: {
         maxSpaces: Infinity,
         maxEventsPerMonth: Infinity,
         maxVendors: Infinity,
+        maxPhotos: Infinity,
+        maxAIChatMessagesPerMonth: Infinity,
+        maxLeadsPerMonth: Infinity,
         apiAccess: true,
     },
 }
@@ -54,6 +69,9 @@ export const PLANS: PlanConfig[] = [
             '1 space',
             '10 events per month',
             '50 vendors',
+            '20 venue photos',
+            '100 AI chat messages/mo',
+            '20 leads/mo',
             'Budget tracking',
             'Vendor matching',
             'Email support',
@@ -69,6 +87,9 @@ export const PLANS: PlanConfig[] = [
             '3 spaces',
             '50 events per month',
             'Unlimited vendors',
+            '50 venue photos',
+            '500 AI chat messages/mo',
+            '100 leads/mo',
             'Budget tracking',
             'Vendor matching',
             'Priority support',
@@ -85,6 +106,9 @@ export const PLANS: PlanConfig[] = [
             'Unlimited spaces',
             'Unlimited events',
             'Unlimited vendors',
+            'Unlimited photos',
+            'Unlimited AI chat',
+            'Unlimited leads',
             'Budget tracking',
             'Vendor matching',
             'Dedicated support',

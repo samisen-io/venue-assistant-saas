@@ -30,14 +30,22 @@ export async function generateMetadata({
   const description = venue.seo_description || venue.tagline || venue.description || "Event venue details"
   const image = venue.og_image_url || venue.hero_image_url || undefined
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://venuemanager.pro"
+  const canonicalUrl = venue.website || `${baseUrl}/${venueSlug}`
+
   return {
     title,
     description,
+    keywords: venue.seo_keywords || undefined,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title,
       description,
       images: image ? [{ url: image }] : undefined,
       type: "website",
+      url: `${baseUrl}/${venueSlug}`,
     },
     twitter: {
       card: "summary_large_image",
@@ -69,21 +77,27 @@ export default async function PublicVenuePage({
     )
   }
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://venuemanager.pro"
+
+  const addressSchema = {
+    "@type": "PostalAddress",
+    streetAddress: venue.address,
+    addressLocality: venue.city,
+    addressRegion: venue.state,
+    postalCode: venue.zip_code,
+  }
+
+  const geoSchema =
+    venue.latitude && venue.longitude
+      ? { "@type": "GeoCoordinates", latitude: venue.latitude, longitude: venue.longitude }
+      : undefined
+
   const eventVenueSchema = {
     "@context": "https://schema.org",
     "@type": "EventVenue",
     name: venue.name,
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: venue.address,
-      addressLocality: venue.city,
-      addressRegion: venue.state,
-      postalCode: venue.zip_code,
-    },
-    geo:
-      venue.latitude && venue.longitude
-        ? { "@type": "GeoCoordinates", latitude: venue.latitude, longitude: venue.longitude }
-        : undefined,
+    address: addressSchema,
+    geo: geoSchema,
     telephone: venue.phone,
     description: venue.description,
     amenityFeature: data.amenities.map((a) => ({
@@ -97,12 +111,51 @@ export default async function PublicVenuePage({
         : undefined,
   }
 
+  // Build opening hours from business_hours if available
+  const businessHours = venue.business_hours as Record<string, { open?: string; close?: string }> | null
+  const dayMap: Record<string, string> = {
+    mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday",
+    fri: "Friday", sat: "Saturday", sun: "Sunday",
+  }
+  const openingHoursSpec = businessHours
+    ? Object.entries(businessHours)
+        .filter(([, v]) => v?.open && v?.close)
+        .map(([day, hours]) => ({
+          "@type": "OpeningHoursSpecification",
+          dayOfWeek: dayMap[day] || day,
+          opens: hours.open,
+          closes: hours.close,
+        }))
+    : undefined
+
+  const localBusinessSchema = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: venue.name,
+    address: addressSchema,
+    geo: geoSchema,
+    telephone: venue.phone,
+    email: venue.email,
+    url: `${baseUrl}/${venueSlug}`,
+    image: venue.hero_image_url || undefined,
+    description: venue.description,
+    openingHoursSpecification:
+      openingHoursSpec && openingHoursSpec.length > 0
+        ? openingHoursSpec
+        : undefined,
+  }
+
   return (
     <main>
       <Script
         id="event-venue-schema"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(eventVenueSchema) }}
+      />
+      <Script
+        id="local-business-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
       />
 
       <HeroSection

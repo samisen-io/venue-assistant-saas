@@ -81,3 +81,96 @@ export async function canCreateVendor(userId: string): Promise<{ allowed: boolea
     }
     return { allowed: true }
 }
+
+async function getUserVenueId(userId: string): Promise<string | null> {
+    const supabase = createServiceRoleClient()
+    const { data } = await (supabase as any)
+        .from('venues')
+        .select('id')
+        .eq('owner_id', userId)
+        .limit(1)
+        .single()
+    return (data as { id: string } | null)?.id ?? null
+}
+
+export async function canUploadPhoto(userId: string): Promise<{ allowed: boolean; reason?: string }> {
+    const subscription = await getUserSubscription(userId)
+    if (!subscription) {
+        return { allowed: false, reason: 'No active subscription. Please subscribe to a plan.' }
+    }
+    if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+        return { allowed: false, reason: 'Your subscription is not active. Please update your billing.' }
+    }
+    const limits = getPlanLimits(subscription.plan_tier as PlanTier)
+    if (limits.maxPhotos === Infinity) return { allowed: true }
+
+    const venueId = await getUserVenueId(userId)
+    if (!venueId) return { allowed: true }
+
+    const supabase = createServiceRoleClient()
+    const { count } = await (supabase as any)
+        .from('venue_photos')
+        .select('id', { count: 'exact', head: true })
+        .eq('venue_id', venueId)
+    if ((count ?? 0) >= limits.maxPhotos) {
+        return { allowed: false, reason: `You've reached your limit of ${limits.maxPhotos} photos. Upgrade your plan to upload more.` }
+    }
+    return { allowed: true }
+}
+
+export async function canSendChatMessage(userId: string): Promise<{ allowed: boolean; reason?: string }> {
+    const subscription = await getUserSubscription(userId)
+    if (!subscription) {
+        return { allowed: false, reason: 'No active subscription. Please subscribe to a plan.' }
+    }
+    if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+        return { allowed: false, reason: 'Your subscription is not active. Please update your billing.' }
+    }
+    const limits = getPlanLimits(subscription.plan_tier as PlanTier)
+    if (limits.maxAIChatMessagesPerMonth === Infinity) return { allowed: true }
+
+    const venueId = await getUserVenueId(userId)
+    if (!venueId) return { allowed: true }
+
+    const supabase = createServiceRoleClient()
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    const { count } = await (supabase as any)
+        .from('conversation_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('venue_id', venueId)
+        .eq('role', 'assistant')
+        .gte('created_at', monthStart)
+    if ((count ?? 0) >= limits.maxAIChatMessagesPerMonth) {
+        return { allowed: false, reason: `You've reached your limit of ${limits.maxAIChatMessagesPerMonth} AI chat messages this month. Upgrade your plan for more.` }
+    }
+    return { allowed: true }
+}
+
+export async function canCreateLead(userId: string): Promise<{ allowed: boolean; reason?: string }> {
+    const subscription = await getUserSubscription(userId)
+    if (!subscription) {
+        return { allowed: false, reason: 'No active subscription. Please subscribe to a plan.' }
+    }
+    if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+        return { allowed: false, reason: 'Your subscription is not active. Please update your billing.' }
+    }
+    const limits = getPlanLimits(subscription.plan_tier as PlanTier)
+    if (limits.maxLeadsPerMonth === Infinity) return { allowed: true }
+
+    const venueId = await getUserVenueId(userId)
+    if (!venueId) return { allowed: true }
+
+    const supabase = createServiceRoleClient()
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    const { count } = await (supabase as any)
+        .from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('venue_id', venueId)
+        .gte('created_at', monthStart)
+    if ((count ?? 0) >= limits.maxLeadsPerMonth) {
+        return { allowed: false, reason: `You've reached your limit of ${limits.maxLeadsPerMonth} leads this month. Upgrade your plan for more.` }
+    }
+    return { allowed: true }
+}

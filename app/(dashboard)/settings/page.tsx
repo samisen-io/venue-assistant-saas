@@ -7,15 +7,54 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Profile } from "@/lib/types";
 import { Loading } from "@/components/shared/Loading";
+
+interface NotificationPrefs {
+    emailEnabled: boolean;
+    frequency: "immediate" | "daily" | "off";
+    priorityFilter: "all" | "high_only";
+    includeTranscript: boolean;
+}
 
 export default function SettingsPage() {
     const { toast } = useToast();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs>({
+        emailEnabled: true,
+        frequency: "immediate",
+        priorityFilter: "all",
+        includeTranscript: true,
+    });
+
+    // Load notification preferences from localStorage
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem("notificationPrefs");
+            if (stored) {
+                setNotifPrefs(JSON.parse(stored));
+            }
+        } catch {
+            // ignore parse errors
+        }
+    }, []);
+
+    const updateNotifPref = <K extends keyof NotificationPrefs>(
+        key: K,
+        value: NotificationPrefs[K]
+    ) => {
+        setNotifPrefs((prev) => {
+            const updated = { ...prev, [key]: value };
+            localStorage.setItem("notificationPrefs", JSON.stringify(updated));
+            return updated;
+        });
+        toast({ title: "Saved", description: "Notification preference updated." });
+    };
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -168,10 +207,72 @@ export default function SettingsPage() {
                             <Bell className="h-5 w-5" />
                             Notifications
                         </CardTitle>
-                        <CardDescription>Choose how you want to be notified about event updates.</CardDescription>
+                        <CardDescription>Choose how you want to be notified about new leads and events.</CardDescription>
                     </CardHeader>
-                    <CardContent className="text-center py-8">
-                        <p className="text-muted-foreground italic">Notification preferences coming soon.</p>
+                    <CardContent className="space-y-6">
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                            <div>
+                                <p className="font-medium">Email Notifications</p>
+                                <p className="text-sm text-muted-foreground">Receive email alerts for new leads</p>
+                            </div>
+                            <Switch
+                                checked={notifPrefs.emailEnabled}
+                                onCheckedChange={(checked) => updateNotifPref("emailEnabled", checked)}
+                            />
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                            <div>
+                                <Label htmlFor="frequency" className="font-medium">Email Frequency</Label>
+                                <p className="text-sm text-muted-foreground">How often to receive notifications</p>
+                            </div>
+                            <Select
+                                value={notifPrefs.frequency}
+                                onValueChange={(value) => updateNotifPref("frequency", value as NotificationPrefs["frequency"])}
+                                disabled={!notifPrefs.emailEnabled}
+                            >
+                                <SelectTrigger className="w-[160px]" id="frequency">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="immediate">Immediate</SelectItem>
+                                    <SelectItem value="daily">Daily Digest</SelectItem>
+                                    <SelectItem value="off">Off</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                            <div>
+                                <Label htmlFor="priorityFilter" className="font-medium">Lead Priority Filter</Label>
+                                <p className="text-sm text-muted-foreground">Which leads trigger notifications</p>
+                            </div>
+                            <Select
+                                value={notifPrefs.priorityFilter}
+                                onValueChange={(value) => updateNotifPref("priorityFilter", value as NotificationPrefs["priorityFilter"])}
+                                disabled={!notifPrefs.emailEnabled}
+                            >
+                                <SelectTrigger className="w-[200px]" id="priorityFilter">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Leads</SelectItem>
+                                    <SelectItem value="high_only">High Priority Only (&gt;70)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                            <div>
+                                <p className="font-medium">Include Conversation Transcript</p>
+                                <p className="text-sm text-muted-foreground">Attach AI chat transcript in notification emails</p>
+                            </div>
+                            <Switch
+                                checked={notifPrefs.includeTranscript}
+                                onCheckedChange={(checked) => updateNotifPref("includeTranscript", checked)}
+                                disabled={!notifPrefs.emailEnabled}
+                            />
+                        </div>
                     </CardContent>
                 </Card>
             </div>

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
 import { MobileSidebar } from "./MobileSidebar";
+import { NotificationBell } from "./NotificationBell";
 
 // Map routes to page titles
 const routeTitles: Record<string, string> = {
@@ -23,7 +24,9 @@ const routeTitles: Record<string, string> = {
     "/spaces": "Spaces",
     "/vendors": "Vendors",
     "/clients": "Clients",
+    "/leads": "Leads",
     "/settings": "Settings",
+    "/pricing": "Pricing",
 };
 
 function getPageTitle(pathname: string): string {
@@ -31,6 +34,10 @@ function getPageTitle(pathname: string): string {
     if (routeTitles[pathname]) {
         return routeTitles[pathname];
     }
+
+    // Check dynamic routes
+    if (pathname.includes("/public-page")) return "Public Page Editor";
+    if (pathname.includes("/analytics")) return "Analytics";
 
     // Check if pathname starts with a known route
     for (const [route, title] of Object.entries(routeTitles)) {
@@ -59,7 +66,8 @@ export function Header() {
             <div className="flex-1">
                 <h1 className="text-lg font-semibold">{pageTitle}</h1>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+                <NotificationBell />
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
