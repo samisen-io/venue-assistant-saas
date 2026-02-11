@@ -14,21 +14,36 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { LeadCard } from "./LeadCard"
+import { LeadTable } from "./LeadTable"
 import { Loading } from "@/components/shared/Loading"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { ErrorMessage } from "@/components/shared/ErrorMessage"
 import { MobileFilters } from "@/components/shared/MobileFilters"
+import { ViewToggle, ViewMode } from "@/components/shared/ViewToggle"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 export function LeadList() {
   const [status, setStatus] = useState("all")
   const [source, setSource] = useState("all")
   const [search, setSearch] = useState("")
   const [sortBy, setSortBy] = useState("created_at")
+  const isMobile = useIsMobile()
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (globalThis.window !== undefined) {
+      return (localStorage.getItem("viewMode:leads") as ViewMode) || "grid"
+    }
+    return "grid"
+  })
 
   const activeFilterCount =
     (status !== "all" ? 1 : 0) +
     (source !== "all" ? 1 : 0) +
     (search ? 1 : 0)
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode)
+    localStorage.setItem("viewMode:leads", mode)
+  }
 
   const { leads, loading, error, refetch } = useLeads({
     status: status !== "all" ? status : undefined,
@@ -45,12 +60,15 @@ export function LeadList() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
-        <Button asChild>
-          <Link href="/leads/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Lead
-          </Link>
-        </Button>
+        <div className="flex items-center gap-3">
+          <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
+          <Button asChild>
+            <Link href="/leads/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Lead
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <MobileFilters activeFilterCount={activeFilterCount}>
@@ -119,12 +137,14 @@ export function LeadList() {
           actionLabel={activeFilterCount > 0 ? undefined : "Add Lead"}
           actionHref={activeFilterCount > 0 ? undefined : "/leads/new"}
         />
-      ) : (
+      ) : isMobile || viewMode === "grid" ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {leads.map((lead) => (
             <LeadCard key={lead.id} lead={lead} />
           ))}
         </div>
+      ) : (
+        <LeadTable leads={leads} />
       )}
     </div>
   )

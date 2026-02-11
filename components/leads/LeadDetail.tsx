@@ -1,5 +1,7 @@
 "use client"
 
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -11,6 +13,7 @@ import { LeadStatusDropdown } from "./LeadStatusDropdown"
 import { ConversationTranscript } from "./ConversationTranscript"
 import { AIInsightsPanel } from "./AIInsightsPanel"
 import { ActivityTimeline } from "./ActivityTimeline"
+import { useToast } from "@/hooks/use-toast"
 import {
   Calendar,
   DollarSign,
@@ -18,6 +21,7 @@ import {
   Phone,
   Building,
   Users,
+  CheckCircle,
 } from "lucide-react"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -31,6 +35,9 @@ function priorityLabel(score: number) {
 export function LeadDetail({ leadId }: { leadId: string }) {
   const { data, loading, error, refetch } = useLead(leadId)
   const { updateLead, updating } = useUpdateLead()
+  const [isConverting, setIsConverting] = useState(false)
+  const router = useRouter()
+  const { toast } = useToast()
 
   if (loading) return <Loading />
   if (error) return <ErrorMessage message={error} onRetry={refetch} />
@@ -44,6 +51,43 @@ export function LeadDetail({ leadId }: { leadId: string }) {
     if (lostReason) updates.lost_reason = lostReason
     await updateLead(leadId, updates)
     refetch()
+  }
+
+  const handleConvertToEvent = async () => {
+    setIsConverting(true)
+    try {
+      const res = await fetch(`/api/leads/${leadId}/convert-to-event`, {
+        method: "POST",
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to convert lead to event",
+          variant: "destructive",
+        })
+        return
+      }
+
+      toast({
+        title: "Success",
+        description: "Lead converted to event successfully",
+      })
+
+      // Redirect to the new event
+      router.push(`/events/${data.event_id}`)
+    } catch (error) {
+      console.error("Error converting lead:", error)
+      toast({
+        title: "Error",
+        description: "Something went wrong",
+        variant: "destructive",
+      })
+    } finally {
+      setIsConverting(false)
+    }
   }
 
   return (
@@ -67,7 +111,17 @@ export function LeadDetail({ leadId }: { leadId: string }) {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {lead.status !== "won" && lead.status !== "lost" && (
+            <Button
+              size="sm"
+              onClick={handleConvertToEvent}
+              disabled={isConverting}
+            >
+              <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
+              {isConverting ? "Converting..." : "Convert to Event"}
+            </Button>
+          )}
           {lead.contact_email && (
             <Button variant="outline" size="sm" asChild>
               <a href={`mailto:${lead.contact_email}`}>
