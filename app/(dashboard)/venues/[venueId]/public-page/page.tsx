@@ -369,7 +369,7 @@ export default function VenuePublicPageEditorPage() {
     if (changed(baselineData.eventTypes, data.eventTypes)) count++
     if (changed(baselineData.photos, data.photos)) count++
     if (changed(baselineData.packages, data.packages)) count++
-    if (changed(baselineData.addons, data.packageAddons)) count++
+    if (changed(baselineData.packageAddons, data.packageAddons)) count++
     if (changed(baselineData.calendarSettings, data.calendarSettings)) count++
     if (changed(baselineData.blackoutDates, data.blackoutDates)) count++
     if (changed(baselineData.aiSettings, data.aiSettings)) count++

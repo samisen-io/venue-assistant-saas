@@ -27,7 +27,7 @@ export async function POST(
         const { leadId } = await params;
 
         // Fetch the lead
-        const { data: lead, error: leadError } = await supabase
+        const { data: lead, error: leadError } = await (supabase as any)
             .from("leads")
             .select("*")
             .eq("id", leadId)
@@ -51,7 +51,7 @@ export async function POST(
 
         if (lead.contact_email) {
             // Try to find existing client by email
-            const { data: existingClient } = await supabase
+            const { data: existingClient } = await (supabase as any)
                 .from("clients")
                 .select("id")
                 .eq("venue_id", venueId)
@@ -65,7 +65,7 @@ export async function POST(
 
         // If no existing client found, create a new one
         if (!clientId) {
-            const { data: newClient, error: clientError } = await supabase
+            const { data: newClient, error: clientError } = await (supabase as any)
                 .from("clients")
                 .insert({
                     venue_id: venueId,
@@ -89,7 +89,7 @@ export async function POST(
         }
 
         // Get the first space (user can change this in the event form if needed)
-        const { data: spaces } = await supabase
+        const { data: spaces } = await (supabase as any)
             .from("spaces")
             .select("id")
             .eq("venue_id", venueId)
@@ -118,7 +118,7 @@ export async function POST(
             status: "planning",
         };
 
-        const { data: event, error: eventError } = await supabase
+        const { data: event, error: eventError } = await (supabase as any)
             .from("events")
             .insert(eventData)
             .select()
@@ -133,7 +133,7 @@ export async function POST(
         }
 
         // Update lead status to won
-        await supabase
+        await (supabase as any)
             .from("leads")
             .update({
                 status: "won",
@@ -142,7 +142,7 @@ export async function POST(
             .eq("id", leadId);
 
         // Create a lead activity
-        await supabase.from("lead_activities").insert({
+        await (supabase as any).from("lead_activities").insert({
             lead_id: leadId,
             activity_type: "converted_to_event",
             description: `Lead converted to event: ${event.event_name}`,
