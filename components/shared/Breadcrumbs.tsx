@@ -8,12 +8,13 @@ export interface BreadcrumbItem {
 
 interface BreadcrumbsProps {
     items: BreadcrumbItem[];
+    homeHref?: string;
 }
 
-export function Breadcrumbs({ items }: BreadcrumbsProps) {
+export function Breadcrumbs({ items, homeHref = "/dashboard" }: BreadcrumbsProps) {
     return (
         <nav className="flex items-center space-x-2 text-sm text-gray-500 mb-4">
-            <Link href="/dashboard" className="hover:text-gray-700 transition-colors">
+            <Link href={homeHref} className="hover:text-gray-700 transition-colors">
                 <Home className="h-4 w-4" />
             </Link>
             {items.map((item, index) => {

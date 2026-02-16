@@ -16,7 +16,9 @@ import {
     Building2,
     TrendingUp,
     Globe,
-    ChevronLeft
+    ChevronLeft,
+    Megaphone,
+    ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -68,7 +70,7 @@ const sidebarItems = [
     },
 ];
 
-const dynamicItems = (venueId?: string) => {
+const dynamicItems = (venueId?: string, venueSlug?: string | null) => {
     const items = [];
     if (venueId) {
         items.push({
@@ -77,10 +79,23 @@ const dynamicItems = (venueId?: string) => {
             icon: Globe,
         });
         items.push({
+            title: "Marketplace",
+            href: `/venues/${venueId}/marketplace`,
+            icon: Megaphone,
+        });
+        items.push({
             title: "Analytics",
             href: `/venues/${venueId}/analytics`,
             icon: TrendingUp,
         });
+        if (venueSlug) {
+            items.push({
+                title: "View Live Page",
+                href: `/${venueSlug}`,
+                icon: ExternalLink,
+                external: true,
+            });
+        }
     }
     return items;
 };
@@ -93,6 +108,7 @@ export function Sidebar() {
     const [isSeeding, setIsSeeding] = useState(false);
     const [planTier, setPlanTier] = useState<string | null>(null);
     const [venueId, setVenueId] = useState<string | null>(null);
+    const [venueSlug, setVenueSlug] = useState<string | null>(null);
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     useEffect(() => {
@@ -108,6 +124,7 @@ export function Sidebar() {
             .then(data => {
                 if (data && data.length > 0) {
                     setVenueId(data[0].id);
+                    setVenueSlug(data[0].slug || null);
                 }
             })
             .catch(() => {});
@@ -204,17 +221,19 @@ export function Sidebar() {
                     {venueId && (
                         <>
                             <div className={cn("my-2", isCollapsed ? "hidden" : "border-t")} />
-                            {dynamicItems(venueId).map((item, index) => {
+                            {dynamicItems(venueId, venueSlug).map((item, index) => {
                                 const Icon = item.icon;
+                                const isExternal = "external" in item && item.external;
                                 return (
                                     <Link
                                         key={`dynamic-${index}`}
                                         href={item.href}
                                         title={isCollapsed ? item.title : ""}
+                                        {...(isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                                         className={cn(
                                             "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
                                             isCollapsed && "justify-center",
-                                            pathname.startsWith(item.href)
+                                            !isExternal && pathname.startsWith(item.href)
                                                 ? "bg-gray-100 text-primary"
                                                 : "text-gray-500 hover:bg-gray-100"
                                         )}

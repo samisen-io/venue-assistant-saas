@@ -30,6 +30,31 @@ export async function trackEvent({ venueId, eventType, metadata, referrer, userA
     console.error('trackEvent insert error', error)
   }
 
+  // For page_view events, also track in venue_page_views and increment view_count
+  if (eventType === 'page_view') {
+    const source = metadata?.source || 'direct'
+    ;(supabase as any)
+      .from('venue_page_views')
+      .insert({
+        venue_id: venueId,
+        source,
+        referrer: referrer ?? null,
+        user_agent: userAgent ?? null,
+        ip_hash: ipHash,
+        session_id: sessionId ?? null,
+      })
+      .then(() => {})
+
+    ;(supabase as any)
+      .from('venues')
+      .update({ view_count: (supabase as any).rpc ? undefined : 0 })
+      .eq('id', venueId)
+      .then(() => {})
+
+    // Use raw SQL increment via rpc if available, otherwise fire-and-forget
+    ;(supabase as any).rpc('increment_venue_view_count', { venue_row_id: venueId }).then(() => {})
+  }
+
   return { data, error }
 }
 

@@ -69,6 +69,8 @@ export interface Database {
                     og_image_url: string | null
                     google_analytics_id: string | null
                     facebook_pixel_id: string | null
+                    view_count: number | null
+                    inquiry_count: number | null
                     created_at: string | null
                     updated_at: string | null
                 }
@@ -102,6 +104,8 @@ export interface Database {
                     og_image_url?: string | null
                     google_analytics_id?: string | null
                     facebook_pixel_id?: string | null
+                    view_count?: number | null
+                    inquiry_count?: number | null
                     created_at?: string | null
                     updated_at?: string | null
                 }
@@ -135,6 +139,8 @@ export interface Database {
                     og_image_url?: string | null
                     google_analytics_id?: string | null
                     facebook_pixel_id?: string | null
+                    view_count?: number | null
+                    inquiry_count?: number | null
                     created_at?: string | null
                     updated_at?: string | null
                 }
@@ -1249,6 +1255,7 @@ export interface Database {
                     conversation_id: string | null
                     ai_insights: Json | null
                     notes: string | null
+                    marketplace_inquiry_data: Json | null
                     created_at: string | null
                     updated_at: string | null
                 }
@@ -1273,6 +1280,7 @@ export interface Database {
                     conversation_id?: string | null
                     ai_insights?: Json | null
                     notes?: string | null
+                    marketplace_inquiry_data?: Json | null
                     created_at?: string | null
                     updated_at?: string | null
                 }
@@ -1297,6 +1305,7 @@ export interface Database {
                     conversation_id?: string | null
                     ai_insights?: Json | null
                     notes?: string | null
+                    marketplace_inquiry_data?: Json | null
                     created_at?: string | null
                     updated_at?: string | null
                 }
@@ -1463,6 +1472,120 @@ export interface Database {
                     viewed_at?: string | null
                     created_at?: string | null
                     updated_at?: string | null
+                }
+            }
+            venue_public_settings: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    is_visible_on_marketplace: boolean | null
+                    featured: boolean | null
+                    search_keywords: string[] | null
+                    auto_respond_enabled: boolean | null
+                    auto_respond_message: string | null
+                    response_time_goal: string | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    is_visible_on_marketplace?: boolean | null
+                    featured?: boolean | null
+                    search_keywords?: string[] | null
+                    auto_respond_enabled?: boolean | null
+                    auto_respond_message?: string | null
+                    response_time_goal?: string | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    is_visible_on_marketplace?: boolean | null
+                    featured?: boolean | null
+                    search_keywords?: string[] | null
+                    auto_respond_enabled?: boolean | null
+                    auto_respond_message?: string | null
+                    response_time_goal?: string | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+            }
+            venue_page_views: {
+                Row: {
+                    id: string
+                    venue_id: string
+                    source: string | null
+                    referrer: string | null
+                    user_agent: string | null
+                    ip_hash: string | null
+                    session_id: string | null
+                    search_query_id: string | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    venue_id: string
+                    source?: string | null
+                    referrer?: string | null
+                    user_agent?: string | null
+                    ip_hash?: string | null
+                    session_id?: string | null
+                    search_query_id?: string | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    venue_id?: string
+                    source?: string | null
+                    referrer?: string | null
+                    user_agent?: string | null
+                    ip_hash?: string | null
+                    session_id?: string | null
+                    search_query_id?: string | null
+                    created_at?: string | null
+                }
+            }
+            venue_search_queries: {
+                Row: {
+                    id: string
+                    query_text: string | null
+                    location: string | null
+                    event_type: string | null
+                    guest_count: number | null
+                    event_date: string | null
+                    filters: Json | null
+                    results_count: number | null
+                    ip_hash: string | null
+                    session_id: string | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    query_text?: string | null
+                    location?: string | null
+                    event_type?: string | null
+                    guest_count?: number | null
+                    event_date?: string | null
+                    filters?: Json | null
+                    results_count?: number | null
+                    ip_hash?: string | null
+                    session_id?: string | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    query_text?: string | null
+                    location?: string | null
+                    event_type?: string | null
+                    guest_count?: number | null
+                    event_date?: string | null
+                    filters?: Json | null
+                    results_count?: number | null
+                    ip_hash?: string | null
+                    session_id?: string | null
+                    created_at?: string | null
                 }
             }
         }

@@ -30,6 +30,9 @@ export interface SeedDataResult {
       vendor_quotes?: number;
       page_analytics?: number;
       venue_page_versions?: number;
+      venue_public_settings?: number;
+      venue_page_views?: number;
+      venue_search_queries?: number;
     };
 }
 
@@ -54,6 +57,11 @@ export async function clearAllData(
   supabase: SupabaseClient,
   userId: string
 ): Promise<void> {
+  // Marketplace tables (no FK deps from other tables)
+  await safeDeleteWhereNotEq(supabase, 'venue_page_views');
+  await safeDeleteWhereNotEq(supabase, 'venue_search_queries');
+  await safeDeleteWhereNotEq(supabase, 'venue_public_settings');
+
   // New public-page and AI tables (delete first due FK dependencies)
   await safeDeleteWhereNotEq(supabase, 'conversation_messages');
   await safeDeleteWhereNotEq(supabase, 'conversations');
@@ -1008,6 +1016,23 @@ export async function seedDemoData(
       throw new Error(venueAISettingsError.message || 'Failed to seed venue AI settings');
     }
 
+    // Marketplace: Create venue_public_settings
+    const { error: venuePublicSettingsError } = await supabase
+      .from('venue_public_settings')
+      .insert({
+        venue_id: venue.id,
+        is_visible_on_marketplace: true,
+        featured: false,
+        search_keywords: ['san francisco', 'hotel', 'conference', 'wedding', 'corporate', 'ballroom'],
+        auto_respond_enabled: true,
+        auto_respond_message: 'Thank you for your inquiry! Our events team will get back to you within 24 hours.',
+        response_time_goal: '24h',
+      });
+    if (venuePublicSettingsError) {
+      console.error('Venue public settings error:', venuePublicSettingsError);
+      throw new Error(venuePublicSettingsError.message || 'Failed to seed venue public settings');
+    }
+
     const availabilitySeed: Array<{
       venue_id: string;
       date: string;
@@ -1679,6 +1704,7 @@ export async function seedDemoData(
         vendor_quotes: vendorQuotes?.length || 0,
         page_analytics: pageAnalytics?.length || 0,
         venue_page_versions: pageVersions?.length || 0,
+        venue_public_settings: 1,
       },
     };
   } catch (error: unknown) {

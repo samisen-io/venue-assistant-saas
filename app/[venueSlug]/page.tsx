@@ -9,9 +9,12 @@ import { EventTypeBadges } from "@/components/public-page/EventTypeBadges"
 import { AvailabilityCalendar } from "@/components/public-page/AvailabilityCalendar"
 import { LocationContact } from "@/components/public-page/LocationContact"
 import { TestimonialsCarousel } from "@/components/public-page/TestimonialsCarousel"
+import { PricingPackages } from "@/components/public-page/PricingPackages"
 import { FooterCTA } from "@/components/public-page/FooterCTA"
+import { InquiryForm } from "@/components/public-page/InquiryForm"
 import { EmbeddedChat } from "@/components/public-page/EmbeddedChat"
 import { ChatWidget } from "@/components/public-page/ChatWidget"
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs"
 import { fetchVenuePublicPageData } from "@/lib/public-page/fetchPublicVenue"
 
 export async function generateMetadata({
@@ -167,12 +170,20 @@ export default async function PublicVenuePage({
       />
 
       <div className="mx-auto w-full max-w-7xl px-6 py-10">
+        <Breadcrumbs
+          homeHref="/"
+          items={[
+            { label: "Search Venues", href: "/search" },
+            { label: venue.name },
+          ]}
+        />
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,2fr)_360px] lg:gap-10">
           <div className="space-y-12">
             <PhotoGallery photos={data.photos} />
             <VenueSpaces spaces={data.spaces} />
             <AmenitiesList amenities={data.amenities} />
             <EventTypeBadges eventTypes={data.eventTypes} />
+            <PricingPackages packages={data.packages} />
             <AvailabilityCalendar slug={venueSlug} />
             <LocationContact
               name={venue.name}
@@ -193,6 +204,7 @@ export default async function PublicVenuePage({
 
           <aside className="lg:sticky lg:top-24 lg:h-fit">
             <div className="space-y-4">
+              <InquiryForm slug={venueSlug} />
               <EmbeddedChat slug={venueSlug} greeting={null} />
 
               <FooterCTA

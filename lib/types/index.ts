@@ -30,6 +30,9 @@ export type LeadActivity = Database['public']['Tables']['lead_activities']['Row'
 export type Conversation = Database['public']['Tables']['conversations']['Row']
 export type ConversationMessage = Database['public']['Tables']['conversation_messages']['Row']
 export type Proposal = Database['public']['Tables']['proposals']['Row']
+export type VenuePublicSettings = Database['public']['Tables']['venue_public_settings']['Row']
+export type VenuePageView = Database['public']['Tables']['venue_page_views']['Row']
+export type VenueSearchQuery = Database['public']['Tables']['venue_search_queries']['Row']
 
 // AI feature database types
 export type VendorCommunication = Database['public']['Tables']['vendor_communications']['Row']

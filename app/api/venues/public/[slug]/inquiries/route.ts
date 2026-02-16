@@ -54,11 +54,12 @@ export async function POST(
     }
 
     // Create lead directly (skips conversation)
+    const referrer = request.headers.get("referer") || null
     const { data: lead, error: leadError } = await (supabase as any)
       .from("leads")
       .insert({
         venue_id: venue.id,
-        source: "manual",
+        source: "public_inquiry",
         contact_name: name,
         contact_email: email,
         contact_phone: phone || null,
@@ -67,7 +68,11 @@ export async function POST(
         guest_count: guest_count || null,
         notes: message || null,
         status: "new",
-        priority_score: 50,
+        priority_score: 60,
+        marketplace_inquiry_data: {
+          event_description: message || null,
+          referrer,
+        },
       })
       .select("id")
       .single()
@@ -77,11 +82,14 @@ export async function POST(
       return NextResponse.json({ error: "Failed to submit inquiry" }, { status: 500 })
     }
 
+    // Increment venue inquiry count (fire-and-forget)
+    ;(supabase as any).rpc("increment_venue_inquiry_count", { venue_row_id: venue.id }).then(() => {})
+
     // Log activity
     await (supabase as any).from("lead_activities").insert({
       lead_id: lead.id,
       activity_type: "created",
-      description: "Inquiry submitted via contact form on public page.",
+      description: "Inquiry submitted via public venue page.",
     })
 
     return NextResponse.json({

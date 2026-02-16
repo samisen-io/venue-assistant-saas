@@ -15,6 +15,8 @@
 | `public-pages-migration.sql` | Public venue pages feature: venues, spaces, photos, packages, testimonials, calendar settings, preview tokens, leads, conversations, etc. |
 | `setup-preview-tokens.sql` | Creates `preview_tokens` table with anonymous access for preview links (run this if table doesn't exist). |
 | `venue-photos-storage.sql` | Supabase Storage setup for venue photos and media. |
+| `marketplace-migration.sql` | Public marketplace feature: `venue_public_settings`, `venue_page_views`, `venue_search_queries` tables, venue counters, leads source update, and search indexes. |
+| `marketplace-seed-data.sql` | Test data for marketplace development: 24 venues across Texas with spaces, event types, amenities, packages, testimonials, and search queries. |
 
 ## What `all-migrations.sql` Contains
 
