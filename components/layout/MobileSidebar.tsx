@@ -53,6 +53,7 @@ export function MobileSidebar() {
     const [isOpen, setIsOpen] = useState(false);
     const [isSeeding, setIsSeeding] = useState(false);
     const [planTier, setPlanTier] = useState<string | null>(null);
+    const [userEmail, setUserEmail] = useState<string | null>(null);
     const { activeVenue } = useVenueContext();
 
     useEffect(() => {
@@ -60,6 +61,9 @@ export function MobileSidebar() {
             .then(res => res.ok ? res.json() : null)
             .then(data => { if (data?.plan_tier) setPlanTier(data.plan_tier); })
             .catch(() => {});
+        supabase.auth.getUser().then(({ data }) => {
+            if (data.user?.email) setUserEmail(data.user.email);
+        });
     }, []);
 
     const handleSignOut = async () => {
@@ -179,6 +183,7 @@ export function MobileSidebar() {
                                 {planTier.charAt(0).toUpperCase() + planTier.slice(1)} Plan
                             </div>
                         )}
+                        {userEmail === 'prashant@samisen.io' && (
                         <Button
                             variant="outline"
                             className="w-full justify-start gap-3 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
@@ -188,6 +193,7 @@ export function MobileSidebar() {
                             <RefreshCw className={cn("h-4 w-4", isSeeding && "animate-spin")} />
                             {isSeeding ? "Loading..." : "Refresh Demo Data"}
                         </Button>
+                        )}
                         <Button
                             variant="ghost"
                             className="w-full justify-start gap-3 text-gray-500 hover:text-red-500"

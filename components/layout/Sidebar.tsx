@@ -47,6 +47,7 @@ export function Sidebar() {
     const [isSeeding, setIsSeeding] = useState(false);
     const [planTier, setPlanTier] = useState<string | null>(null);
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [userEmail, setUserEmail] = useState<string | null>(null);
     const { activeVenue } = useVenueContext();
 
     useEffect(() => {
@@ -54,6 +55,9 @@ export function Sidebar() {
             .then(res => res.ok ? res.json() : null)
             .then(data => { if (data?.plan_tier) setPlanTier(data.plan_tier); })
             .catch(() => {});
+        supabase.auth.getUser().then(({ data }) => {
+            if (data.user?.email) setUserEmail(data.user.email);
+        });
     }, []);
 
     const handleSignOut = async () => {
@@ -191,6 +195,7 @@ export function Sidebar() {
                         {planTier.charAt(0).toUpperCase() + planTier.slice(1)} Plan
                     </div>
                 )}
+                {userEmail === 'prashant@samisen.io' && (
                 <Button
                     variant="outline"
                     className={cn(
@@ -204,6 +209,7 @@ export function Sidebar() {
                     <RefreshCw className={cn("h-4 w-4 flex-shrink-0", isSeeding && "animate-spin")} />
                     {!isCollapsed && <span>{isSeeding ? "Loading..." : "Refresh"}</span>}
                 </Button>
+                )}
                 <Button
                     variant="ghost"
                     className={cn(
