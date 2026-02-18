@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { clientFormSchema } from '@/lib/utils/validation'
 import { Database } from '@/lib/types/database.types'
+import { resolveVenueWithFallback } from '@/lib/venues/resolveVenue'
 
 type ClientInsert = Database['public']['Tables']['clients']['Insert']
 
@@ -15,17 +16,16 @@ export async function GET(request: Request) {
         }
 
         const { searchParams } = new URL(request.url)
-        const venueId = searchParams.get('venueId')
         const search = searchParams.get('search')
+
+        const resolved = await resolveVenueWithFallback(request, supabase, user.id)
+        if (resolved.error) return NextResponse.json([])
 
         let query = (supabase as any)
             .from('clients')
             .select('*')
+            .eq('venue_id', resolved.venue!.id)
             .order('created_at', { ascending: false })
-
-        if (venueId) {
-            query = query.eq('venue_id', venueId)
-        }
 
         if (search) {
             const escaped = search.replace(/%/g, '\\%').replace(/_/g, '\\_')
@@ -81,38 +81,17 @@ export async function POST(request: Request) {
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
-        const json = await request.json()
-        const { venue_id, ...clientData } = json
-        const body = clientFormSchema.parse(clientData)
-
-        let resolvedVenueId = venue_id
-
-        if (resolvedVenueId) {
-            const { data: venue } = await (supabase as any)
-                .from('venues')
-                .select('id')
-                .eq('id', resolvedVenueId)
-                .eq('owner_id', user.id)
-                .single()
-
-            if (!venue) {
-                return new NextResponse('Invalid venue', { status: 403 })
-            }
-        } else {
-            const { data: venue } = await (supabase as any)
-                .from('venues')
-                .select('id')
-                .eq('owner_id', user.id)
-                .single()
-
-            if (!venue) {
-                return new NextResponse('No venue found. Please create a venue first.', { status: 400 })
-            }
-            resolvedVenueId = venue.id
+        const resolved = await resolveVenueWithFallback(request, supabase, user.id)
+        if (resolved.error) {
+            return new NextResponse('No venue found. Please create a venue first.', { status: 400 })
         }
 
+        const json = await request.json()
+        const { venue_id: _ignored, ...clientData } = json
+        const body = clientFormSchema.parse(clientData)
+
         const insertData: ClientInsert = {
-            venue_id: resolvedVenueId,
+            venue_id: resolved.venue!.id,
             company_name: body.company_name?.trim() || null,
             contact_name: body.contact_name,
             email: body.email?.trim() || null,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { spaceFormSchema } from '@/lib/utils/validation'
+import { resolveVenueWithFallback } from '@/lib/venues/resolveVenue'
 
 export async function GET(request: Request) {
     try {
@@ -11,22 +12,13 @@ export async function GET(request: Request) {
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
-        // Get user's venue first
-        const { data: venue } = await (supabase as any)
-            .from('venues')
-            .select('id')
-            .eq('owner_id', user.id)
-            .single()
+        const resolved = await resolveVenueWithFallback(request, supabase, user.id)
+        if (resolved.error) return NextResponse.json([])
 
-        if (!venue) {
-            return NextResponse.json([]) // No venue yet, return empty array
-        }
-
-        // RLS will handle filtering, but we query by venue_id for clarity
         const { data: spaces, error } = await (supabase as any)
             .from('spaces')
             .select('*')
-            .eq('venue_id', venue.id)
+            .eq('venue_id', resolved.venue!.id)
             .order('created_at', { ascending: false })
 
         if (error) throw error
@@ -47,14 +39,8 @@ export async function POST(request: Request) {
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
-        // Get user's venue
-        const { data: venue, error: venueError } = await (supabase as any)
-            .from('venues')
-            .select('id')
-            .eq('owner_id', user.id)
-            .single()
-
-        if (venueError || !venue) {
+        const resolved = await resolveVenueWithFallback(request, supabase, user.id)
+        if (resolved.error) {
             return new NextResponse('No venue found. Please create a venue first.', { status: 400 })
         }
 
@@ -65,7 +51,7 @@ export async function POST(request: Request) {
             .from('spaces')
             .insert({
                 ...body,
-                venue_id: venue.id
+                venue_id: resolved.venue!.id
             })
             .select()
             .single()

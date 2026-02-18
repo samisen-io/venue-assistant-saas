@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useVenueContext } from "@/lib/context/VenueContext";
 import {
     Calendar,
     Users,
@@ -68,16 +69,19 @@ export default function DashboardPage() {
     const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
     const [trialDaysRemaining, setTrialDaysRemaining] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const { activeVenue } = useVenueContext();
 
     useEffect(() => {
+        if (!activeVenue) return;
         const fetchDashboardData = async () => {
             setIsLoading(true);
+            const venueHeaders = { "X-Venue-Id": activeVenue.id };
             try {
                 const [eventsRes, vendorsRes, subRes, leadsRes] = await Promise.all([
-                    fetch("/api/events"),
-                    fetch("/api/vendors"),
+                    fetch("/api/events", { headers: venueHeaders }),
+                    fetch("/api/vendors", { headers: venueHeaders }),
                     fetch("/api/subscription"),
-                    fetch("/api/leads"),
+                    fetch("/api/leads", { headers: venueHeaders }),
                 ]);
 
                 if (eventsRes.ok && vendorsRes.ok) {
@@ -123,7 +127,7 @@ export default function DashboardPage() {
         };
 
         fetchDashboardData();
-    }, []);
+    }, [activeVenue?.id]);
 
     if (isLoading) return <Loading />;
 

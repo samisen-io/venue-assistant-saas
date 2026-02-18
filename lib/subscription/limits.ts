@@ -24,11 +24,16 @@ async function getCurrentUsage(userId: string) {
         .eq('user_id', userId)
         .eq('month', currentMonth)
         .single()
-    return (data as { spaces_created: number; events_created: number; vendors_created: number } | null)
-        || { spaces_created: 0, events_created: 0, vendors_created: 0 }
+    return (data as { venues_created: number; events_created: number; vendors_created: number } | null)
+        || { venues_created: 0, events_created: 0, vendors_created: 0 }
 }
 
+/** @deprecated use canCreateVenue */
 export async function canCreateSpace(userId: string): Promise<{ allowed: boolean; reason?: string }> {
+    return canCreateVenue(userId)
+}
+
+export async function canCreateVenue(userId: string): Promise<{ allowed: boolean; reason?: string }> {
     const subscription = await getUserSubscription(userId)
     if (!subscription) {
         return { allowed: false, reason: 'No active subscription. Please subscribe to a plan.' }
@@ -37,11 +42,19 @@ export async function canCreateSpace(userId: string): Promise<{ allowed: boolean
         return { allowed: false, reason: 'Your subscription is not active. Please update your billing.' }
     }
     const limits = getPlanLimits(subscription.plan_tier as PlanTier)
-    if (limits.maxSpaces === Infinity) return { allowed: true }
+    if (limits.maxVenues === Infinity) return { allowed: true }
 
-    const usage = await getCurrentUsage(userId)
-    if (usage.spaces_created >= limits.maxSpaces) {
-        return { allowed: false, reason: `You've reached your limit of ${limits.maxSpaces} space(s). Upgrade your plan to add more.` }
+    // Count existing venues directly (not usage_tracking) for accuracy
+    const supabase = createServiceRoleClient()
+    const { count } = await (supabase as any)
+        .from('venues')
+        .select('id', { count: 'exact', head: true })
+        .eq('owner_id', userId)
+    if ((count ?? 0) >= limits.maxVenues) {
+        return {
+            allowed: false,
+            reason: `You've reached your limit of ${limits.maxVenues} venue(s). Upgrade to Professional or Enterprise to add more.`,
+        }
     }
     return { allowed: true }
 }
@@ -82,18 +95,32 @@ export async function canCreateVendor(userId: string): Promise<{ allowed: boolea
     return { allowed: true }
 }
 
-async function getUserVenueId(userId: string): Promise<string | null> {
+async function getUserVenueId(userId: string, preferredVenueId?: string): Promise<string | null> {
     const supabase = createServiceRoleClient()
+
+    if (preferredVenueId) {
+        const { data } = await (supabase as any)
+            .from('venues')
+            .select('id')
+            .eq('id', preferredVenueId)
+            .eq('owner_id', userId)
+            .single()
+        if (data) return (data as { id: string }).id
+    }
+
+    // Fall back to default or first venue
     const { data } = await (supabase as any)
         .from('venues')
         .select('id')
         .eq('owner_id', userId)
+        .order('is_default', { ascending: false })
+        .order('created_at', { ascending: true })
         .limit(1)
         .single()
     return (data as { id: string } | null)?.id ?? null
 }
 
-export async function canUploadPhoto(userId: string): Promise<{ allowed: boolean; reason?: string }> {
+export async function canUploadPhoto(userId: string, venueId?: string): Promise<{ allowed: boolean; reason?: string }> {
     const subscription = await getUserSubscription(userId)
     if (!subscription) {
         return { allowed: false, reason: 'No active subscription. Please subscribe to a plan.' }
@@ -104,21 +131,21 @@ export async function canUploadPhoto(userId: string): Promise<{ allowed: boolean
     const limits = getPlanLimits(subscription.plan_tier as PlanTier)
     if (limits.maxPhotos === Infinity) return { allowed: true }
 
-    const venueId = await getUserVenueId(userId)
-    if (!venueId) return { allowed: true }
+    const resolvedVenueId = await getUserVenueId(userId, venueId)
+    if (!resolvedVenueId) return { allowed: true }
 
     const supabase = createServiceRoleClient()
     const { count } = await (supabase as any)
         .from('venue_photos')
         .select('id', { count: 'exact', head: true })
-        .eq('venue_id', venueId)
+        .eq('venue_id', resolvedVenueId)
     if ((count ?? 0) >= limits.maxPhotos) {
         return { allowed: false, reason: `You've reached your limit of ${limits.maxPhotos} photos. Upgrade your plan to upload more.` }
     }
     return { allowed: true }
 }
 
-export async function canSendChatMessage(userId: string): Promise<{ allowed: boolean; reason?: string }> {
+export async function canSendChatMessage(userId: string, venueId?: string): Promise<{ allowed: boolean; reason?: string }> {
     const subscription = await getUserSubscription(userId)
     if (!subscription) {
         return { allowed: false, reason: 'No active subscription. Please subscribe to a plan.' }
@@ -129,8 +156,8 @@ export async function canSendChatMessage(userId: string): Promise<{ allowed: boo
     const limits = getPlanLimits(subscription.plan_tier as PlanTier)
     if (limits.maxAIChatMessagesPerMonth === Infinity) return { allowed: true }
 
-    const venueId = await getUserVenueId(userId)
-    if (!venueId) return { allowed: true }
+    const resolvedVenueId = await getUserVenueId(userId, venueId)
+    if (!resolvedVenueId) return { allowed: true }
 
     const supabase = createServiceRoleClient()
     const now = new Date()
@@ -138,7 +165,7 @@ export async function canSendChatMessage(userId: string): Promise<{ allowed: boo
     const { count } = await (supabase as any)
         .from('conversation_messages')
         .select('id', { count: 'exact', head: true })
-        .eq('venue_id', venueId)
+        .eq('venue_id', resolvedVenueId)
         .eq('role', 'assistant')
         .gte('created_at', monthStart)
     if ((count ?? 0) >= limits.maxAIChatMessagesPerMonth) {

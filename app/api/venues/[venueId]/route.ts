@@ -62,6 +62,60 @@ export async function PUT(
     }
 }
 
+export async function PATCH(
+    request: Request,
+    { params }: { params: Promise<{ venueId: string }> }
+) {
+    try {
+        const supabase = await createClient()
+        const { venueId } = await params
+
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+            return new NextResponse('Unauthorized', { status: 401 })
+        }
+
+        const body = await request.json()
+
+        // Handle setting a venue as default
+        if (body.is_default === true) {
+            // Clear is_default on all other venues for this user
+            await (supabase as any)
+                .from('venues')
+                .update({ is_default: false })
+                .eq('owner_id', user.id)
+                .neq('id', venueId)
+
+            const { data: venue, error } = await (supabase as any)
+                .from('venues')
+                .update({ is_default: true })
+                .eq('id', venueId)
+                .eq('owner_id', user.id)
+                .select()
+                .single()
+
+            if (error) throw error
+            return NextResponse.json(venue)
+        }
+
+        // Generic partial update (exclude protected fields)
+        const { id: _id, owner_id: _owner, created_at: _created, ...safeFields } = body
+        const { data: venue, error } = await (supabase as any)
+            .from('venues')
+            .update({ ...safeFields, updated_at: new Date().toISOString() })
+            .eq('id', venueId)
+            .eq('owner_id', user.id)
+            .select()
+            .single()
+
+        if (error) throw error
+        return NextResponse.json(venue)
+    } catch (error) {
+        console.error('Error patching venue:', error)
+        return new NextResponse('Internal Error', { status: 500 })
+    }
+}
+
 export async function DELETE(
     request: Request,
     { params }: { params: Promise<{ venueId: string }> }

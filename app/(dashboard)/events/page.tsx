@@ -16,6 +16,7 @@ import { MobileFilters } from "@/components/shared/MobileFilters";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCanCreate } from "@/hooks/useSubscription";
 import { UpgradePrompt } from "@/components/subscription/UpgradePrompt";
+import { useVenueContext } from "@/lib/context/VenueContext";
 import {
     Select,
     SelectContent,
@@ -42,6 +43,7 @@ export default function EventsPage() {
     const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
     const isMobile = useIsMobile();
     const { canCreate, reason: limitReason } = useCanCreate("event");
+    const { activeVenue } = useVenueContext();
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         if (typeof window !== "undefined") {
             return (localStorage.getItem("viewMode:events") as ViewMode) || "grid";
@@ -61,7 +63,9 @@ export default function EventsPage() {
         setIsLoading(true);
         setError("");
         try {
-            const res = await fetch("/api/events");
+            const headers: HeadersInit = {};
+            if (activeVenue) headers["X-Venue-Id"] = activeVenue.id;
+            const res = await fetch("/api/events", { headers });
             if (!res.ok) throw new Error("Failed to fetch events");
             const data = await res.json();
             setEvents(data);
@@ -74,7 +78,7 @@ export default function EventsPage() {
 
     useEffect(() => {
         fetchEvents();
-    }, []);
+    }, [activeVenue?.id]);
 
     const filteredEvents = events.filter((event) => {
         const matchesSearch = event.event_name.toLowerCase().includes(searchTerm.toLowerCase());

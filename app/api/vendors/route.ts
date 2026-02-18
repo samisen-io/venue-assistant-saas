@@ -4,6 +4,7 @@ import { vendorFormSchema } from '@/lib/utils/validation'
 import { Database } from '@/lib/types/database.types'
 import { canCreateVendor } from '@/lib/subscription/limits'
 import { trackVendorCreation } from '@/lib/subscription/usage'
+import { resolveVenueWithFallback } from '@/lib/venues/resolveVenue'
 
 type VendorInsert = Database['public']['Tables']['vendors']['Insert']
 
@@ -33,8 +34,11 @@ export async function GET(request: Request) {
             .eq('is_active', true)
             .order('name', { ascending: true })
 
-        if (venueId) {
-            query = query.eq('venue_id', venueId)
+        // Scope to the active venue from header, fallback to default venue
+        const resolved = await resolveVenueWithFallback(request, supabase, user.id)
+        const effectiveVenueId = venueId || (resolved.venue ? resolved.venue.id : null)
+        if (effectiveVenueId) {
+            query = query.eq('venue_id', effectiveVenueId)
         }
 
         if (serviceId) {
@@ -76,14 +80,8 @@ export async function POST(request: Request) {
         const json = await request.json()
         const vendorData = json
 
-        // Get user's venue (single venue per user now)
-        const { data: venue, error: venueError } = await (supabase as any)
-            .from('venues')
-            .select('id')
-            .eq('owner_id', user.id)
-            .single()
-
-        if (venueError || !venue) {
+        const resolved = await resolveVenueWithFallback(request, supabase, user.id)
+        if (resolved.error) {
             return new NextResponse('No venue found. Please create a venue first.', { status: 400 })
         }
 
@@ -93,7 +91,7 @@ export async function POST(request: Request) {
 
         const insertData: VendorInsert = {
             ...vendorFields,
-            venue_id: venue.id, // Use user's venue
+            venue_id: resolved.venue!.id,
             is_active: true,
             total_events: 0,
             avg_quality_rating: 0,

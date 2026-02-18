@@ -81,10 +81,11 @@ CREATE TYPE vendor_outreach_status AS ENUM (
 --   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 -- );
 
--- Table: VENUES (one per user)
+-- Table: VENUES (multiple per user supported)
 CREATE TABLE venues (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL UNIQUE, -- UNIQUE: one venue per user
+  owner_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  is_default BOOLEAN DEFAULT false,
   name TEXT NOT NULL,
   address TEXT,
   city TEXT,

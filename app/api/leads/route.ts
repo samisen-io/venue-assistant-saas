@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { resolveVenueWithFallback } from "@/lib/venues/resolveVenue"
 
 export async function GET(request: Request) {
   try {
@@ -10,13 +11,9 @@ export async function GET(request: Request) {
     } = await supabase.auth.getUser()
     if (!user) return new NextResponse("Unauthorized", { status: 401 })
 
-    // Get user's venue
-    const { data: venue } = await (supabase as any)
-      .from("venues")
-      .select("id")
-      .eq("owner_id", user.id)
-      .single()
-    if (!venue) return NextResponse.json([])
+    const resolved = await resolveVenueWithFallback(request, supabase, user.id)
+    if (resolved.error) return NextResponse.json([])
+    const venue = resolved.venue!
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status")
@@ -58,13 +55,10 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser()
     if (!user) return new NextResponse("Unauthorized", { status: 401 })
 
-    const { data: venue } = await (supabase as any)
-      .from("venues")
-      .select("id")
-      .eq("owner_id", user.id)
-      .single()
-    if (!venue)
-      return NextResponse.json({ error: "No venue found" }, { status: 400 })
+    const resolved = await resolveVenueWithFallback(request, supabase, user.id)
+    if (resolved.error)
+      return NextResponse.json({ error: resolved.error }, { status: resolved.status })
+    const venue = resolved.venue!
 
     const body = await request.json()
 

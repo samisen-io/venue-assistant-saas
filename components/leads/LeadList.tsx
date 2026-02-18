@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Plus, Search } from "lucide-react"
 import { useLeads } from "@/hooks/useLeads"
+import { useVenueContext } from "@/lib/context/VenueContext"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -28,6 +29,7 @@ export function LeadList() {
   const [search, setSearch] = useState("")
   const [sortBy, setSortBy] = useState("created_at")
   const isMobile = useIsMobile()
+  const { activeVenue } = useVenueContext()
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (globalThis.window !== undefined) {
       return (localStorage.getItem("viewMode:leads") as ViewMode) || "grid"
@@ -46,6 +48,7 @@ export function LeadList() {
   }
 
   const { leads, loading, error, refetch } = useLeads({
+    venueId: activeVenue?.id,
     status: status !== "all" ? status : undefined,
     source: source !== "all" ? source : undefined,
     search: search || undefined,

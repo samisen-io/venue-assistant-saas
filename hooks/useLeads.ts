@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 interface LeadFilters {
+  venueId?: string
   status?: string
   source?: string
   search?: string
@@ -29,7 +30,10 @@ export function useLeads(filters?: LeadFilters) {
       if (filters?.sortBy) params.set("sortBy", filters.sortBy)
       if (filters?.sortOrder) params.set("sortOrder", filters.sortOrder)
 
-      const res = await fetch(`/api/leads?${params.toString()}`)
+      const headers: HeadersInit = {}
+      if (filters?.venueId) headers["X-Venue-Id"] = filters.venueId
+
+      const res = await fetch(`/api/leads?${params.toString()}`, { headers })
       if (!res.ok) throw new Error("Failed to fetch leads")
 
       const data = await res.json()
@@ -39,7 +43,7 @@ export function useLeads(filters?: LeadFilters) {
     } finally {
       setLoading(false)
     }
-  }, [filters?.status, filters?.source, filters?.search, filters?.sortBy, filters?.sortOrder])
+  }, [filters?.venueId, filters?.status, filters?.source, filters?.search, filters?.sortBy, filters?.sortOrder])
 
   useEffect(() => {
     fetchLeads()

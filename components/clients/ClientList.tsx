@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Plus, Search, Filter } from "lucide-react";
 import { Client } from "@/lib/types";
 import { useClients } from "@/hooks/useClients";
-import { useVenues } from "@/hooks/useVenues";
+import { useVenueContext } from "@/lib/context/VenueContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ClientCard } from "@/components/clients/ClientCard";
@@ -26,7 +26,8 @@ import {
 
 export function ClientList() {
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedVenueId, setSelectedVenueId] = useState("all");
+    // "" means use active venue from context; a specific venue ID overrides it
+    const [selectedVenueId, setSelectedVenueId] = useState("");
     const isMobile = useIsMobile();
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         if (typeof window !== "undefined") {
@@ -34,10 +35,12 @@ export function ClientList() {
         }
         return "grid";
     });
-    const { venues } = useVenues();
+    const { venues, activeVenue } = useVenueContext();
+
+    const effectiveVenueId = selectedVenueId || activeVenue?.id;
 
     // Calculate active filter count for mobile badge
-    const activeFilterCount = (searchTerm ? 1 : 0) + (selectedVenueId !== "all" ? 1 : 0);
+    const activeFilterCount = (searchTerm ? 1 : 0) + (selectedVenueId ? 1 : 0);
 
     const handleViewModeChange = (mode: ViewMode) => {
         setViewMode(mode);
@@ -45,7 +48,7 @@ export function ClientList() {
     };
 
     const { clients, loading, error, refetch } = useClients({
-        venueId: selectedVenueId !== "all" ? selectedVenueId : undefined,
+        venueId: effectiveVenueId,
         search: searchTerm || undefined,
     });
 
@@ -53,7 +56,7 @@ export function ClientList() {
 
     if (error) return <ErrorMessage message={error} onRetry={refetch} />;
 
-    const hasFilters = searchTerm.length > 0 || selectedVenueId !== "all";
+    const hasFilters = searchTerm.length > 0 || Boolean(selectedVenueId);
 
     return (
         <div className="space-y-6">
@@ -85,10 +88,10 @@ export function ClientList() {
                         <div className="w-full sm:w-[220px]">
                             <Select value={selectedVenueId} onValueChange={setSelectedVenueId}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="All Venues" />
+                                    <SelectValue placeholder={activeVenue?.name ?? "Active Venue"} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Venues</SelectItem>
+                                    <SelectItem value="">Active Venue</SelectItem>
                                     {venues.map((venue) => (
                                         <SelectItem key={venue.id} value={venue.id}>
                                             {venue.name}
@@ -118,7 +121,7 @@ export function ClientList() {
                         ? {
                             onAction: () => {
                                 setSearchTerm("");
-                                setSelectedVenueId("all");
+                                setSelectedVenueId("");
                             }
                         }
                         : { actionHref: "/clients/new" }

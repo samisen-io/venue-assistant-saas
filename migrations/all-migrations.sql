@@ -555,7 +555,7 @@ CREATE TABLE IF NOT EXISTS usage_tracking (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
     month DATE NOT NULL,
-    spaces_created INTEGER DEFAULT 0,
+    venues_created INTEGER DEFAULT 0,
     events_created INTEGER DEFAULT 0,
     vendors_created INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -710,6 +710,49 @@ SET outreach_status = CASE
 END,
 status_updated_at = COALESCE(confirmed_at, created_at)
 WHERE outreach_status IS NULL OR outreach_status = 'pending'::vendor_outreach_status;
+
+
+-- =====================================================
+-- MIGRATION 12: Multi-Venue Support
+-- =====================================================
+-- Removes the one-venue-per-user constraint and adds
+-- is_default flag so each user has a designated default venue.
+-- =====================================================
+
+-- Drop UNIQUE constraint on owner_id (was enforcing one venue per user)
+ALTER TABLE venues DROP CONSTRAINT IF EXISTS venues_owner_id_key;
+
+-- Add is_default column
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT false;
+
+-- Mark existing single venues as default
+UPDATE venues v
+SET is_default = true
+WHERE is_default = false
+  AND NOT EXISTS (
+    SELECT 1 FROM venues v2
+    WHERE v2.owner_id = v.owner_id AND v2.is_default = true
+  );
+
+CREATE INDEX IF NOT EXISTS idx_venues_owner_id ON venues(owner_id);
+CREATE INDEX IF NOT EXISTS idx_venues_owner_default ON venues(owner_id, is_default);
+
+
+-- =====================================================
+-- MIGRATION 13: Rename spaces_created to venues_created
+-- =====================================================
+-- Aligns usage_tracking column name with the multi-venue model.
+-- =====================================================
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'usage_tracking' AND column_name = 'spaces_created'
+  ) THEN
+    ALTER TABLE usage_tracking RENAME COLUMN spaces_created TO venues_created;
+  END IF;
+END $$;
 
 
 -- =====================================================

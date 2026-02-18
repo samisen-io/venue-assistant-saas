@@ -16,6 +16,7 @@ import { MobileFilters } from "@/components/shared/MobileFilters";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCanCreate } from "@/hooks/useSubscription";
 import { UpgradePrompt } from "@/components/subscription/UpgradePrompt";
+import { useVenueContext } from "@/lib/context/VenueContext";
 import {
     Select,
     SelectContent,
@@ -55,6 +56,7 @@ export default function VendorsPage() {
     const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
     const isMobile = useIsMobile();
     const { canCreate, reason: limitReason } = useCanCreate("vendor");
+    const { activeVenue } = useVenueContext();
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         if (globalThis.window !== undefined) {
             return (localStorage.getItem("viewMode:vendors") as ViewMode) || "grid";
@@ -74,7 +76,9 @@ export default function VendorsPage() {
         setIsLoading(true);
         setError("");
         try {
-            const res = await fetch("/api/vendors");
+            const headers: HeadersInit = {};
+            if (activeVenue) headers["X-Venue-Id"] = activeVenue.id;
+            const res = await fetch("/api/vendors", { headers });
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
                 throw new Error(errorData.error || "Failed to fetch vendors");
@@ -91,7 +95,7 @@ export default function VendorsPage() {
 
     useEffect(() => {
         fetchVendors();
-    }, []);
+    }, [activeVenue?.id]);
 
     useEffect(() => {
         const fetchServices = async () => {

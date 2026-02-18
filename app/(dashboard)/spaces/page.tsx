@@ -23,6 +23,7 @@ import { MobileFilters } from "@/components/shared/MobileFilters";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCanCreate } from "@/hooks/useSubscription";
 import { UpgradePrompt } from "@/components/subscription/UpgradePrompt";
+import { useVenueContext } from "@/lib/context/VenueContext";
 
 const spaceTypes: { value: string; label: string }[] = [
     { value: "ballroom", label: "Ballroom" },
@@ -41,6 +42,7 @@ export default function SpacesPage() {
     const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
     const isMobile = useIsMobile();
     const { canCreate, reason: limitReason } = useCanCreate("space");
+    const { activeVenue } = useVenueContext();
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         if (globalThis.window !== undefined) {
             return (localStorage.getItem("viewMode:spaces") as ViewMode) || "grid";
@@ -66,7 +68,9 @@ export default function SpacesPage() {
         setIsLoading(true);
         setError("");
         try {
-            const res = await fetch("/api/spaces");
+            const headers: HeadersInit = {};
+            if (activeVenue) headers["X-Venue-Id"] = activeVenue.id;
+            const res = await fetch("/api/spaces", { headers });
             if (!res.ok) throw new Error("Failed to fetch spaces");
             const data = await res.json();
             setSpaces(data);
@@ -80,7 +84,7 @@ export default function SpacesPage() {
 
     useEffect(() => {
         fetchSpaces();
-    }, []);
+    }, [activeVenue?.id]);
 
     // Filter spaces based on search and filters
     const filteredSpaces = useMemo(() => {

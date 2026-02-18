@@ -35,11 +35,13 @@ export function useClients(options: UseClientsOptions = {}): UseClientsResult {
       setError(null)
 
       const params = new URLSearchParams()
-      if (venueId) params.append('venueId', venueId)
       if (search) params.append('search', search)
 
+      const headers: HeadersInit = {}
+      if (venueId) headers['X-Venue-Id'] = venueId
+
       const url = `/api/clients${params.toString() ? `?${params.toString()}` : ''}`
-      const response = await fetch(url)
+      const response = await fetch(url, { headers })
 
       if (!response.ok) {
         throw new Error('Failed to fetch clients')

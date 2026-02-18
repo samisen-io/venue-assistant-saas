@@ -4,6 +4,7 @@ import { eventFormSchema } from '@/lib/utils/validation'
 import { checkSpaceAvailability, getConflictingEvents } from '@/lib/algorithms/space-availability'
 import { canCreateEvent } from '@/lib/subscription/limits'
 import { trackEventCreation } from '@/lib/subscription/usage'
+import { resolveVenueWithFallback } from '@/lib/venues/resolveVenue'
 
 export async function GET(request: Request) {
     try {
@@ -30,19 +31,9 @@ export async function GET(request: Request) {
         if (spaceId) {
             query = query.eq('space_id', spaceId)
         } else {
-            // Get user's venue
-            const { data: venue } = await (supabase as any)
-                .from('venues')
-                .select('id')
-                .eq('owner_id', user.id)
-                .single()
-
-            if (!venue) {
-                return NextResponse.json([]) // No venue, no events
-            }
-
-            // Get all events for user's venue (RLS will also filter)
-            query = query.eq('venue_id', venue.id)
+            const resolved = await resolveVenueWithFallback(request, supabase, user.id)
+            if (resolved.error) return NextResponse.json([])
+            query = query.eq('venue_id', resolved.venue!.id)
         }
 
         const { data: events, error } = await query

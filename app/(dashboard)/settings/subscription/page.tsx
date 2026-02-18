@@ -23,7 +23,7 @@ interface Subscription {
 }
 
 interface Usage {
-    spaces_created: number;
+    venues_created: number;
     events_created: number;
     vendors_created: number;
 }
@@ -155,9 +155,9 @@ export default function SubscriptionPage() {
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <UsageBar
-                                label="Spaces"
-                                used={usage.spaces_created}
-                                limit={limits.maxSpaces}
+                                label="Venues"
+                                used={usage.venues_created}
+                                limit={limits.maxVenues}
                             />
                             <UsageBar
                                 label="Events"

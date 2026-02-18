@@ -4,7 +4,7 @@ function getCurrentMonthDate(): string {
     return new Date().toISOString().slice(0, 7) + '-01'
 }
 
-async function upsertUsage(userId: string, field: 'spaces_created' | 'events_created' | 'vendors_created') {
+async function upsertUsage(userId: string, field: 'venues_created' | 'events_created' | 'vendors_created') {
     const supabase = createServiceRoleClient()
     const month = getCurrentMonthDate()
 
@@ -33,8 +33,13 @@ async function upsertUsage(userId: string, field: 'spaces_created' | 'events_cre
     }
 }
 
+export async function trackVenueCreation(userId: string): Promise<void> {
+    await upsertUsage(userId, 'venues_created')
+}
+
+/** @deprecated use trackVenueCreation */
 export async function trackSpaceCreation(userId: string): Promise<void> {
-    await upsertUsage(userId, 'spaces_created')
+    return trackVenueCreation(userId)
 }
 
 export async function trackEventCreation(userId: string): Promise<void> {
@@ -57,7 +62,7 @@ export async function getCurrentUsage(userId: string) {
         .single()
 
     return {
-        spaces_created: data?.spaces_created || 0,
+        venues_created: data?.venues_created || 0,
         events_created: data?.events_created || 0,
         vendors_created: data?.vendors_created || 0,
         month,

@@ -7,10 +7,13 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { venueFormSchema } from "@/lib/utils/validation";
 import { UpgradePrompt } from "@/components/subscription/UpgradePrompt";
+import { useVenueContext } from "@/lib/context/VenueContext";
+import type { Venue } from "@/lib/types";
 
 export default function NewVenuePage() {
     const router = useRouter();
     const { toast } = useToast();
+    const { refreshVenues, setActiveVenue } = useVenueContext();
     const [isLoading, setIsLoading] = useState(false);
     const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
     const [limitMessage, setLimitMessage] = useState<string | undefined>();
@@ -35,10 +38,16 @@ export default function NewVenuePage() {
 
             if (!res.ok) throw new Error("Failed to create venue");
 
+            const newVenue: Venue = await res.json();
+
             toast({
                 title: "Success",
                 description: "Venue created successfully",
             });
+
+            // Refresh context and switch to the newly created venue
+            await refreshVenues();
+            setActiveVenue(newVenue);
 
             router.push("/venues");
             router.refresh();
