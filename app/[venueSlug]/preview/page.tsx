@@ -7,7 +7,6 @@ import { EventTypeBadges } from "@/components/public-page/EventTypeBadges"
 import { AvailabilityCalendar } from "@/components/public-page/AvailabilityCalendar"
 import { LocationContact } from "@/components/public-page/LocationContact"
 import { TestimonialsCarousel } from "@/components/public-page/TestimonialsCarousel"
-import { FooterCTA } from "@/components/public-page/FooterCTA"
 import { EmbeddedChat } from "@/components/public-page/EmbeddedChat"
 import { ChatWidget } from "@/components/public-page/ChatWidget"
 import { fetchVenuePublicPageData } from "@/lib/public-page/fetchPublicVenue"
@@ -99,21 +98,28 @@ export default async function PreviewPage({ params, searchParams }: PreviewPageP
             <TestimonialsCarousel testimonials={data.testimonials} />
           </div>
 
-          <aside className="lg:sticky lg:top-24 lg:h-fit">
-            <div className="space-y-4">
-              <EmbeddedChat slug={data.venue.slug || venueSlug} greeting={null} />
-              <FooterCTA
-                phone={data.venue.phone}
-                email={data.venue.email}
-                hidePhone={false}
-                hideEmail={false}
-              />
-            </div>
+          <aside className="hidden lg:sticky lg:top-24 lg:block lg:h-fit">
+            <EmbeddedChat
+              slug={data.venue.slug || venueSlug}
+              greeting={null}
+              phone={data.venue.phone}
+              email={data.venue.email}
+              hidePhone={false}
+              hideEmail={false}
+            />
           </aside>
         </div>
       </section>
 
-      <ChatWidget slug={data.venue.slug || venueSlug} venueName={data.venue.name} greeting={null} />
+      <ChatWidget
+        slug={data.venue.slug || venueSlug}
+        venueName={data.venue.name}
+        greeting={null}
+        phone={data.venue.phone}
+        email={data.venue.email}
+        hidePhone={false}
+        hideEmail={false}
+      />
     </div>
   )
 }
