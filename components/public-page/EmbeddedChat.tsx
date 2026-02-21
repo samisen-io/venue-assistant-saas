@@ -28,6 +28,7 @@ export function EmbeddedChat({
   return (
     <section
       id="ai-chat"
+      data-testid="chat-widget"
       className="hidden overflow-hidden rounded-xl border shadow-sm lg:block"
     >
       {/* Header with contact icons */}

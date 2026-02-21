@@ -69,10 +69,14 @@ export default function DashboardPage() {
     const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
     const [trialDaysRemaining, setTrialDaysRemaining] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const { activeVenue } = useVenueContext();
+    const { activeVenue, isLoading: venueIsLoading } = useVenueContext();
 
     useEffect(() => {
-        if (!activeVenue) return;
+        if (venueIsLoading) return;
+        if (!activeVenue) {
+            setIsLoading(false);
+            return;
+        }
         const fetchDashboardData = async () => {
             setIsLoading(true);
             const venueHeaders = { "X-Venue-Id": activeVenue.id };
@@ -127,7 +131,7 @@ export default function DashboardPage() {
         };
 
         fetchDashboardData();
-    }, [activeVenue?.id]);
+    }, [activeVenue?.id, venueIsLoading]);
 
     if (isLoading) return <Loading />;
 
