@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/playwright-report
+/test-results
+/tests/.auth
 
 # next.js
 /.next/
@@ -51,3 +54,11 @@ supabase/temp/
 **/supabase/.branches/
 **/supabase/.temp/
 .env*.local
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
