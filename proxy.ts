@@ -88,6 +88,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Skip rate limiting in development/test to avoid hitting limits during local dev and E2E tests
+  if (process.env.NODE_ENV !== "production") {
+    return await updateSession(request);
+  }
+
   // Apply rate limiting to API routes
   if (pathname.startsWith("/api/")) {
     const clientId = getClientIdentifier(request);
@@ -168,6 +173,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - Public assets
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    String.raw`/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)`,
   ],
 };

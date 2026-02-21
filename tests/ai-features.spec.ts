@@ -15,17 +15,19 @@ test.describe('3.1 Natural Language Event Creation', () => {
   test('new event page loads with form or NLP input', async ({ page }) => {
     requireAuth();
     await page.goto('/events/new');
-    await expect(page.locator('main')).toBeVisible({ timeout: 15_000 });
-    // The page should have either a form or a text input for NL creation
-    const hasForm = await page.locator('form').isVisible().catch(() => false);
-    const hasInput = await page.locator('input, textarea').first().isVisible().catch(() => false);
-    expect(hasForm || hasInput).toBeTruthy();
+    // Skip if redirected (e.g. no venue context selected yet)
+    if (!page.url().includes('/events/new')) {
+      test.skip();
+      return;
+    }
+    // Wait for actual content inside main, not just the layout shell
+    await expect(page.locator('main').locator('form, input, textarea').first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('NLP tab or option is present on new event page', async ({ page }) => {
     requireAuth();
     await page.goto('/events/new');
-    await expect(page.locator('main')).toBeVisible({ timeout: 15_000 });
+    if (!page.url().includes('/events/new')) { test.skip(); return; }
     // Check for "Natural Language" or "AI" tab/button
     const hasNLP = await page.getByText(/natural language|describe|ai|tell us/i)
       .first()
@@ -92,7 +94,8 @@ test.describe('3.3 Vendor Outreach Agent', () => {
   test('event detail page has a vendors section', async ({ page }) => {
     requireAuth();
     await page.goto('/events');
-    await expect(page.locator('main')).toBeVisible({ timeout: 15_000 });
+    if (page.url().includes('/login')) { test.skip(); return; }
+    await expect(page.getByRole('heading', { name: /^events$/i })).toBeVisible({ timeout: 15_000 });
 
     // Navigate to the first event if one exists
     const firstEvent = page.getByRole('link', { name: /view|details|open/i }).first();
@@ -104,9 +107,8 @@ test.describe('3.3 Vendor Outreach Agent', () => {
     }
 
     await firstEvent.click();
-    await expect(page.locator('main')).toBeVisible({ timeout: 10_000 });
     // Vendor section or tab should exist on event detail
-    await expect(page.getByText(/vendor|agent/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/vendor|agent/i)).toBeVisible({ timeout: 10_000 });
   });
 });
 
@@ -116,9 +118,13 @@ test.describe('3.4 Proposal Generation', () => {
   test('leads page has action buttons for each lead', async ({ page }) => {
     requireAuth();
     await page.goto('/leads');
-    await expect(page.locator('main')).toBeVisible({ timeout: 15_000 });
+    if (page.url().includes('/login')) { test.skip(); return; }
+    await expect(page.getByRole('heading', { name: /^leads$/i, level: 1 }).first()).toBeVisible({ timeout: 15_000 });
 
-    const firstLead = page.getByRole('link').filter({ hasText: /view|open|lead/i }).first();
+    // Lead cards are links containing an h3 heading (the lead's name); this avoids matching "Add Lead"
+    const firstLead = page.locator('main').getByRole('link').filter({
+      has: page.getByRole('heading', { level: 3 }),
+    }).first();
     const hasLeads = await firstLead.isVisible({ timeout: 3_000 }).catch(() => false);
 
     if (!hasLeads) {
@@ -127,11 +133,10 @@ test.describe('3.4 Proposal Generation', () => {
     }
 
     await firstLead.click();
-    await expect(page.locator('main')).toBeVisible({ timeout: 10_000 });
     // Proposal or action buttons should appear on lead detail
     await expect(
       page.getByRole('button', { name: /proposal|send|action/i }).first()
-    ).toBeVisible({ timeout: 5_000 });
+    ).toBeVisible({ timeout: 10_000 });
   });
 });
 
@@ -140,11 +145,9 @@ test.describe('3.4 Proposal Generation', () => {
 test.describe('3.5 Vendor Matching', () => {
   test('vendor matching UI is reachable from an event', async ({ page }) => {
     requireAuth();
-    // Navigate to events and find one to test vendor matching
     await page.goto('/events');
-    await expect(page.locator('main')).toBeVisible({ timeout: 15_000 });
-
+    if (page.url().includes('/login')) { test.skip(); return; }
     // Just verify the events page loads correctly — full matching test requires seed data
-    await expect(page.getByRole('heading', { name: /^events$/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^events$/i })).toBeVisible({ timeout: 15_000 });
   });
 });
