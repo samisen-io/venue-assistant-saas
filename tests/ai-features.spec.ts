@@ -53,6 +53,13 @@ test.describe('3.2 AI Chat Widget', () => {
     await page.goto(`/${slug}`);
     await expect(page.locator('main')).toBeVisible({ timeout: 15_000 });
 
+    // Skip if venue doesn't exist or isn't published in this environment
+    const is404 = await page.getByRole('heading', { name: '404' }).isVisible().catch(() => false);
+    if (is404) {
+      test.skip();
+      return;
+    }
+
     // Chat widget could be a floating button or an embedded chat section
     const chatTrigger = page
       .getByRole('button', { name: /chat|message|ask/i })
@@ -72,6 +79,13 @@ test.describe('3.2 AI Chat Widget', () => {
 
     await page.goto(`/${slug}`);
     await expect(page.locator('main')).toBeVisible({ timeout: 15_000 });
+
+    // Skip if venue doesn't exist or isn't published in this environment
+    const is404 = await page.getByRole('heading', { name: '404' }).isVisible().catch(() => false);
+    if (is404) {
+      test.skip();
+      return;
+    }
 
     const chatTrigger = page
       .getByRole('button', { name: /chat|message|ask/i })

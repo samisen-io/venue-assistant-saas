@@ -1,13 +1,22 @@
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { SubscriptionBanner } from "@/components/subscription/SubscriptionBanner";
 import { VenueProvider } from "@/lib/context/VenueContext";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        redirect('/login');
+    }
+
     return (
         <VenueProvider>
             <div className="flex min-h-screen w-full">

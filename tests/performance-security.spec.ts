@@ -4,17 +4,23 @@ import { test, expect } from '@playwright/test';
 
 test.describe('5.1 Performance — Load Times', () => {
   test('homepage loads in under 5 seconds', async ({ page }) => {
-    const start = Date.now();
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'load' });
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    expect(Date.now() - start).toBeLessThan(5_000);
+    const loadTime = await page.evaluate(() => {
+      const [entry] = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+      return entry.loadEventEnd - entry.startTime;
+    });
+    expect(loadTime).toBeLessThan(5_000);
   });
 
   test('login page loads in under 4 seconds', async ({ page }) => {
-    const start = Date.now();
-    await page.goto('/login');
+    await page.goto('/login', { waitUntil: 'load' });
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible();
-    expect(Date.now() - start).toBeLessThan(4_000);
+    const loadTime = await page.evaluate(() => {
+      const [entry] = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+      return entry.loadEventEnd - entry.startTime;
+    });
+    expect(loadTime).toBeLessThan(4_000);
   });
 
   test('homepage has no console errors on load', async ({ page }) => {

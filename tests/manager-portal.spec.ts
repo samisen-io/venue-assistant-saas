@@ -64,14 +64,14 @@ test.describe('2.2 Dashboard Home', () => {
   });
 
   test('displays stat cards for key metrics', async ({ page }) => {
-    await expect(page.getByText(/upcoming events/i)).toBeVisible();
-    await expect(page.getByText(/active vendors/i)).toBeVisible();
-    await expect(page.getByText(/managed budget/i)).toBeVisible();
-    await expect(page.getByText(/reliability avg/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^upcoming events$/i, level: 3 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^active vendors$/i, level: 3 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^managed budget$/i, level: 3 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^reliability avg$/i, level: 3 })).toBeVisible();
   });
 
   test('shows upcoming events section', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: /upcoming events/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^upcoming events$/i, level: 2 })).toBeVisible();
   });
 
   test('shows recent leads section', async ({ page }) => {
