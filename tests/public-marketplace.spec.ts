@@ -15,8 +15,8 @@ test.describe('1.1 Homepage', () => {
   });
 
   test('trust badges are visible', async ({ page }) => {
-    await expect(page.getByText(/no credit card required/i)).toBeVisible();
-    await expect(page.getByText(/14-day free trial/i)).toBeVisible();
+    await expect(page.getByText(/no credit card required/i).first()).toBeVisible();
+    await expect(page.getByText(/14-day free trial/i).first()).toBeVisible();
     await expect(page.getByText(/cancel anytime/i)).toBeVisible();
   });
 
@@ -46,7 +46,7 @@ test.describe('1.1 Homepage', () => {
   test('footer renders with navigation links', async ({ page }) => {
     const footer = page.locator('footer');
     await expect(footer).toBeVisible();
-    await expect(footer.getByText('VenueManager')).toBeVisible();
+    await expect(footer.getByText('VenueManager', { exact: true })).toBeVisible();
     await expect(footer.getByRole('link', { name: /pricing/i })).toBeVisible();
     await expect(footer.getByRole('link', { name: /terms of service/i })).toBeVisible();
     await expect(footer.getByRole('link', { name: /privacy policy/i })).toBeVisible();
@@ -83,7 +83,7 @@ test.describe('1.2 Login Page', () => {
   test('shows validation errors on empty submit', async ({ page }) => {
     await page.getByRole('button', { name: /sign in/i }).click();
     // Either a toast or inline error should appear
-    const hasError = await page.getByText(/invalid|required|email/i).isVisible().catch(() => false);
+    const hasError = await page.getByText(/invalid|required/i).first().isVisible().catch(() => false);
     expect(hasError).toBeTruthy();
   });
 
@@ -92,7 +92,7 @@ test.describe('1.2 Login Page', () => {
     await page.getByLabel('Password').fill('wrongpassword123');
     await page.getByRole('button', { name: /sign in/i }).click();
     // Wait for error toast or message
-    await expect(page.getByText(/invalid|error|credentials|wrong/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/invalid|error|credentials|wrong/i).first()).toBeVisible({ timeout: 8_000 });
   });
 });
 
@@ -116,7 +116,7 @@ test.describe('1.3 Signup Page', () => {
 
   test('shows validation errors on empty submit', async ({ page }) => {
     await page.getByRole('button', { name: /create account/i }).click();
-    const hasError = await page.getByText(/required|invalid|name/i).isVisible().catch(() => false);
+    const hasError = await page.getByText(/required|invalid/i).first().isVisible().catch(() => false);
     expect(hasError).toBeTruthy();
   });
 
@@ -126,7 +126,7 @@ test.describe('1.3 Signup Page', () => {
     await page.getByLabel('Password').fill('password123');
     await page.getByLabel('Confirm').fill('differentpassword');
     await page.getByRole('button', { name: /create account/i }).click();
-    await expect(page.getByText(/match|password/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/match/i).first()).toBeVisible({ timeout: 5_000 });
   });
 });
 
@@ -174,6 +174,6 @@ test.describe('1.6 Public Venue Page', () => {
     // Hero section should have venue name or a "Request Quote" / inquiry CTA
     await expect(page.locator('main')).toBeVisible();
     // Availability calendar widget should be present
-    await expect(page.getByText(/availability|calendar/i)).toBeVisible();
+    await expect(page.getByText(/availability|calendar/i).first()).toBeVisible();
   });
 });
