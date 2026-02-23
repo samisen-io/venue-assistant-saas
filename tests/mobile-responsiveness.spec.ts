@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
+import { requireAuthCredentials, requireVenueSlug, assertNotRedirectedToLogin } from './helpers/requirements';
 
 // All tests in this file run at a mobile viewport (configured via the
 // 'Mobile Chrome' project in playwright.config.ts). The override here
@@ -8,12 +9,6 @@ test.use({
   viewport: { width: 375, height: 812 }, // iPhone 13 mini
   storageState: path.join(__dirname, '.auth/user.json'),
 });
-
-function requireAuth() {
-  if (!process.env.TEST_USER_EMAIL) {
-    test.skip();
-  }
-}
 
 // ─── 4.1 Public Landing Page ──────────────────────────────────────────────────
 
@@ -64,11 +59,9 @@ test.describe('4.2 Mobile — Auth Pages', () => {
 
 test.describe('4.3 Mobile — Dashboard', () => {
   test.beforeEach(async ({ page }) => {
-    requireAuth();
+    requireAuthCredentials();
     await page.goto('/dashboard');
-    if (page.url().includes('/login')) {
-      test.skip();
-    }
+    await assertNotRedirectedToLogin(page);
     await expect(page.locator('main')).toBeVisible({ timeout: 15_000 });
   });
 
@@ -94,13 +87,9 @@ test.describe('4.3 Mobile — Dashboard', () => {
 
 test.describe('4.4 Mobile — Events', () => {
   test('events list renders as cards (grid/card view) on mobile', async ({ page }) => {
-    requireAuth();
+    requireAuthCredentials();
     await page.goto('/events');
-    // Skip if auth state is stale/expired and middleware redirected to login
-    if (page.url().includes('/login')) {
-      test.skip();
-      return;
-    }
+    await assertNotRedirectedToLogin(page);
     await expect(page.getByRole('heading', { name: /^events$/i })).toBeVisible({ timeout: 15_000 });
     // The layout switches to grid/card on mobile — no horizontal table scroll
     const bodyWidth = await page.evaluate(() => document.body.scrollWidth);
@@ -113,11 +102,8 @@ test.describe('4.4 Mobile — Events', () => {
 
 test.describe('4.5 Mobile — Public Venue Page', () => {
   test('venue page renders without horizontal overflow', async ({ page }) => {
-    const slug = process.env.TEST_VENUE_SLUG;
-    if (!slug) {
-      test.skip();
-      return;
-    }
+    requireVenueSlug();
+    const slug = process.env.TEST_VENUE_SLUG!;
 
     await page.goto(`/${slug}`);
     await expect(page.locator('main')).toBeVisible({ timeout: 15_000 });
@@ -127,3 +113,4 @@ test.describe('4.5 Mobile — Public Venue Page', () => {
     expect(bodyWidth).toBeLessThanOrEqual(viewportWidth + 5);
   });
 });
+

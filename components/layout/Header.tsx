@@ -52,7 +52,7 @@ export function Header() {
     const pageTitle = getPageTitle(pathname);
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: "local" });
         router.push("/login");
     };
 

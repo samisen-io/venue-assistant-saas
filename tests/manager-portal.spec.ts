@@ -1,15 +1,10 @@
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
+import { requireAuthCredentials, assertNotRedirectedToLogin } from './helpers/requirements';
 
 // Use the saved auth state for all tests in this file.
 // If auth.setup.ts ran without credentials, the state is empty and protected routes will redirect to /login.
 test.use({ storageState: path.join(__dirname, '.auth/user.json') });
-
-function requireAuth() {
-  if (!process.env.TEST_USER_EMAIL) {
-    test.skip();
-  }
-}
 
 // ─── 2.1 Authentication ───────────────────────────────────────────────────────
 
@@ -23,15 +18,33 @@ test.describe('2.1 Authentication', () => {
 
   test('unauthenticated access to /dashboard redirects to /login', async ({ browser }) => {
     // Open a fresh context without any auth state
-    const ctx = await browser.newContext();
+    const ctx = await browser.newContext({
+      storageState: { cookies: [], origins: [] },
+    });
     const page = await ctx.newPage();
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/.*login/, { timeout: 10_000 });
     await ctx.close();
   });
 
-  test('logout redirects to login or home', async ({ page }) => {
-    requireAuth();
+  test('logout redirects to login or home', async ({ browser }) => {
+    requireAuthCredentials();
+    const email = process.env.TEST_USER_EMAIL!;
+    const password = process.env.TEST_USER_PASSWORD!;
+
+    // Use a dedicated authenticated context for logout so the shared
+    // storageState token used by other tests is not invalidated.
+    const ctx = await browser.newContext({
+      storageState: { cookies: [], origins: [] },
+    });
+    const page = await ctx.newPage();
+
+    await page.goto('/login');
+    await page.getByLabel('Email').fill(email);
+    await page.getByLabel('Password').fill(password);
+    await page.getByRole('button', { name: /sign in/i }).click();
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+
     await page.goto('/dashboard');
     // Find and click the logout button (in the header/sidebar user menu)
     const logoutBtn = page.getByRole('button', { name: /log out|sign out|logout/i });
@@ -45,6 +58,8 @@ test.describe('2.1 Authentication', () => {
       await page.getByRole('menuitem', { name: /log out|sign out/i }).click();
       await expect(page).toHaveURL(/\/(login|$)/, { timeout: 8_000 });
     }
+
+    await ctx.close();
   });
 });
 
@@ -52,9 +67,9 @@ test.describe('2.1 Authentication', () => {
 
 test.describe('2.2 Dashboard Home', () => {
   test.beforeEach(async ({ page }) => {
-    requireAuth();
+    requireAuthCredentials();
     await page.goto('/dashboard');
-    if (page.url().includes('/login')) { test.skip(); }
+    await assertNotRedirectedToLogin(page);
     await expect(page.getByRole('heading', { name: /^dashboard$/i })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(/upcoming events/i).first()).toBeVisible({ timeout: 15_000 });
   });
@@ -88,9 +103,9 @@ test.describe('2.2 Dashboard Home', () => {
 
 test.describe('2.3 Events', () => {
   test.beforeEach(async ({ page }) => {
-    requireAuth();
+    requireAuthCredentials();
     await page.goto('/events');
-    if (page.url().includes('/login')) { test.skip(); }
+    await assertNotRedirectedToLogin(page);
     await expect(page.getByRole('heading', { name: /^events$/i })).toBeVisible({ timeout: 15_000 });
   });
 
@@ -132,9 +147,9 @@ test.describe('2.3 Events', () => {
 
 test.describe('2.4 Vendors', () => {
   test.beforeEach(async ({ page }) => {
-    requireAuth();
+    requireAuthCredentials();
     await page.goto('/vendors');
-    if (page.url().includes('/login')) { test.skip(); }
+    await assertNotRedirectedToLogin(page);
     await expect(page.getByRole('heading', { name: /^vendors$/i })).toBeVisible({ timeout: 15_000 });
   });
 
@@ -164,9 +179,9 @@ test.describe('2.4 Vendors', () => {
 
 test.describe('2.5 Calendar', () => {
   test('calendar page loads with a calendar widget', async ({ page }) => {
-    requireAuth();
+    requireAuthCredentials();
     await page.goto('/calendar');
-    if (page.url().includes('/login')) { test.skip(); return; }
+    await assertNotRedirectedToLogin(page);
     // react-big-calendar uses .rbc-calendar class
     await expect(
       page.locator('.rbc-calendar').or(page.getByRole('grid')).first()
@@ -178,9 +193,9 @@ test.describe('2.5 Calendar', () => {
 
 test.describe('2.6 Venues', () => {
   test.beforeEach(async ({ page }) => {
-    requireAuth();
+    requireAuthCredentials();
     await page.goto('/venues');
-    if (page.url().includes('/login')) { test.skip(); }
+    await assertNotRedirectedToLogin(page);
     await expect(page.getByRole('heading', { name: /^venues?$/i })).toBeVisible({ timeout: 15_000 });
   });
 
@@ -201,9 +216,9 @@ test.describe('2.6 Venues', () => {
 
 test.describe('2.7 Leads', () => {
   test('leads page loads', async ({ page }) => {
-    requireAuth();
+    requireAuthCredentials();
     await page.goto('/leads');
-    if (page.url().includes('/login')) { test.skip(); return; }
+    await assertNotRedirectedToLogin(page);
     // Leads list or empty state should be visible
     await expect(
       page.getByRole('heading', { name: /leads/i }).or(
@@ -217,9 +232,9 @@ test.describe('2.7 Leads', () => {
 
 test.describe('2.8 Spaces', () => {
   test('spaces page loads', async ({ page }) => {
-    requireAuth();
+    requireAuthCredentials();
     await page.goto('/spaces');
-    if (page.url().includes('/login')) { test.skip(); return; }
+    await assertNotRedirectedToLogin(page);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 15_000 });
   });
 });
@@ -228,9 +243,9 @@ test.describe('2.8 Spaces', () => {
 
 test.describe('2.9 Settings', () => {
   test.beforeEach(async ({ page }) => {
-    requireAuth();
+    requireAuthCredentials();
     await page.goto('/settings');
-    if (page.url().includes('/login')) { test.skip(); }
+    await assertNotRedirectedToLogin(page);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 15_000 });
   });
 
@@ -243,3 +258,4 @@ test.describe('2.9 Settings', () => {
     await expect(page.getByText(/starter|pro|plan|subscription/i)).toBeVisible({ timeout: 10_000 });
   });
 });
+

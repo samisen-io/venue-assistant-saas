@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test tests/public-marketplace.spec.ts tests/manager-portal.spec.ts --project=chromium --workers=1",
+    "test:e2e:nightly": "playwright test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

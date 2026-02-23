@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { requireVenueSlug } from './helpers/requirements';
 
 // ─── 1.1 Homepage ────────────────────────────────────────────────────────────
 
@@ -163,16 +164,10 @@ test.describe('1.6 Public Venue Page', () => {
   });
 
   test('published venue page renders key sections when slug is known', async ({ page }) => {
-    const slug = process.env.TEST_VENUE_SLUG;
-    if (!slug) {
-      test.skip();
-      return;
-    }
+    requireVenueSlug();
+    const slug = process.env.TEST_VENUE_SLUG!;
     const response = await page.goto(`/${slug}`);
-    if (response?.status() === 404) {
-      test.skip();
-      return;
-    }
+    expect(response?.status(), `TEST_VENUE_SLUG '${slug}' did not resolve to a published page.`).not.toBe(404);
     // Availability calendar widget should be present
     await expect(page.getByText(/availability|calendar/i).first()).toBeVisible({ timeout: 15_000 });
   });

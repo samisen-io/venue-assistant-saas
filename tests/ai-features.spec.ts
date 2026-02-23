@@ -1,19 +1,14 @@
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
+import { requireAuthCredentials, requireVenueSlug, assertNotRedirectedToLogin } from './helpers/requirements';
 
 test.use({ storageState: path.join(__dirname, '.auth/user.json') });
-
-function requireAuth() {
-  if (!process.env.TEST_USER_EMAIL) {
-    test.skip();
-  }
-}
 
 // ─── 3.1 Natural Language Event Creation ──────────────────────────────────────
 
 test.describe('3.1 Natural Language Event Creation', () => {
   test('new event page loads with form or NLP input', async ({ page }) => {
-    requireAuth();
+    requireAuthCredentials();
     await page.goto('/events/new');
     // Skip if redirected (e.g. no venue context selected yet)
     if (!page.url().includes('/events/new')) {
@@ -25,7 +20,7 @@ test.describe('3.1 Natural Language Event Creation', () => {
   });
 
   test('NLP tab or option is present on new event page', async ({ page }) => {
-    requireAuth();
+    requireAuthCredentials();
     await page.goto('/events/new');
     if (!page.url().includes('/events/new')) { test.skip(); return; }
     // Check for "Natural Language" or "AI" tab/button
@@ -44,11 +39,8 @@ test.describe('3.1 Natural Language Event Creation', () => {
 
 test.describe('3.2 AI Chat Widget', () => {
   test('chat widget is present on a published venue page', async ({ page }) => {
-    const slug = process.env.TEST_VENUE_SLUG;
-    if (!slug) {
-      test.skip();
-      return;
-    }
+    requireVenueSlug();
+    const slug = process.env.TEST_VENUE_SLUG!;
 
     await page.goto(`/${slug}`);
     await expect(page.locator('main')).toBeVisible({ timeout: 15_000 });
@@ -71,11 +63,8 @@ test.describe('3.2 AI Chat Widget', () => {
   });
 
   test('chat widget opens when clicked', async ({ page }) => {
-    const slug = process.env.TEST_VENUE_SLUG;
-    if (!slug) {
-      test.skip();
-      return;
-    }
+    requireVenueSlug();
+    const slug = process.env.TEST_VENUE_SLUG!;
 
     await page.goto(`/${slug}`);
     await expect(page.locator('main')).toBeVisible({ timeout: 15_000 });
@@ -106,9 +95,9 @@ test.describe('3.2 AI Chat Widget', () => {
 
 test.describe('3.3 Vendor Outreach Agent', () => {
   test('event detail page has a vendors section', async ({ page }) => {
-    requireAuth();
+    requireAuthCredentials();
     await page.goto('/events');
-    if (page.url().includes('/login')) { test.skip(); return; }
+    await assertNotRedirectedToLogin(page);
     await expect(page.getByRole('heading', { name: /^events$/i })).toBeVisible({ timeout: 15_000 });
 
     // Navigate to the first event if one exists
@@ -130,9 +119,9 @@ test.describe('3.3 Vendor Outreach Agent', () => {
 
 test.describe('3.4 Proposal Generation', () => {
   test('leads page has action buttons for each lead', async ({ page }) => {
-    requireAuth();
+    requireAuthCredentials();
     await page.goto('/leads');
-    if (page.url().includes('/login')) { test.skip(); return; }
+    await assertNotRedirectedToLogin(page);
     await expect(page.getByRole('heading', { name: /^leads$/i, level: 1 }).first()).toBeVisible({ timeout: 15_000 });
 
     // Lead cards are links containing an h3 heading (the lead's name); this avoids matching "Add Lead"
@@ -158,10 +147,11 @@ test.describe('3.4 Proposal Generation', () => {
 
 test.describe('3.5 Vendor Matching', () => {
   test('vendor matching UI is reachable from an event', async ({ page }) => {
-    requireAuth();
+    requireAuthCredentials();
     await page.goto('/events');
-    if (page.url().includes('/login')) { test.skip(); return; }
+    await assertNotRedirectedToLogin(page);
     // Just verify the events page loads correctly — full matching test requires seed data
     await expect(page.getByRole('heading', { name: /^events$/i })).toBeVisible({ timeout: 15_000 });
   });
 });
+

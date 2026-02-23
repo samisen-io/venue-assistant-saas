@@ -9,15 +9,9 @@ setup('authenticate as test user', async ({ page }) => {
   const password = process.env.TEST_USER_PASSWORD;
 
   if (!email || !password) {
-    // Create an empty auth state so dependent tests can still run (and skip auth-gated assertions)
-    fs.mkdirSync(path.dirname(authFile), { recursive: true });
-    fs.writeFileSync(authFile, JSON.stringify({ cookies: [], origins: [] }));
-    console.warn(
-      '\n⚠️  TEST_USER_EMAIL or TEST_USER_PASSWORD not set.\n' +
-      '   Authenticated tests will be skipped or will fail on protected routes.\n' +
-      '   Create a .env.test file (see .env.example) and add your test credentials.\n'
+    throw new Error(
+      'Missing TEST_USER_EMAIL or TEST_USER_PASSWORD. Set them in .env.local (docs/testing/TEST_ENV_CONTRACT.md).'
     );
-    return;
   }
 
   await page.goto('/login');
@@ -35,5 +29,17 @@ setup('authenticate as test user', async ({ page }) => {
   await expect(page.getByRole('navigation')).toBeVisible({ timeout: 10_000 });
 
   // Save auth cookies/storage state
+  fs.mkdirSync(path.dirname(authFile), { recursive: true });
   await page.context().storageState({ path: authFile });
+
+  const stateRaw = fs.readFileSync(authFile, 'utf-8');
+  const state = JSON.parse(stateRaw) as { cookies?: Array<{ name: string }> };
+  if (!state.cookies?.length) {
+    throw new Error('Auth setup wrote an empty storage state.');
+  }
+
+  const hasSupabaseCookie = state.cookies.some((cookie) => cookie.name.startsWith('sb-'));
+  if (!hasSupabaseCookie) {
+    throw new Error('Auth setup completed without Supabase auth cookies in storage state.');
+  }
 });
