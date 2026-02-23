@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 
 export function ClientList() {
+    const ACTIVE_VENUE_VALUE = "__active_venue__";
     const [searchTerm, setSearchTerm] = useState("");
     // "" means use active venue from context; a specific venue ID overrides it
     const [selectedVenueId, setSelectedVenueId] = useState("");
@@ -86,12 +87,17 @@ export function ClientList() {
                     </div>
                     {venues.length > 1 && (
                         <div className="w-full sm:w-[220px]">
-                            <Select value={selectedVenueId} onValueChange={setSelectedVenueId}>
+                            <Select
+                                value={selectedVenueId || ACTIVE_VENUE_VALUE}
+                                onValueChange={(value) =>
+                                    setSelectedVenueId(value === ACTIVE_VENUE_VALUE ? "" : value)
+                                }
+                            >
                                 <SelectTrigger>
                                     <SelectValue placeholder={activeVenue?.name ?? "Active Venue"} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Active Venue</SelectItem>
+                                    <SelectItem value={ACTIVE_VENUE_VALUE}>Active Venue</SelectItem>
                                     {venues.map((venue) => (
                                         <SelectItem key={venue.id} value={venue.id}>
                                             {venue.name}
