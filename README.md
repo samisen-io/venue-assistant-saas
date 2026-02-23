@@ -95,8 +95,29 @@ lib/
 ## Documentation
 
 - **[CLAUDE.md](CLAUDE.md)** - Project overview and AI assistant instructions
-- **[VenueManager_MicroSaaS_PRD.md](VenueManager_MicroSaaS_PRD.md)** - Complete product requirements document
 - **[setup-database.sql](setup-database.sql)** - Database schema setup script
+
+### PRDs
+
+- **[docs/prds/MVP_PRD.md](docs/prds/MVP_PRD.md)** - Core MVP product requirements (Phase 1)
+- **[docs/prds/MARKETPLACE_PRD.md](docs/prds/MARKETPLACE_PRD.md)** - Public marketplace & AI conversational booking (Phase 2)
+
+### Implementation Tasks
+
+- **[docs/tasks/multi_venue_tasks.md](docs/tasks/multi_venue_tasks.md)** - Multi-venue support implementation
+- **[docs/tasks/PUBLIC_PAGES_TASKS.md](docs/tasks/PUBLIC_PAGES_TASKS.md)** - Public venue pages implementation
+- **[docs/tasks/PublicMarketplace_TaskList.md](docs/tasks/PublicMarketplace_TaskList.md)** - Marketplace launch task list
+- **[docs/tasks/STRIPE_SUBSCRIPTION_TASKS.md](docs/tasks/STRIPE_SUBSCRIPTION_TASKS.md)** - Stripe subscription implementation
+
+### Guides
+
+- **[docs/guides/DESIGN_SYSTEM.md](docs/guides/DESIGN_SYSTEM.md)** - UI/UX design system and component patterns
+- **[docs/guides/SETUP_GUIDE.md](docs/guides/SETUP_GUIDE.md)** - AI agent, webhook, and email infrastructure setup
+- **[docs/guides/PRE_LAUNCH_GUIDE.md](docs/guides/PRE_LAUNCH_GUIDE.md)** - Pre-launch and deployment checklist
+
+### Testing
+
+- **[docs/testing/MANUAL_TEST_CHECKLIST.md](docs/testing/MANUAL_TEST_CHECKLIST.md)** - Manual QA regression checklist
 
 ## Development Workflow
 
