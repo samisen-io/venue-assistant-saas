@@ -65,7 +65,7 @@ export function ClientList() {
                 <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
                 <div className="flex items-center gap-3">
                     <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
-                    <Button asChild>
+                    <Button asChild data-testid="add-client-btn">
                         <Link href="/clients/new">
                             <Plus className="mr-2 h-4 w-4" />
                             Add Client

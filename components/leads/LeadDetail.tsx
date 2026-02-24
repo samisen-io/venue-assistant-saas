@@ -114,6 +114,7 @@ export function LeadDetail({ leadId }: { leadId: string }) {
         <div className="flex flex-wrap gap-2">
           {lead.status !== "won" && lead.status !== "lost" && (
             <Button
+              data-testid="convert-to-event-btn"
               size="sm"
               onClick={handleConvertToEvent}
               disabled={isConverting}

@@ -12,7 +12,14 @@ try {
     const eqIdx = trimmed.indexOf('=');
     if (eqIdx === -1) continue;
     const key = trimmed.slice(0, eqIdx).trim();
-    const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+    // Strip inline comments (# …) unless the value is quoted
+    let rawVal = trimmed.slice(eqIdx + 1).trim();
+    if (/^["']/.test(rawVal)) {
+      rawVal = rawVal.replace(/^["']|["']$/g, ''); // remove surrounding quotes only
+    } else {
+      rawVal = rawVal.replace(/\s+#.*$/, ''); // strip trailing inline comment
+    }
+    const val = rawVal;
     if (key && !(key in process.env)) process.env[key] = val;
   }
 } catch {
@@ -75,17 +82,22 @@ export default defineConfig({
       dependencies: ['setup'],
     },
 
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-      dependencies: ['setup'],
-    },
-
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-      dependencies: ['setup'],
-    },
+    // Firefox and WebKit only run in nightly (CI schedule/dispatch) to avoid
+    // overloading the dev server under parallel local runs.
+    ...(process.env.PLAYWRIGHT_BROWSERS === 'all' || process.env.CI
+      ? [
+          {
+            name: 'firefox',
+            use: { ...devices['Desktop Firefox'] },
+            dependencies: ['setup'],
+          },
+          {
+            name: 'webkit',
+            use: { ...devices['Desktop Safari'] },
+            dependencies: ['setup'],
+          },
+        ]
+      : []),
 
     /* Mobile viewports */
     {

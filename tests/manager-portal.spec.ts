@@ -9,14 +9,14 @@ test.use({ storageState: path.join(__dirname, '.auth/user.json') });
 // ─── 2.1 Authentication ───────────────────────────────────────────────────────
 
 test.describe('2.1 Authentication', () => {
-  test('login page shows form fields', async ({ page }) => {
+  test('login page shows form fields @smoke', async ({ page }) => {
     await page.goto('/login');
     await expect(page.getByLabel('Email')).toBeVisible();
     await expect(page.getByLabel('Password')).toBeVisible();
     await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
   });
 
-  test('unauthenticated access to /dashboard redirects to /login', async ({ browser }) => {
+  test('unauthenticated access to /dashboard redirects to /login @smoke', async ({ browser }) => {
     // Open a fresh context without any auth state
     const ctx = await browser.newContext({
       storageState: { cookies: [], origins: [] },
@@ -74,7 +74,7 @@ test.describe('2.2 Dashboard Home', () => {
     await expect(page.getByText(/upcoming events/i).first()).toBeVisible({ timeout: 15_000 });
   });
 
-  test('shows the main heading', async ({ page }) => {
+  test('shows the main heading @smoke', async ({ page }) => {
     await expect(page.getByRole('heading', { name: /^dashboard$/i })).toBeVisible();
   });
 
@@ -109,7 +109,7 @@ test.describe('2.3 Events', () => {
     await expect(page.getByRole('heading', { name: /^events$/i })).toBeVisible({ timeout: 15_000 });
   });
 
-  test('events page loads with heading', async ({ page }) => {
+  test('events page loads with heading @smoke', async ({ page }) => {
     await expect(page.getByRole('heading', { name: /^events$/i })).toBeVisible();
   });
 
@@ -153,7 +153,7 @@ test.describe('2.4 Vendors', () => {
     await expect(page.getByRole('heading', { name: /^vendors$/i })).toBeVisible({ timeout: 15_000 });
   });
 
-  test('vendors page loads with heading', async ({ page }) => {
+  test('vendors page loads with heading @smoke', async ({ page }) => {
     await expect(page.getByRole('heading', { name: /^vendors$/i })).toBeVisible();
   });
 

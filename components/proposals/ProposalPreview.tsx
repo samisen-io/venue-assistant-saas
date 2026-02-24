@@ -133,10 +133,10 @@ export function ProposalPreview({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={handleSave} disabled={saving}>
+          <Button data-testid="save-proposal-draft-btn" variant="outline" onClick={handleSave} disabled={saving}>
             {saving ? "Saving..." : "Save Draft"}
           </Button>
-          <Button onClick={() => onSend?.()} disabled={sending}>
+          <Button data-testid="send-proposal-btn" onClick={() => onSend?.()} disabled={sending}>
             {sending ? "Sending..." : "Send Proposal"}
           </Button>
           {proposal.pdf_url && (

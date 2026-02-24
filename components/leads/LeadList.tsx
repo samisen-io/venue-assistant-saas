@@ -65,7 +65,7 @@ export function LeadList() {
         <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
         <div className="flex items-center gap-3">
           <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
-          <Button asChild>
+          <Button asChild data-testid="add-lead-btn">
             <Link href="/leads/new">
               <Plus className="mr-2 h-4 w-4" />
               Add Lead

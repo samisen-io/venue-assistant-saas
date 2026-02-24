@@ -130,6 +130,7 @@ export function Sidebar() {
                             <Link
                                 key={item.href}
                                 href={item.href}
+                                data-testid={`nav-${item.title.toLowerCase()}`}
                                 title={isCollapsed ? item.title : ""}
                                 className={cn(
                                     "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
@@ -211,6 +212,7 @@ export function Sidebar() {
                 </Button>
                 )}
                 <Button
+                    data-testid="logout-button"
                     variant="ghost"
                     className={cn(
                         "justify-start gap-3 text-gray-500 hover:text-red-500",

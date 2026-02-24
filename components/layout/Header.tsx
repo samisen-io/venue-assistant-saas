@@ -68,6 +68,7 @@ export function Header() {
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
+                            data-testid="user-menu"
                             variant="outline"
                             size="icon"
                             className="overflow-hidden rounded-full"

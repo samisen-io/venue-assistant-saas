@@ -70,6 +70,7 @@ export function ChatWidget({
     <>
       {/* Floating chat button — mobile only */}
       <button
+        data-testid="ai-chat-bubble"
         onClick={handleOpen}
         aria-label="Open chat"
         className={cn(

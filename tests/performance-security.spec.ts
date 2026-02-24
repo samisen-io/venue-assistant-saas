@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 // ─── 5.1 Page Load Performance ────────────────────────────────────────────────
 
 test.describe('5.1 Performance — Load Times', () => {
-  test('homepage loads in under 5 seconds', async ({ page }) => {
+  test('homepage loads in under 5 seconds @smoke', async ({ page }) => {
     await page.goto('/', { waitUntil: 'load' });
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     const loadTime = await page.evaluate(() => {
@@ -13,7 +13,7 @@ test.describe('5.1 Performance — Load Times', () => {
     expect(loadTime).toBeLessThan(5_000);
   });
 
-  test('login page loads in under 4 seconds', async ({ page }) => {
+  test('login page loads in under 4 seconds @smoke', async ({ page }) => {
     await page.goto('/login', { waitUntil: 'load' });
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible();
     const loadTime = await page.evaluate(() => {
@@ -54,7 +54,7 @@ test.describe('5.2 Security — Auth Guards', () => {
   ];
 
   for (const route of protectedRoutes) {
-    test(`unauthenticated access to ${route} redirects to /login`, async ({ browser }) => {
+    test(`unauthenticated access to ${route} redirects to /login @smoke`, async ({ browser }) => {
       // Use a fresh context with NO auth state (no cookies)
       const ctx = await browser.newContext();
       const page = await ctx.newPage();
@@ -78,7 +78,7 @@ test.describe('5.3 Security — Public Content Boundaries', () => {
     expect(is404 || hasNotFoundUI).toBeTruthy();
   });
 
-  test('/api routes are not publicly browsable', async ({ page }) => {
+  test('/api routes are not publicly browsable @smoke', async ({ page }) => {
     // API routes should return JSON errors (not HTML dashboards) to unauthenticated requests
     const response = await page.goto('/api/events');
     const status = response?.status() ?? 0;

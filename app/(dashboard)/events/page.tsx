@@ -97,14 +97,14 @@ export default function EventsPage() {
                 <div className="flex items-center gap-3">
                     <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
                     {canCreate ? (
-                        <Button asChild>
+                        <Button asChild data-testid="create-event-btn">
                             <Link href="/events/new">
                                 <Plus className="mr-2 h-4 w-4" />
                                 Create Event
                             </Link>
                         </Button>
                     ) : (
-                        <Button onClick={() => setShowUpgradePrompt(true)}>
+                        <Button data-testid="create-event-btn" onClick={() => setShowUpgradePrompt(true)}>
                             <Plus className="mr-2 h-4 w-4" />
                             Create Event
                         </Button>

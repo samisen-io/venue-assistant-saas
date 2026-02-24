@@ -53,7 +53,7 @@ export function LeadStatusDropdown({
   return (
     <div className="space-y-2">
       <Select value={currentStatus} onValueChange={handleChange} disabled={disabled}>
-        <SelectTrigger className="w-full">
+        <SelectTrigger data-testid="lead-status-dropdown" className="w-full">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

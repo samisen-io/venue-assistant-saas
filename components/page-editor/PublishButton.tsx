@@ -88,6 +88,7 @@ export function PublishButton(
   return (
     <>
       <Button
+        data-testid="publish-btn"
         onClick={handleClick}
         disabled={isPublishing}
         className="gap-2"

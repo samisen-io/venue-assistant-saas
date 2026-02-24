@@ -104,7 +104,7 @@ export default function VenuesPage() {
                 </div>
                 <div className="flex items-center gap-3">
                     <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
-                    <Button onClick={handleAddVenue}>
+                    <Button data-testid="add-venue-btn" onClick={handleAddVenue}>
                         <Plus className="mr-2 h-4 w-4" />
                         Add Venue
                     </Button>

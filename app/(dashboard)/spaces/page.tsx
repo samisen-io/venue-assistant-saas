@@ -145,14 +145,14 @@ export default function SpacesPage() {
                 <div className="flex items-center gap-3">
                     <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
                     {canCreate ? (
-                        <Button asChild>
+                        <Button asChild data-testid="add-space-btn">
                             <Link href="/spaces/new">
                                 <Plus className="mr-2 h-4 w-4" />
                                 Add Space
                             </Link>
                         </Button>
                     ) : (
-                        <Button onClick={() => setShowUpgradePrompt(true)}>
+                        <Button data-testid="add-space-btn" onClick={() => setShowUpgradePrompt(true)}>
                             <Plus className="mr-2 h-4 w-4" />
                             Add Space
                         </Button>

@@ -131,14 +131,14 @@ export default function VendorsPage() {
                 <div className="flex items-center gap-3">
                     <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
                     {canCreate ? (
-                        <Button asChild>
+                        <Button asChild data-testid="add-vendor-btn">
                             <Link href="/vendors/new">
                                 <Plus className="mr-2 h-4 w-4" />
                                 Add Vendor
                             </Link>
                         </Button>
                     ) : (
-                        <Button onClick={() => setShowUpgradePrompt(true)}>
+                        <Button data-testid="add-vendor-btn" onClick={() => setShowUpgradePrompt(true)}>
                             <Plus className="mr-2 h-4 w-4" />
                             Add Vendor
                         </Button>
