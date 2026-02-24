@@ -79,7 +79,20 @@ test.describe('4.3 Mobile — Dashboard', () => {
   });
 
   test('stat cards are visible and not overflowing on mobile', async ({ page }) => {
-    await expect(page.getByText(/upcoming events/i)).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 3, name: /^upcoming events$/i }),
+    ).toBeVisible();
+
+    // Measure overflow on the app container, not document.body, because
+    // Next.js dev overlays can add fixed UI outside the app in local runs.
+    const { mainScrollWidth, mainClientWidth } = await page.evaluate(() => {
+      const main = document.querySelector("main");
+      return {
+        mainScrollWidth: main?.scrollWidth ?? 0,
+        mainClientWidth: main?.clientWidth ?? window.innerWidth,
+      };
+    });
+    expect(mainScrollWidth).toBeLessThanOrEqual(mainClientWidth + 5);
   });
 });
 
@@ -113,4 +126,3 @@ test.describe('4.5 Mobile — Public Venue Page', () => {
     expect(bodyWidth).toBeLessThanOrEqual(viewportWidth + 5);
   });
 });
-

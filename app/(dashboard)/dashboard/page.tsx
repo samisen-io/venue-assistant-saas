@@ -144,16 +144,16 @@ export default function DashboardPage() {
             )}
 
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <div className="flex items-center gap-3 mb-1">
-                        <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+                <div className="min-w-0">
+                    <div className="mb-1 flex flex-wrap items-center gap-2 sm:gap-3">
+                        <h1 className="min-w-0 text-2xl font-bold tracking-tight sm:text-3xl">Dashboard Overview</h1>
                         {subscription && (
                             <SubscriptionBadge tier={subscription.plan_tier} status={subscription.status} />
                         )}
                     </div>
-                    <p className="text-muted-foreground mt-1">Welcome back! Here&apos;s what&apos;s happening with your venues.</p>
+                    <p className="mt-1 text-muted-foreground">Welcome back! Here&apos;s what&apos;s happening with your venues.</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                     <Button asChild variant="outline">
                         <Link href="/vendors/new">
                             <Plus className="mr-2 h-4 w-4" />

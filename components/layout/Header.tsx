@@ -57,12 +57,12 @@ export function Header() {
     };
 
     return (
-        <header className="flex h-14 items-center gap-4 border-b bg-gray-50/40 px-4 md:px-6 lg:h-[60px]">
+        <header className="flex h-14 items-center gap-2 border-b bg-gray-50/40 px-3 md:gap-4 md:px-6 lg:h-[60px]">
             <MobileSidebar />
-            <div className="flex-1">
-                <h1 className="text-lg font-semibold">{pageTitle}</h1>
+            <div className="min-w-0 flex-1">
+                <h1 className="truncate text-lg font-semibold">{pageTitle}</h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="min-w-0 flex items-center gap-1.5 md:gap-2">
                 <VenueSwitcher />
                 <NotificationBell />
                 <DropdownMenu>

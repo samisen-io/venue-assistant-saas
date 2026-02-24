@@ -20,16 +20,16 @@ export function VenueSwitcher() {
 
     if (isLoading || !activeVenue) {
         return (
-            <div className="h-8 w-40 animate-pulse rounded-md bg-gray-200" />
+            <div className="h-8 w-28 animate-pulse rounded-md bg-gray-200 sm:w-40" />
         );
     }
 
     // Single venue — show static label, no dropdown
     if (venues.length <= 1) {
         return (
-            <div className="flex items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-sm">
+            <div className="flex max-w-[140px] items-center gap-1.5 rounded-md border bg-background px-2 py-1.5 text-sm sm:max-w-[180px] sm:px-3">
                 <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                <span className="max-w-[160px] truncate font-medium">{activeVenue.name}</span>
+                <span className="truncate font-medium">{activeVenue.name}</span>
             </div>
         );
     }
@@ -41,7 +41,7 @@ export function VenueSwitcher() {
                 <Button
                     variant="outline"
                     size="sm"
-                    className="flex items-center gap-1.5 max-w-[200px]"
+                    className="flex max-w-[140px] items-center gap-1.5 px-2 sm:max-w-[200px] sm:px-3"
                 >
                     <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                     <span className="truncate">{activeVenue.name}</span>
