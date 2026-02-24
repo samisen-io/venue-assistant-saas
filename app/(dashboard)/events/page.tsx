@@ -17,6 +17,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useCanCreate } from "@/hooks/useSubscription";
 import { UpgradePrompt } from "@/components/subscription/UpgradePrompt";
 import { useVenueContext } from "@/lib/context/VenueContext";
+import { withVenueHeader } from "@/lib/utils/venueHeader";
 import {
     Select,
     SelectContent,
@@ -63,8 +64,7 @@ export default function EventsPage() {
         setIsLoading(true);
         setError("");
         try {
-            const headers: HeadersInit = {};
-            if (activeVenue) headers["X-Venue-Id"] = activeVenue.id;
+            const headers = withVenueHeader(activeVenue?.id);
             const res = await fetch("/api/events", { headers });
             if (!res.ok) throw new Error("Failed to fetch events");
             const data = await res.json();

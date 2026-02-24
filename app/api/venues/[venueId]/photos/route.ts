@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getAuthorizedVenue } from "@/lib/venues/editorAuth"
+import { canUploadPhoto } from "@/lib/subscription/limits"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -11,6 +12,9 @@ export async function POST(
     const { venueId } = await params
     const auth = await getAuthorizedVenue(venueId)
     if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status })
+
+    const limit = await canUploadPhoto(auth.user!.id, venueId)
+    if (!limit.allowed) return NextResponse.json({ error: limit.reason }, { status: 403 })
 
     const body = await request.json()
     const photos = Array.isArray(body.photos) ? body.photos : []

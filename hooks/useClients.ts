@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Client, ClientCommunication, ClientWithEvents } from '@/lib/types'
+import { withVenueHeader } from '@/lib/utils/venueHeader'
 
 interface UseClientsOptions {
   venueId?: string
@@ -37,8 +38,7 @@ export function useClients(options: UseClientsOptions = {}): UseClientsResult {
       const params = new URLSearchParams()
       if (search) params.append('search', search)
 
-      const headers: HeadersInit = {}
-      if (venueId) headers['X-Venue-Id'] = venueId
+      const headers = withVenueHeader(venueId)
 
       const url = `/api/clients${params.toString() ? `?${params.toString()}` : ''}`
       const response = await fetch(url, { headers })

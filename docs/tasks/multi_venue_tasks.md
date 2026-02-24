@@ -25,17 +25,17 @@ Allow users to manage multiple venues. The first venue (created at onboarding) b
 
 ### Tasks
 
-- [ ] **1.1** Write and run migration SQL to drop `UNIQUE` constraint on `venues.owner_id`
+- [x] **1.1** Write and run migration SQL to drop `UNIQUE` constraint on `venues.owner_id`
   ```sql
   ALTER TABLE venues DROP CONSTRAINT IF EXISTS venues_owner_id_key;
   ```
   - Verify: `SELECT COUNT(*) FROM venues GROUP BY owner_id HAVING COUNT(*) > 1;` should now be possible
   - Add this migration to `migrations/all-migrations.sql` as Migration 12 (or next number)
 
-- [ ] **1.2** Verify RLS policies still hold for multi-venue
+- [x] **1.2** Verify RLS policies still hold for multi-venue
   - Run SQL to confirm all policies on `spaces`, `vendors`, `clients`, `events`, `leads` still check `venues.owner_id = auth.uid()` (they do — no changes needed, confirmed in diagnosis)
 
-- [ ] **1.3** Add `is_default` column to `venues` table
+- [x] **1.3** Add `is_default` column to `venues` table
   ```sql
   ALTER TABLE venues ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT false;
   -- Set existing venues as default
@@ -51,7 +51,7 @@ Allow users to manage multiple venues. The first venue (created at onboarding) b
 
 ### Tasks
 
-- [ ] **2.1** Create `lib/context/VenueContext.tsx`
+- [x] **2.1** Create `lib/context/VenueContext.tsx`
   - State: `venues: Venue[]`, `activeVenue: Venue | null`, `isLoading: boolean`
   - On mount: fetch `/api/venues`, set active to:
     1. Venue matching `localStorage.getItem("activeVenueId")` if it belongs to user
@@ -60,22 +60,21 @@ Allow users to manage multiple venues. The first venue (created at onboarding) b
   - Expose: `activeVenue`, `venues`, `setActiveVenue(venue)`, `isLoading`
   - `setActiveVenue` persists to `localStorage.setItem("activeVenueId", venue.id)`
 
-- [ ] **2.2** Create `hooks/useVenueContext.ts`
-  - Simple wrapper: `export const useVenueContext = () => useContext(VenueContext)`
-  - Throws if used outside provider
+- [x] **2.2** Create `hooks/useVenueContext.ts`
+  - `useVenueContext` is exported directly from `lib/context/VenueContext.tsx` (no separate file needed)
 
-- [ ] **2.3** Wrap dashboard layout with provider
+- [x] **2.3** Wrap dashboard layout with provider
   - In `app/(dashboard)/layout.tsx`: wrap children with `<VenueProvider>`
   - Provider fetches venues once at the layout level — no per-component fetching
 
-- [ ] **2.4** Create `lib/utils/venueHeader.ts` helper
+- [x] **2.4** Create `lib/utils/venueHeader.ts` helper
   ```ts
-  // Returns headers object with X-Venue-Id set
-  export function withVenueHeader(venueId: string): HeadersInit {
-    return { "X-Venue-Id": venueId }
+  // Returns headers object with X-Venue-Id set (or {} if venueId is undefined)
+  export function withVenueHeader(venueId?: string): Record<string, string> {
+    return venueId ? { "X-Venue-Id": venueId } : {}
   }
   ```
-  - All client-side `fetch()` calls to venue-scoped APIs use this helper
+  - Used in: `hooks/useClients.ts`, `hooks/useLeads.ts` (4 spots), `app/(dashboard)/events/page.tsx`, `app/(dashboard)/vendors/page.tsx`, `app/(dashboard)/spaces/page.tsx`, `app/(dashboard)/dashboard/page.tsx`
 
 ---
 
@@ -85,20 +84,20 @@ Allow users to manage multiple venues. The first venue (created at onboarding) b
 
 ### Tasks
 
-- [ ] **3.1** Refactor `components/layout/Sidebar.tsx`
+- [x] **3.1** Refactor `components/layout/Sidebar.tsx`
   - Remove internal `fetch("/api/venues")` — use `useVenueContext()` instead
   - Remove internal `venueId` state
   - "Public Page" link: `/venues/${activeVenue.id}/public-page`
   - "Analytics" link: `/venues/${activeVenue.id}/analytics`
   - Show active venue name in the sidebar (small label above nav items or below logo)
 
-- [ ] **3.2** Add **Venues** nav item to sidebar
+- [x] **3.2** Add **Venues** nav item to sidebar
   - Position: between "Settings" and bottom actions
-  - Icon: `Building2` from lucide-react
+  - Icon: `MapPin` from lucide-react (instead of Building2)
   - Route: `/venues`
   - Visible always (all tiers can see their venues list)
 
-- [ ] **3.3** Update `components/layout/MobileSidebar.tsx`
+- [x] **3.3** Update `components/layout/MobileSidebar.tsx`
   - Same changes as desktop sidebar (use context, add Venues nav item)
 
 ---
@@ -109,14 +108,14 @@ Allow users to manage multiple venues. The first venue (created at onboarding) b
 
 ### Tasks
 
-- [ ] **4.1** Create `components/layout/VenueSwitcher.tsx`
+- [x] **4.1** Create `components/layout/VenueSwitcher.tsx`
   - Reads `venues` and `activeVenue` from `useVenueContext()`
   - If `venues.length === 1`: render static label (current venue name, no dropdown)
   - If `venues.length > 1`: render a `Select` / `DropdownMenu` with all venues listed
   - On select: calls `setActiveVenue(venue)` from context
-  - Show venue name + city (if set) in each option
+  - Show venue name + city/state (if set) in each option; includes link to /venues for management
 
-- [ ] **4.2** Integrate `VenueSwitcher` into `components/layout/Header.tsx`
+- [x] **4.2** Integrate `VenueSwitcher` into `components/layout/Header.tsx`
   - Place between page title and notification bell
   - Only render if `venues.length > 0` (guard for loading state)
 
@@ -128,7 +127,7 @@ Allow users to manage multiple venues. The first venue (created at onboarding) b
 
 ### Tasks
 
-- [ ] **5.1** Create `lib/venues/resolveVenue.ts` helper
+- [x] **5.1** Create `lib/venues/resolveVenue.ts` helper
   ```ts
   // Reads X-Venue-Id header, validates user owns it, returns venue row
   export async function resolveVenue(request: Request, supabase) {
@@ -140,33 +139,29 @@ Allow users to manage multiple venues. The first venue (created at onboarding) b
     return { venue, error: null, status: 200 }
   }
   ```
-  - RLS automatically ensures the user can only read venues they own — no explicit `owner_id` check needed in code
+  - Also exports `resolveVenueWithFallback()` which falls back to default/first venue when no header is present
 
-- [ ] **5.2** Update `app/api/events/route.ts`
-  - Replace `.from("venues").eq("owner_id").single()` with `resolveVenue()`
-  - Filter events by `venue_id` from resolved venue
+- [x] **5.2** Update `app/api/events/route.ts`
+  - Uses `resolveVenueWithFallback()` in both GET and POST handlers
 
-- [ ] **5.3** Update `app/api/leads/route.ts`
-  - Same pattern as events
+- [x] **5.3** Update `app/api/leads/route.ts`
+  - Uses `resolveVenueWithFallback()` in both GET and POST handlers
 
-- [ ] **5.4** Update `app/api/clients/route.ts`
-  - Same pattern
+- [x] **5.4** Update `app/api/clients/route.ts`
+  - Uses `resolveVenueWithFallback()` in both GET and POST handlers
 
-- [ ] **5.5** Update `app/api/vendors/route.ts`
-  - Same pattern (it already accepts optional `venueId` param — unify to header-based)
+- [x] **5.5** Update `app/api/vendors/route.ts`
+  - Uses `resolveVenueWithFallback()` unified to header-based approach
 
-- [ ] **5.6** Update `app/api/spaces/route.ts` (if exists, else skip)
-  - Same pattern
+- [x] **5.6** Update `app/api/spaces/route.ts`
+  - Uses `resolveVenueWithFallback()` in both GET and POST handlers
 
-- [ ] **5.7** Update `lib/subscription/limits.ts` — `getUserVenueId` helper
-  - Rename to clarify it returns the default/first venue
-  - Or remove it and pass `venueId` explicitly to `canUploadPhoto` and `canSendChatMessage`
-  - Signature change: `canUploadPhoto(userId, venueId)` and `canSendChatMessage(userId, venueId)`
+- [x] **5.7** Update `lib/subscription/limits.ts` — `getUserVenueId` helper
+  - `canCreateVenue` added; `canUploadPhoto` / `canSendChatMessage` updated to accept explicit `venueId`
 
-- [ ] **5.8** Update client-side fetch calls to pass `X-Venue-Id` header
-  - Dashboard page (`app/(dashboard)/dashboard/page.tsx`)
-  - Events page, Vendors page, Clients page, Leads page, Spaces page
-  - Use `useVenueContext()` to get `activeVenue.id` and pass via `withVenueHeader()`
+- [x] **5.8** Update client-side fetch calls to pass `X-Venue-Id` header
+  - Dashboard page (`app/(dashboard)/dashboard/page.tsx`) passes `X-Venue-Id: activeVenue.id`
+  - Other pages (events, vendors, clients, leads, spaces) use `useVenueContext()` to scope requests
 
 ---
 
@@ -176,36 +171,26 @@ Allow users to manage multiple venues. The first venue (created at onboarding) b
 
 ### Tasks
 
-- [ ] **6.1** Update `lib/stripe/config.ts` — rename `maxSpaces` to `maxVenues` across `PLAN_LIMITS`
+- [x] **6.1** Update `lib/stripe/config.ts` — rename `maxSpaces` to `maxVenues` across `PLAN_LIMITS`
   - Trial: `maxVenues: 1`
   - Starter: `maxVenues: 1`
   - Professional: `maxVenues: 3`
   - Enterprise: `maxVenues: Infinity`
-  - Update all references: `canCreateSpace` → `canCreateVenue`, `spaces_created` → `venues_created` in usage_tracking
 
-- [ ] **6.2** Update `lib/subscription/limits.ts`
-  - Rename `canCreateSpace` → `canCreateVenue`
-  - Check against `venues` count for the user (not usage_tracking which was per-month)
-    ```ts
-    const { count } = await supabase.from("venues")
-      .select("id", { count: "exact", head: true }).eq("owner_id", userId)
-    if (count >= limits.maxVenues) return { allowed: false, reason: "..." }
-    ```
-  - Update `usage_tracking` table if needed (or drop spaces_created tracking, replace with direct count)
+- [x] **6.2** Update `lib/subscription/limits.ts`
+  - `canCreateVenue` checks subscription status and counts existing venues via `owner_id` (direct count, not usage_tracking)
 
-- [ ] **6.3** Update `app/api/venues/route.ts` POST handler
-  - Replace `canCreateSpace` call with `canCreateVenue`
+- [x] **6.3** Update `app/api/venues/route.ts` POST handler
+  - Uses `canCreateVenue`; new venues created with `is_default: false`
 
-- [ ] **6.4** Update `hooks/useSubscription.ts` — `useCanCreate("space")` → `useCanCreate("venue")`
+- [x] **6.4** Update `hooks/useSubscription.ts` — `useCanCreate("venue")`
+  - Accepts "venue" resource key; "space" is aliased to the same venue logic
 
-- [ ] **6.5** Update `app/(dashboard)/venues/page.tsx`
-  - "Add Venue" button: if on Starter/Trial and already has 1 venue → show upgrade prompt
-  - Upgrade prompt message: "Multiple venues require the Professional plan"
+- [x] **6.5** Update `app/(dashboard)/venues/page.tsx`
+  - "Add Venue" button: checks limit endpoint and shows UpgradePrompt for Starter/Trial users with 1 venue
 
-- [ ] **6.6** Update plan feature descriptions in `lib/stripe/config.ts`
-  - Starter: "1 venue"
-  - Professional: "Up to 3 venues"
-  - Enterprise: "Unlimited venues"
+- [x] **6.6** Update plan feature descriptions in `lib/stripe/config.ts`
+  - `maxVenues` values set per plan; descriptions updated accordingly
 
 ---
 
@@ -215,29 +200,31 @@ Allow users to manage multiple venues. The first venue (created at onboarding) b
 
 ### Tasks
 
-- [ ] **7.1** Update `app/onboarding/venue-setup/page.tsx`
-  - On venue creation, set `is_default: true` in the insert payload
-  - After redirect to `/dashboard`, context provider will pick it up automatically
+- [x] **7.1** Update `app/onboarding/venue-setup/page.tsx`
+  - On venue creation, sets `is_default: true` in the insert payload
+  - After redirect to `/dashboard`, context provider picks it up automatically
 
-- [ ] **7.2** Add "Set as Default" action to `app/(dashboard)/venues/page.tsx`
-  - Each venue card/row gets a context menu with "Set as Default"
-  - Calls a new `PATCH /api/venues/[venueId]` route that sets `is_default = true` on selected, `false` on all others for that user
+- [x] **7.2** Add "Set as Default" action to `app/(dashboard)/venues/page.tsx`
+  - Each venue card/row has "Set as Default" action
+  - Calls `PATCH /api/venues/{id}` with `{ is_default: true }`
 
-- [ ] **7.3** Update `app/api/venues/[venueId]/route.ts` PATCH handler
-  - Support partial update including `is_default`
-  - When setting `is_default = true` for a venue, clear it from all other user venues in the same transaction
+- [x] **7.3** Update `app/api/venues/[venueId]/route.ts` PATCH handler
+  - Handles `is_default`: clears flag on all other user venues, sets it on the target venue in one transaction
 
 ---
 
 ## Phase 8 — Polish & Edge Cases
 
-- [ ] **8.1** Loading state: while context is loading venues, show skeleton in sidebar venue name area and disable venue switcher
-- [ ] **8.2** If `activeVenueId` in localStorage no longer exists (deleted venue) → fall back to default venue and clear stale localStorage value
-- [ ] **8.3** After creating a new venue from `/venues/new` → context should refresh its venues list and switch to the new venue
-- [ ] **8.4** `getAuthorizedVenue` in `lib/venues/editorAuth.ts` already validates ownership correctly — no changes needed
-- [ ] **8.5** Verify `canUploadPhoto` and `canSendChatMessage` receive correct `venueId` after Phase 5.7 changes
-- [ ] **8.6** Update `usage_tracking` column in DB: rename `spaces_created` → `venues_created` (migration needed)
-- [ ] **8.7** Update seed data script (`lib/utils/seedData.ts`) to support multiple venues per seed user if needed for testing
+- [x] **8.1** Loading state: while context is loading venues, show skeleton in sidebar venue name area and disable venue switcher
+- [x] **8.2** If `activeVenueId` in localStorage no longer exists (deleted venue) → fall back to default venue and clear stale localStorage value (handled in VenueContext fallback chain)
+- [x] **8.3** After creating a new venue from `/venues/new` → context refreshes its venues list and switches to the new venue
+- [x] **8.4** `getAuthorizedVenue` in `lib/venues/editorAuth.ts` already validates ownership correctly — no changes needed
+- [x] **8.5** Verify `canUploadPhoto` and `canSendChatMessage` receive correct `venueId` after Phase 5.7 changes
+  - `canUploadPhoto(user.id, venueId)` wired into `app/api/venues/[venueId]/photos/route.ts` POST (returns 403 when over limit)
+  - `canSendChatMessage(venue.owner_id, venue.id)` wired into `app/api/venues/public/[slug]/chat/route.ts` POST (returns 429 when over limit)
+- [x] **8.6** Update `usage_tracking` column in DB: rename `spaces_created` → `venues_created` (Migration 13 in `migrations/all-migrations.sql`; `limits.ts` already reads `venues_created`)
+- [x] **8.7** Update seed data script (`lib/utils/seedData.ts`) to support multiple venues per seed user if needed for testing
+  - Already seeds two venues: primary (`is_default: true`) and a second boutique venue (`is_default: false`), each with their own spaces, vendors, events, leads, photos, etc.
 
 ---
 

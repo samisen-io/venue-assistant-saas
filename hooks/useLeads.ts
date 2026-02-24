@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useVenueContext } from "@/lib/context/VenueContext"
+import { withVenueHeader } from "@/lib/utils/venueHeader"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -31,8 +32,7 @@ export function useLeads(filters?: LeadFilters) {
       if (filters?.sortBy) params.set("sortBy", filters.sortBy)
       if (filters?.sortOrder) params.set("sortOrder", filters.sortOrder)
 
-      const headers: HeadersInit = {}
-      if (filters?.venueId) headers["X-Venue-Id"] = filters.venueId
+      const headers = withVenueHeader(filters?.venueId)
 
       const res = await fetch(`/api/leads?${params.toString()}`, { headers })
       if (!res.ok) throw new Error("Failed to fetch leads")
@@ -70,8 +70,7 @@ export function useLead(leadId: string | null) {
       setLoading(true)
       setError(null)
 
-      const headers: HeadersInit = {}
-      if (activeVenue?.id) headers["X-Venue-Id"] = activeVenue.id
+      const headers = withVenueHeader(activeVenue?.id)
 
       const res = await fetch(`/api/leads/${leadId}`, { headers })
       if (!res.ok) throw new Error("Failed to fetch lead")
@@ -100,8 +99,7 @@ export function useUpdateLead() {
     async (leadId: string, updates: Record<string, unknown>) => {
       setUpdating(true)
       try {
-        const headers: HeadersInit = { "Content-Type": "application/json" }
-        if (activeVenue?.id) headers["X-Venue-Id"] = activeVenue.id
+        const headers: HeadersInit = { "Content-Type": "application/json", ...withVenueHeader(activeVenue?.id) }
 
         const res = await fetch(`/api/leads/${leadId}`, {
           method: "PUT",
@@ -124,8 +122,7 @@ export function useAddActivity() {
   const { activeVenue } = useVenueContext()
   const addActivity = useCallback(
     async (leadId: string, activityType: string, description: string) => {
-      const headers: HeadersInit = { "Content-Type": "application/json" }
-      if (activeVenue?.id) headers["X-Venue-Id"] = activeVenue.id
+      const headers: HeadersInit = { "Content-Type": "application/json", ...withVenueHeader(activeVenue?.id) }
 
       const res = await fetch(`/api/leads/${leadId}/activities`, {
         method: "POST",

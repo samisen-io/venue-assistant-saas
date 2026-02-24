@@ -20,7 +20,7 @@ function buildAdminClient(): SupabaseClient {
 }
 
 test.describe('Space CRUD', () => {
-  test('create, read, edit, and delete space lifecycle', async ({ page }) => {
+  test('create, read, edit, and delete space lifecycle @smoke', async ({ page }) => {
     test.setTimeout(90_000);
     requireAuthCredentials();
 

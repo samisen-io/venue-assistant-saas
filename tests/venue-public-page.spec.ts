@@ -24,7 +24,7 @@ async function publishFromEditor(page: Page): Promise<boolean> {
 }
 
 test.describe('Venue Public Page Editor', () => {
-  test('edit fields persist and publish/unpublish cycle controls public slug', async ({ page }) => {
+  test('edit fields persist and publish/unpublish cycle controls public slug @smoke', async ({ page }) => {
     test.setTimeout(120_000);
 
     requireAuthCredentials();

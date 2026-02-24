@@ -20,7 +20,7 @@ function buildAdminClient(): SupabaseClient {
 }
 
 test.describe('Client CRUD', () => {
-  test('create, read, edit, and delete client lifecycle', async ({ page }) => {
+  test('create, read, edit, and delete client lifecycle @smoke', async ({ page }) => {
     test.setTimeout(90_000);
     requireAuthCredentials();
 

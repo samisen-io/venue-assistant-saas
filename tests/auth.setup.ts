@@ -19,7 +19,47 @@ setup('authenticate as test user', async ({ page }) => {
 
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password').fill(password);
+
+  let authRequestFailure: string | null = null;
+  page.on('requestfailed', (request) => {
+    if (request.url().includes('/auth/v1/token?grant_type=password')) {
+      const errorText = request.failure()?.errorText ?? 'unknown network error';
+      authRequestFailure = `${request.url()} (${errorText})`;
+    }
+  });
+
   await page.getByRole('button', { name: /sign in/i }).click();
+
+  const authResponseTimeoutMs = 10_000;
+  let authResponse;
+  try {
+    authResponse = await page.waitForResponse(
+      (response) =>
+        response.url().includes('/auth/v1/token?grant_type=password') &&
+        response.request().method() === 'POST',
+      { timeout: authResponseTimeoutMs }
+    );
+  } catch {
+    const base = `Timed out waiting ${authResponseTimeoutMs}ms for Supabase auth response.`;
+    const details = authRequestFailure
+      ? ` Request failed: ${authRequestFailure}.`
+      : ' No auth response was received (check NEXT_PUBLIC_SUPABASE_URL, DNS, or network access to *.supabase.co).';
+    throw new Error(`${base}${details}`);
+  }
+
+  if (!authResponse.ok()) {
+    let bodyPreview = '';
+    try {
+      const body = await authResponse.text();
+      bodyPreview = body ? ` Response: ${body.slice(0, 300)}` : '';
+    } catch {
+      // Ignore body parse failures and keep the status-focused error.
+    }
+
+    throw new Error(
+      `Supabase auth request failed with status ${authResponse.status()} ${authResponse.statusText()}.${bodyPreview}`
+    );
+  }
 
   // Wait for successful redirect to dashboard
   await page.waitForURL('**/dashboard', { timeout: 15_000 });

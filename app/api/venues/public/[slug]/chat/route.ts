@@ -8,6 +8,7 @@ import { shouldEscalate } from "@/lib/ai/escalation"
 import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/utils/rateLimit"
 import { fetchVenuePublicPageData } from "@/lib/public-page/fetchPublicVenue"
 import { shouldCreateLead, createLeadFromConversation } from "@/lib/leads/leadCreator"
+import { canSendChatMessage } from "@/lib/subscription/limits"
 import type { ChatResponse, ExtractedEventData, SuggestedAction } from "@/lib/types/conversation.types"
 
 const CHAT_RATE_LIMIT = {
@@ -50,6 +51,17 @@ export async function POST(
 
     const { venue, spaces, packages, packageAddons, amenities, eventTypes, aiSettings } = venueData
     const supabase = createServiceRoleClient()
+
+    // Check the venue owner's plan allows more AI chat messages
+    if (venue.owner_id) {
+      const chatLimit = await canSendChatMessage(venue.owner_id, venue.id)
+      if (!chatLimit.allowed) {
+        return NextResponse.json(
+          { error: "This venue's AI assistant is temporarily unavailable. Please contact the venue directly." },
+          { status: 429 }
+        )
+      }
+    }
 
     // ---- Conversation management ----
     let convId = conversation_id

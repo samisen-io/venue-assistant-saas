@@ -32,7 +32,11 @@
       "Bash(curl:*)",
       "Bash(npx playwright test:*)",
       "Bash(xargs -I{} basename {})",
-      "Bash(# Categorise each spec by what it actually does echo \"\"=== Business-outcome specs \\(real assertions\\) ===\"\" ls tests/login-logout.spec.ts tests/auth-onboarding.spec.ts tests/event-crud.spec.ts tests/vendor-crud.spec.ts tests/client-crud.spec.ts tests/space-crud.spec.ts tests/lead-lifecycle.spec.ts tests/event-conflict.spec.ts tests/vendor-matching.spec.ts tests/calendar-integration.spec.ts tests/budget-tracking.spec.ts tests/venue-public-page.spec.ts tests/security-rls.spec.ts tests/error-handling.spec.ts tests/space-delete-blocked.spec.ts tests/api-auth-boundaries.spec.ts tests/public-venue-data-boundaries.spec.ts tests/password-reset.spec.ts tests/event-review.spec.ts tests/ai-features.spec.ts tests/manager-portal.spec.ts tests/testid-baseline.spec.ts)"
+      "Bash(# Categorise each spec by what it actually does echo \"\"=== Business-outcome specs \\(real assertions\\) ===\"\" ls tests/login-logout.spec.ts tests/auth-onboarding.spec.ts tests/event-crud.spec.ts tests/vendor-crud.spec.ts tests/client-crud.spec.ts tests/space-crud.spec.ts tests/lead-lifecycle.spec.ts tests/event-conflict.spec.ts tests/vendor-matching.spec.ts tests/calendar-integration.spec.ts tests/budget-tracking.spec.ts tests/venue-public-page.spec.ts tests/security-rls.spec.ts tests/error-handling.spec.ts tests/space-delete-blocked.spec.ts tests/api-auth-boundaries.spec.ts tests/public-venue-data-boundaries.spec.ts tests/password-reset.spec.ts tests/event-review.spec.ts tests/ai-features.spec.ts tests/manager-portal.spec.ts tests/testid-baseline.spec.ts)",
+      "Bash(/usr/local/bin/node --version)",
+      "Bash(PATH=/usr/local/bin:$PATH npx playwright test tests/venue-header-and-limits.spec.ts --reporter=line)",
+      "Bash(PATH=/usr/local/bin:$PATH npx playwright test tests/venue-header-and-limits.spec.ts --reporter=line --no-deps)",
+      "Bash(PATH=/usr/local/bin:$PATH npx playwright test tests/venue-header-and-limits.spec.ts --reporter=line --no-deps --workers=1 --timeout=60000)"
     ],
     "additionalDirectories": [
       "c:\\Users\\prashant\\repos\\venue-assistant-saas\\app\\api\\venues\\public\\[slug]",

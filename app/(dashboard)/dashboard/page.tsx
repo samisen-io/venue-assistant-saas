@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useVenueContext } from "@/lib/context/VenueContext";
+import { withVenueHeader } from "@/lib/utils/venueHeader";
 import {
     Calendar,
     Users,
@@ -79,7 +80,7 @@ export default function DashboardPage() {
         }
         const fetchDashboardData = async () => {
             setIsLoading(true);
-            const venueHeaders = { "X-Venue-Id": activeVenue.id };
+            const venueHeaders = withVenueHeader(activeVenue.id);
             try {
                 const [eventsRes, vendorsRes, subRes, leadsRes] = await Promise.all([
                     fetch("/api/events", { headers: venueHeaders }),
