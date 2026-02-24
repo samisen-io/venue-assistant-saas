@@ -4,18 +4,17 @@ Based on `docs/testing/MANUAL_TEST_CHECKLIST.md`, current Playwright coverage in
 
 ---
 
-## Assessment of Previous Plan
+## Current Assessment (Updated)
 
-The previous plan had several critical misalignments with the actual codebase:
+The suite has moved significantly beyond structure-only checks. Business-outcome coverage now exists for auth, onboarding, event lifecycle, lead lifecycle, conflict detection, vendor matching, calendar, budget tracking, venue public-page editor, mocked error handling, and baseline RLS.
 
-1. **Phase 2 was invalid**: Tasks 2.1–2.3 described a public marketplace (`/venues` search, location filters, price sliders, pagination) that does not exist. The app uses `[venueSlug]` for individual public venue pages — it is a SaaS product, not a venue marketplace.
-2. **All existing tests are structure/presence tests**: Every spec checks if headings or buttons are visible. None test CRUD operations, form submissions, or data persistence.
-3. **Three entire modules are untested**: `/clients`, `/spaces`, and `/onboarding` have no coverage.
-4. **AI tests are stubs**: `ai-features.spec.ts` mostly navigates to a page and either passes trivially or calls `test.skip()`. No AI business outcome is validated.
-5. **No API integration layer exists**: Tasks A.1/A.2 were planned but never started.
-6. **RLS tests are not implemented**: Only referenced conceptually; no actual cross-tenant assertions exist.
-7. **No subscription/billing flow**: Stripe checkout and usage-limit enforcement are uncovered.
-8. **No venue public page editor tests**: The page editor at `/venues/[venueId]/public-page` is entirely untested.
+Main remaining gaps:
+
+1. **Core CRUD parity is incomplete**: No dedicated full-lifecycle CRUD specs for `/vendors`, `/clients`, and `/spaces`.
+2. **AI workflow tests are still mostly stubs**: `ai-features.spec.ts` still contains `test.skip()` paths and no persisted AI outcomes.
+3. **Security coverage is partial**: RLS test covers one cross-tenant venue scenario, but not full resource matrix and no explicit API auth boundary matrix.
+4. **Subscription/billing happy paths are still missing**: plan/usage page checks and Stripe redirect assertions are not covered end-to-end.
+5. **Integration/API test layer is still unimplemented**: `tests/integration/*` helpers and route contract suites are still pending.
 
 ---
 
@@ -36,32 +35,85 @@ Replace all structure-only tests with business-outcome tests. Add coverage for e
 
 | File | What it actually tests | Status |
 |---|---|---|
-| `public-marketplace.spec.ts` | Page presence, heading text, link `href` attributes | Done |
-| `manager-portal.spec.ts` | Page loads, button/search-input visibility — no mutations | Done |
-| `ai-features.spec.ts` | Navigation to pages; most paths end in `test.skip()` | Done |
-| `mobile-responsiveness.spec.ts` | Viewport overflow checks and layout visibility | Done |
-| `performance-security.spec.ts` | Load time thresholds, redirect-to-login guards | Done |
-| `crud-flows.spec.ts` | Space, Client, Vendor, Event, Lead full CRUD lifecycle | **Done** |
-| `form-validation.spec.ts` | Email, phone, length, numeric, URL validation edge cases | **Done** |
+| `auth-onboarding.spec.ts` | Signup/OTP gate (flagged), onboarding completion to dashboard with cleanup | **Partial** |
+| `login-logout.spec.ts` | Valid login, invalid login, logout redirect flow | **Done** |
+| `event-crud.spec.ts` | Event edit + cancel persistence (record seeded via admin API) | **Partial** |
+| `vendor-crud.spec.ts` | Vendor create/read/edit/delete lifecycle with persistence assertions | **Done** |
+| `client-crud.spec.ts` | Client create/read/edit/delete lifecycle with persistence assertions | **Done** |
+| `space-crud.spec.ts` | Space create/read/edit/delete lifecycle with persistence assertions | **Done** |
+| `lead-lifecycle.spec.ts` | Lead status transitions and persistence (`new -> qualified -> won`) | **Done** |
+| `event-conflict.spec.ts` | Overlap conflict returns 409 + no duplicate DB record | **Done** |
+| `vendor-matching.spec.ts` | Recommendation scores + assignment persistence | **Done** |
+| `calendar-integration.spec.ts` | Month/week visibility + click-through to detail page | **Done** |
+| `budget-tracking.spec.ts` | Budget summary + variance recalculation after quote update | **Done** |
+| `venue-public-page.spec.ts` | Public-page editor save/persist + publish/unpublish behavior checks | **Partial** |
+| `security-rls.spec.ts` | Cross-tenant venue access blocked for another user | **Partial** |
+| `error-handling.spec.ts` | LIMIT_REACHED prompts + conflict and 500 handling (mocked routes) | **Partial** |
+| `api-auth-boundaries.spec.ts` | Unauthenticated protected API endpoints return `401` | **Done** |
+| `public-venue-data-boundaries.spec.ts` | Published vs draft slug behavior and public payload data leak assertions | **Done** |
+| `password-reset.spec.ts` | Forgot-password initiation submission path | **Done** |
+| `event-review.spec.ts` | Event review summary, vendor list, and client contact data integrity | **Done** |
+| `public-marketplace.spec.ts` | Public/auth page structure and basic navigation checks | Legacy structural |
+| `manager-portal.spec.ts` | Manager portal structure/presence checks | Legacy structural |
+| `mobile-responsiveness.spec.ts` | Mobile layout/overflow checks | Legacy structural |
+| `performance-security.spec.ts` | Basic load budgets + route guard checks | Legacy structural |
+| `ai-features.spec.ts` | Largely structural with skipped flows | Legacy stub |
+| `example.spec.ts` | Playwright scaffold example | Legacy scaffold |
 
 ---
 
 ## Completed Tests
 
-### CRUD Flow Tests (`crud-flows.spec.ts`)
-- Space: create via form, validation errors, edit, detail page
-- Client: create via form, validation errors, edit, detail page
-- Vendor: create via form, validation errors, edit, detail page
-- Event: create via form, validation errors, past date rejection, edit, detail page, cancellation
-- Lead: create via API, detail page, status update, mark as lost
+### Auth & Onboarding
+- `login-logout.spec.ts`: valid auth, invalid auth, logout redirect
+- `auth-onboarding.spec.ts`: onboarding completion path from new confirmed user to dashboard
 
-### Form Validation Edge Cases (`form-validation.spec.ts`)
-- Email format — vendor (invalid, empty) and client (invalid, valid)
-- Phone format — vendor (letters fail, formatted digits pass)
-- Field length min — space name, event name, vendor name, client contact name
-- Field length max — space name, event name (incl. boundary at 100), vendor name
-- Numeric boundaries — event guest count, budget, space capacity (min + max)
-- URL format — vendor website (invalid, missing scheme, valid, empty/optional)
+### Core + Business Logic
+- `vendor-crud.spec.ts`: vendor CRUD lifecycle (UI create/read/edit + delete and list removal assertion)
+- `client-crud.spec.ts`: client CRUD lifecycle (UI create/read/edit + delete and list removal assertion)
+- `space-crud.spec.ts`: space CRUD lifecycle (UI create/read/edit/delete with detail/list persistence checks)
+- `lead-lifecycle.spec.ts`: status transitions persist across reload
+- `event-conflict.spec.ts`: overlapping booking blocked (409) and no duplicate event created
+- `vendor-matching.spec.ts`: recommendation score visibility + assignment persistence
+- `calendar-integration.spec.ts`: event visibility across views + navigation to event detail
+- `budget-tracking.spec.ts`: totals/variance assertions after vendor quote update
+
+### Venue Management
+- `venue-public-page.spec.ts`: editor changes persist (tagline + tone) and publish-state behavior validated against public slug
+
+### Security + Error Handling
+- `security-rls.spec.ts`: cross-tenant access to another venue is blocked
+- `error-handling.spec.ts`: mocked `LIMIT_REACHED` and `500` paths show expected upgrade/error UI
+- `api-auth-boundaries.spec.ts`: unauthenticated protected API calls return `401`
+- `public-venue-data-boundaries.spec.ts`: published slugs are accessible, draft slugs return `404`, and private venue fields are excluded
+
+### Auth + Review Additions
+- `password-reset.spec.ts`: forgot-password flow submits and reaches success state
+- `event-review.spec.ts`: review page renders event summary, vendor entries, and client contact details
+
+### Legacy/No Longer Present
+- `crud-flows.spec.ts` and `form-validation.spec.ts` are not in the current `tests/` tree and should no longer be treated as completed baseline files.
+
+---
+
+## Remaining Work and Recommended Next Tests
+
+### P0 Remaining (high confidence gaps)
+- **Task 10.4**: Add space delete block test (`SPACE_HAS_EVENTS`).
+- **Task 1.3**: Finish/verify the full `data-testid` baseline across the identified top interactions.
+
+### Already Started But Not Fully Closed
+- **Task 2.1**: Signup->OTP->onboarding is behind `PLAYWRIGHT_SIGNUP_E2E=1`; keep as non-default smoke until stabilized.
+- **Task 3.1**: Event test currently seeds create via admin API; still missing full UI create+delete path.
+- **Task 3.5**: Public-page spec is strong but currently avoids destructive unpublish in some branches.
+- **Task 1.4**: CI pipeline is present in `.github/workflows/playwright.yml`; align naming/documentation and confirm it fully matches done criteria.
+- **Task 7.1**: RLS currently covers venue only; expand to leads/events/clients cross-tenant access.
+- **Task 10.1 / 10.3**: Conflict and 500 coverage is partial (not all routes/messages asserted end-to-end).
+
+### Recommended Next Implementation Order
+1. **Implement Task 10.4** (space delete blocked by active events) to complete a high-risk safety rule.
+2. **Expand Task 7.1** (cross-tenant RLS checks for leads/events/clients) beyond venue-only coverage.
+3. **Complete Task 1.3** (`data-testid` baseline) to reduce locator brittleness across the suite.
 
 ---
 
