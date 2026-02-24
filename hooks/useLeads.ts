@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useVenueContext } from "@/lib/context/VenueContext"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -53,6 +54,7 @@ export function useLeads(filters?: LeadFilters) {
 }
 
 export function useLead(leadId: string | null) {
+  const { activeVenue } = useVenueContext()
   const [data, setData] = useState<{
     lead: any
     conversation: any
@@ -68,7 +70,10 @@ export function useLead(leadId: string | null) {
       setLoading(true)
       setError(null)
 
-      const res = await fetch(`/api/leads/${leadId}`)
+      const headers: HeadersInit = {}
+      if (activeVenue?.id) headers["X-Venue-Id"] = activeVenue.id
+
+      const res = await fetch(`/api/leads/${leadId}`, { headers })
       if (!res.ok) throw new Error("Failed to fetch lead")
 
       const result = await res.json()
@@ -78,7 +83,7 @@ export function useLead(leadId: string | null) {
     } finally {
       setLoading(false)
     }
-  }, [leadId])
+  }, [leadId, activeVenue?.id])
 
   useEffect(() => {
     fetchLead()
@@ -88,15 +93,19 @@ export function useLead(leadId: string | null) {
 }
 
 export function useUpdateLead() {
+  const { activeVenue } = useVenueContext()
   const [updating, setUpdating] = useState(false)
 
   const updateLead = useCallback(
     async (leadId: string, updates: Record<string, unknown>) => {
       setUpdating(true)
       try {
+        const headers: HeadersInit = { "Content-Type": "application/json" }
+        if (activeVenue?.id) headers["X-Venue-Id"] = activeVenue.id
+
         const res = await fetch(`/api/leads/${leadId}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify(updates),
         })
         if (!res.ok) throw new Error("Failed to update lead")
@@ -105,24 +114,28 @@ export function useUpdateLead() {
         setUpdating(false)
       }
     },
-    []
+    [activeVenue?.id]
   )
 
   return { updateLead, updating }
 }
 
 export function useAddActivity() {
+  const { activeVenue } = useVenueContext()
   const addActivity = useCallback(
     async (leadId: string, activityType: string, description: string) => {
+      const headers: HeadersInit = { "Content-Type": "application/json" }
+      if (activeVenue?.id) headers["X-Venue-Id"] = activeVenue.id
+
       const res = await fetch(`/api/leads/${leadId}/activities`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ activity_type: activityType, description }),
       })
       if (!res.ok) throw new Error("Failed to add activity")
       return await res.json()
     },
-    []
+    [activeVenue?.id]
   )
 
   return { addActivity }

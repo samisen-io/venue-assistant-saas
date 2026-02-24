@@ -1,28 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-
-async function getAuthedVenueId(supabase: any) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data: venue } = await supabase
-    .from("venues")
-    .select("id")
-    .eq("owner_id", user.id)
-    .single()
-  return venue?.id ?? null
-}
+import { resolveVenueWithFallback } from "@/lib/venues/resolveVenue"
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ leadId: string }> }
 ) {
   try {
     const supabase = await createClient()
-    const venueId = await getAuthedVenueId(supabase)
-    if (!venueId) return new NextResponse("Unauthorized", { status: 401 })
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return new NextResponse("Unauthorized", { status: 401 })
+
+    const resolved = await resolveVenueWithFallback(request, supabase, user.id)
+    if (resolved.error)
+      return NextResponse.json({ error: resolved.error }, { status: resolved.status })
+    const venueId = resolved.venue!.id
 
     const { leadId } = await params
 
@@ -82,8 +77,15 @@ export async function PUT(
 ) {
   try {
     const supabase = await createClient()
-    const venueId = await getAuthedVenueId(supabase)
-    if (!venueId) return new NextResponse("Unauthorized", { status: 401 })
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return new NextResponse("Unauthorized", { status: 401 })
+
+    const resolved = await resolveVenueWithFallback(request, supabase, user.id)
+    if (resolved.error)
+      return NextResponse.json({ error: resolved.error }, { status: resolved.status })
+    const venueId = resolved.venue!.id
 
     const { leadId } = await params
     const body = await request.json()
@@ -136,13 +138,20 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ leadId: string }> }
 ) {
   try {
     const supabase = await createClient()
-    const venueId = await getAuthedVenueId(supabase)
-    if (!venueId) return new NextResponse("Unauthorized", { status: 401 })
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return new NextResponse("Unauthorized", { status: 401 })
+
+    const resolved = await resolveVenueWithFallback(request, supabase, user.id)
+    if (resolved.error)
+      return NextResponse.json({ error: resolved.error }, { status: resolved.status })
+    const venueId = resolved.venue!.id
 
     const { leadId } = await params
 
