@@ -32,17 +32,36 @@ Replace all structure-only tests with business-outcome tests. Add coverage for e
 
 ---
 
-## Current Baseline (honest)
+## Current Baseline
 
-| File | What it actually tests |
-|---|---|
-| `public-marketplace.spec.ts` | Page presence, heading text, link `href` attributes |
-| `manager-portal.spec.ts` | Page loads, button/search-input visibility — no mutations |
-| `ai-features.spec.ts` | Navigation to pages; most paths end in `test.skip()` |
-| `mobile-responsiveness.spec.ts` | Viewport overflow checks and layout visibility |
-| `performance-security.spec.ts` | Load time thresholds, redirect-to-login guards |
+| File | What it actually tests | Status |
+|---|---|---|
+| `public-marketplace.spec.ts` | Page presence, heading text, link `href` attributes | Done |
+| `manager-portal.spec.ts` | Page loads, button/search-input visibility — no mutations | Done |
+| `ai-features.spec.ts` | Navigation to pages; most paths end in `test.skip()` | Done |
+| `mobile-responsiveness.spec.ts` | Viewport overflow checks and layout visibility | Done |
+| `performance-security.spec.ts` | Load time thresholds, redirect-to-login guards | Done |
+| `crud-flows.spec.ts` | Space, Client, Vendor, Event, Lead full CRUD lifecycle | **Done** |
+| `form-validation.spec.ts` | Email, phone, length, numeric, URL validation edge cases | **Done** |
 
-**Gap**: Zero tests validate that creating, editing, or deleting data works. Zero tests verify data persists after a page reload.
+---
+
+## Completed Tests
+
+### CRUD Flow Tests (`crud-flows.spec.ts`)
+- Space: create via form, validation errors, edit, detail page
+- Client: create via form, validation errors, edit, detail page
+- Vendor: create via form, validation errors, edit, detail page
+- Event: create via form, validation errors, past date rejection, edit, detail page, cancellation
+- Lead: create via API, detail page, status update, mark as lost
+
+### Form Validation Edge Cases (`form-validation.spec.ts`)
+- Email format — vendor (invalid, empty) and client (invalid, valid)
+- Phone format — vendor (letters fail, formatted digits pass)
+- Field length min — space name, event name, vendor name, client contact name
+- Field length max — space name, event name (incl. boundary at 100), vendor name
+- Numeric boundaries — event guest count, budget, space capacity (min + max)
+- URL format — vendor website (invalid, missing scheme, valid, empty/optional)
 
 ---
 
@@ -217,6 +236,15 @@ All tasks in this phase must: (a) create a record via the UI, (b) assert it appe
 - Edit a vendor's quoted cost. Assert the variance recalculates.
 - **Done criteria**: Budget figures update in response to vendor cost changes.
 
+### Task 4.6 — Event Review Flow
+
+- Create `tests/e2e/event-review.spec.ts`.
+- Navigate to `/events/[eventId]/review`.
+- Assert the review page loads with the event summary (name, date, guest count, budget).
+- Assert all assigned vendors are listed.
+- Assert client contact details are visible.
+- **Done criteria**: Review page renders complete event data without errors.
+
 ---
 
 ## Phase 5: AI Workflow Flows (P1)
@@ -262,6 +290,36 @@ All tasks in this phase must: (a) create a record via the UI, (b) assert it appe
 - Assert a success toast or delivery confirmation message.
 - Assert a proposal record exists (via API assertion or UI log).
 - **Done criteria**: Proposal generation completes without error; send action returns success.
+
+### Task 5.5 — AI Features Mocked (`ai-features-mocked.spec.ts`)
+
+These tests use `page.route()` to stub AI API calls — safe to run in CI without real API keys or token cost.
+
+- Create `tests/e2e/ai-features-mocked.spec.ts`.
+
+**NLP Event Creation (mocked):**
+- Mock `POST /api/ai/extract-event` to return a structured payload with guest_count, date, and budget.
+- Paste natural language into the NLP input field.
+- Assert form fields are pre-populated with the extracted data.
+- Submit the pre-populated form. Assert the event is created and appears in `/events` list.
+
+**Chat Widget (mocked):**
+- Mock `POST /api/venues/public/{slug}/chat` to return a canned AI response.
+- Open the chat widget on the public venue page.
+- Send a message. Assert the mocked response is rendered.
+- Assert chat input clears after sending.
+
+**Proposal Generation (mocked):**
+- Mock `POST /api/leads/{id}/proposal` to return a proposal object.
+- Trigger proposal generation from the lead detail page.
+- Assert success feedback (toast or preview) is shown.
+
+**AI Agent (mocked):**
+- Navigate to `/events/{id}/agent`. Assert the agent page loads.
+- Mock `POST /api/agent/start` to return a `{ agentRunId }`.
+- Start the agent. Assert status polling begins (loading state or status indicator updates).
+
+- **Done criteria**: All 4 mocked AI flows complete without touching real AI services. Tag: `@smoke` for page-load assertions.
 
 ---
 
@@ -366,6 +424,77 @@ Replace all layout-only mobile tests with interaction tests:
 - Add authenticated performance test for `/dashboard` load time.
 - Target: < 3000ms to first meaningful content (stat cards visible).
 - **Done criteria**: Dashboard load budget tracked in CI.
+
+---
+
+## Phase 10: Error & Edge Case Handling (P0)
+
+These tests use `page.route()` to intercept API calls and simulate server-side errors or limit responses. No real data is required.
+
+Create `tests/e2e/error-handling.spec.ts`.
+
+### Task 10.1 — Space Booking Conflict (409 in UI)
+
+- Create two events via API on the same space with overlapping times. Assert the second POST returns 409.
+- Via the UI: submit the event creation form with a conflicting space/time. Assert a visible conflict error message appears (not a generic error toast).
+- **Done criteria**: The specific conflict message is shown, not just a 500/generic error.
+
+### Task 10.2 — Subscription Limit Prompt (LIMIT_REACHED)
+
+- Mock `POST /api/events` to return `{ code: "LIMIT_REACHED" }` with status 403. Submit the event creation form. Assert the upgrade prompt modal/banner appears.
+- Same mock for `POST /api/vendors` — assert upgrade prompt.
+- Same mock for `POST /api/spaces` — assert upgrade prompt.
+- **Done criteria**: All three creation forms show the upgrade prompt on LIMIT_REACHED; no generic error shown.
+
+### Task 10.3 — API Failure Error Toast (500)
+
+- Mock `POST /api/events` to return 500. Submit the form. Assert an error toast appears and the user remains on the form page.
+- Mock `POST /api/vendors` to return 500 — assert error toast.
+- Mock `POST /api/clients` to return 500 — assert error toast.
+- **Done criteria**: 500 responses produce a user-visible error toast; no unhandled crash or blank page.
+
+### Task 10.4 — Space Delete Blocked (SPACE_HAS_EVENTS)
+
+- Create a space with an active event via API.
+- Attempt to delete the space (via API or UI delete action).
+- Assert a 409 response with `SPACE_HAS_EVENTS` error code, and/or a visible blocking message in the UI.
+- **Done criteria**: Deleting a space with active events is blocked with a clear message.
+
+---
+
+## Phase 11: Search & Filtering E2E (P1)
+
+Create `tests/e2e/search-filtering.spec.ts`. All tests create records via API in `beforeEach` and clean up in `afterEach`.
+
+### Task 11.1 — Events Search & Status Filter
+
+- Create two events via API with distinct names (prefixed `PW_`).
+- Search by one event's name. Assert only the matching event appears.
+- Filter events by status `planning` — assert only planning events are shown.
+- Filter events by status `cancelled` — assert only cancelled events are shown.
+- Clear the search — assert both events reappear.
+- **Done criteria**: Search and status filter work independently and together.
+
+### Task 11.2 — Vendors Search
+
+- Create two vendors via API with distinct names.
+- Search by one vendor's name. Assert only the matching vendor appears.
+- Search for a non-matching term. Assert empty state is shown.
+- **Done criteria**: Vendor search works; empty state is rendered correctly.
+
+### Task 11.3 — Leads Filter & Search
+
+- Filter leads by `status=new` — assert only new leads are shown.
+- Filter leads by `status=contacted` — assert correct results.
+- Search leads by contact name — assert correct result.
+- **Done criteria**: Lead status filter and name search both work.
+
+### Task 11.4 — Clients Search
+
+- Create two clients via API with distinct names and emails.
+- Search by contact name — assert correct result.
+- Search by email — assert correct result.
+- **Done criteria**: Client search works by both name and email.
 
 ---
 
@@ -750,6 +879,8 @@ Create a section in `tests/integration/security.test.ts`.
 
 ```
 tests/
+├── crud-flows.spec.ts                    # DONE — Space/Client/Vendor/Event/Lead CRUD
+├── form-validation.spec.ts              # DONE — Email/phone/length/numeric/URL edge cases
 ├── fixtures/
 │   ├── seed.ts                           # Task 1.1
 │   └── teardown.ts                       # Task 1.1
@@ -767,12 +898,16 @@ tests/
 │   ├── event-conflict.spec.ts            # Task 4.2
 │   ├── vendor-matching.spec.ts           # Task 4.3
 │   ├── calendar-integration.spec.ts      # Task 4.4
+│   ├── event-review.spec.ts              # Task 4.6
 │   ├── ai-nlp-event.spec.ts              # Task 5.1
 │   ├── ai-chat-lead.spec.ts              # Task 5.2
 │   ├── vendor-outreach.spec.ts           # Task 5.3
 │   ├── proposal-flow.spec.ts             # Task 5.4
+│   ├── ai-features-mocked.spec.ts        # Task 5.5
 │   ├── subscription.spec.ts              # Tasks 6.1–6.3
-│   └── security-rls.spec.ts              # Task 7.1
+│   ├── security-rls.spec.ts              # Task 7.1
+│   ├── error-handling.spec.ts            # Tasks 10.1–10.4
+│   └── search-filtering.spec.ts          # Tasks 11.1–11.4
 └── integration/
     ├── helpers/
     │   └── api-client.ts                 # Task A.1
@@ -798,8 +933,8 @@ tests/
 
 | Priority | Tasks | Why |
 |---|---|---|
-| **P0 — Block on failure** | 1.1–1.4, 2.1–2.2, 3.1–3.5, 4.1–4.2, 7.1–7.3, A.1–A.9, A.13, A.15 | Core CRUD, auth, conflict detection, security, webhooks, billing |
-| **P1 — Important** | 4.3–4.5, 5.1–5.4, 6.1–6.3, 8.1–8.3, 9.1–9.2, A.10–A.12, A.14, A.16 | AI flows, agent lifecycle, Inngest functions, mobile, performance |
+| **P0 — Block on failure** | 1.1–1.4, 2.1–2.2, 3.1–3.5, 4.1–4.2, 7.1–7.3, 10.1–10.4, A.1–A.9, A.13, A.15 | Core CRUD, auth, conflict detection, error handling, security, webhooks, billing |
+| **P1 — Important** | 4.3–4.6, 5.1–5.5, 6.1–6.3, 8.1–8.3, 9.1–9.2, 11.1–11.4, A.10–A.12, A.14, A.16 | AI flows (real + mocked), event review, search/filter, agent lifecycle, mobile, performance |
 | **P2 — Nice-to-have** | Wider browser matrix, visual regression, Lighthouse CI | Quality-of-life; not blocking |
 
 ---
@@ -811,14 +946,16 @@ tests/
 3. **Phase 2** (Auth): Tasks 2.1–2.3. Login must be reliable before anything else.
 4. **Phase 3 + API A.2–A.6** (CRUD): Run in parallel — E2E CRUD specs and API contract tests are independent.
 5. **Phase 7 + API A.15** (Security): Tasks 7.1–7.3 and A.15. Run early — RLS and auth bugs are silent.
-6. **API A.7–A.9** (Quotes, Proposals, Subscription): Complete API coverage for billing-adjacent flows.
-7. **Phase 4** (Business Logic): Tasks 4.1–4.5. Requires seeded data from Phase 1.
-8. **API A.13** (Webhooks): Test Stripe, Resend, and inbound email handlers.
-9. **Phase 5 + API A.10–A.11** (AI): Tasks 5.1–5.4 and A.10–A.11. Requires stable Phase 3 + Phase 4 base.
-10. **API A.14** (Inngest): Functions test — requires mocking infrastructure and stable agent API.
-11. **Phase 6** (Subscription UI): Tasks 6.1–6.3. Requires Stripe test keys in CI.
-12. **API A.12, A.16** (Comms, Notifications, Profile): Lower-risk coverage.
-13. **Phases 8–9** (Mobile/Perf): Tasks 8.1–8.3, 9.1–9.2. Polish after all core flows pass.
+6. **Phase 10** (Error Handling): Tasks 10.1–10.4. Low-cost, high-value; uses page.route() mocking, no seed data needed.
+7. **API A.7–A.9** (Quotes, Proposals, Subscription): Complete API coverage for billing-adjacent flows.
+8. **Phase 4** (Business Logic): Tasks 4.1–4.6. Requires seeded data from Phase 1.
+9. **Phase 11** (Search & Filtering): Tasks 11.1–11.4. Requires stable CRUD and list pages.
+10. **API A.13** (Webhooks): Test Stripe, Resend, and inbound email handlers.
+11. **Phase 5 + API A.10–A.11** (AI — real + mocked): Tasks 5.1–5.5 and A.10–A.11. Task 5.5 (mocked) can run early; real AI tasks require stable Phase 3 + Phase 4 base.
+12. **API A.14** (Inngest): Functions test — requires mocking infrastructure and stable agent API.
+13. **Phase 6** (Subscription UI): Tasks 6.1–6.3. Requires Stripe test keys in CI.
+14. **API A.12, A.16** (Comms, Notifications, Profile): Lower-risk coverage.
+15. **Phases 8–9** (Mobile/Perf): Tasks 8.1–8.3, 9.1–9.2. Polish after all core flows pass.
 
 ---
 
