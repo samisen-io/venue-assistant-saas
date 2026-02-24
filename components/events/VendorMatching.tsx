@@ -163,10 +163,10 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
     }
 
     return (
-        <div className="space-y-4">
+        <div data-testid="vendor-matching-section" className="space-y-4">
             <div className="flex items-center justify-between">
                 <div>
-                    <h3 className="text-lg font-semibold">Recommended Vendors</h3>
+                    <h3 data-testid="recommended-vendors-title" className="text-lg font-semibold">Recommended Vendors</h3>
                     <p className="text-sm text-gray-500">Based on guest count, budget, and performance.</p>
                 </div>
             </div>
@@ -181,12 +181,18 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
                     );
                     const defaultServiceId = matchedServices[0]?.event_service_id || vendorServices[0]?.event_service_id;
                     return (
-                        <Card key={vendor.id} className="overflow-hidden border-l-4" style={{ borderLeftColor: score > 80 ? '#10b981' : score > 50 ? '#f59e0b' : '#ef4444' }}>
+                        <Card
+                            key={vendor.id}
+                            data-testid="vendor-recommendation-card"
+                            data-vendor-id={vendor.id}
+                            className="overflow-hidden border-l-4"
+                            style={{ borderLeftColor: score > 80 ? '#10b981' : score > 50 ? '#f59e0b' : '#ef4444' }}
+                        >
                             <CardContent className="p-4">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     <div className="flex-1 space-y-1">
                                         <div className="flex items-center gap-2">
-                                            <h4 className="font-bold text-lg">{vendor.name}</h4>
+                                            <h4 data-testid="vendor-recommendation-name" className="font-bold text-lg">{vendor.name}</h4>
                                             {matchedServices[0]?.event_services?.name && (
                                                 <Badge variant="outline">{matchedServices[0].event_services.name}</Badge>
                                             )}
@@ -208,7 +214,7 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
 
                                     <div className="flex flex-wrap items-center justify-end gap-3 sm:gap-6">
                                         <div className="text-center">
-                                            <div className="flex items-center justify-center text-primary">
+                                            <div data-testid="vendor-recommendation-score" className="flex items-center justify-center text-primary">
                                                 <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 mr-1" />
                                                 <span className="text-xl sm:text-2xl font-bold">{score}</span>
                                             </div>
@@ -225,6 +231,7 @@ export function VendorMatching({ event, onVendorAdded }: VendorMatchingProps) {
                                                 <TooltipTrigger asChild>
                                                     <div>
                                                         <Button
+                                                            data-testid="vendor-recommendation-contact-btn"
                                                             onClick={() => contactVendor(vendor, defaultServiceId)}
                                                             disabled={isSubmitting === vendor.id || !defaultServiceId || addedVendorIds.has(vendor.id)}
                                                             size="sm"

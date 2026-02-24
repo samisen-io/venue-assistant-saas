@@ -51,6 +51,7 @@ export function CalendarHeader({
       {/* Left side - Date navigation */}
       <div className="flex items-center gap-3">
         <Button
+          data-testid="calendar-today-btn"
           variant="outline"
           size="sm"
           onClick={() => onNavigate('today')}
@@ -60,6 +61,7 @@ export function CalendarHeader({
         </Button>
         <div className="flex items-center gap-1">
           <Button
+            data-testid="calendar-prev-btn"
             variant="outline"
             size="icon"
             onClick={() => onNavigate('prev')}
@@ -68,6 +70,7 @@ export function CalendarHeader({
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
+            data-testid="calendar-next-btn"
             variant="outline"
             size="icon"
             onClick={() => onNavigate('next')}
@@ -108,6 +111,8 @@ export function CalendarHeader({
         {/* View switcher */}
         <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
           <Button
+            data-testid="calendar-view-day"
+            aria-pressed={view === 'day'}
             variant={view === 'day' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => onViewChange('day')}
@@ -116,6 +121,8 @@ export function CalendarHeader({
             Day
           </Button>
           <Button
+            data-testid="calendar-view-week"
+            aria-pressed={view === 'week'}
             variant={view === 'week' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => onViewChange('week')}
@@ -124,6 +131,8 @@ export function CalendarHeader({
             Week
           </Button>
           <Button
+            data-testid="calendar-view-month"
+            aria-pressed={view === 'month'}
             variant={view === 'month' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => onViewChange('month')}
