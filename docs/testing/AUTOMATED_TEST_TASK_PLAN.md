@@ -6,15 +6,13 @@ Based on `docs/testing/MANUAL_TEST_CHECKLIST.md`, current Playwright coverage in
 
 ## Current Assessment (Updated)
 
-The suite has moved significantly beyond structure-only checks. Business-outcome coverage now exists for auth, onboarding, event lifecycle, lead lifecycle, conflict detection, vendor matching, calendar, budget tracking, venue public-page editor, mocked error handling, and baseline RLS.
+The suite has moved significantly beyond structure-only checks. Business-outcome coverage now exists for auth, onboarding, event lifecycle, lead lifecycle, conflict detection, vendor matching, calendar, budget tracking, venue public-page editor, mocked error handling, baseline RLS, data-testid baseline, full mocked AI workflows, broadened error paths, and portal structural-to-outcome conversions.
 
 Main remaining gaps:
 
-1. **Core CRUD parity is incomplete**: No dedicated full-lifecycle CRUD specs for `/vendors`, `/clients`, and `/spaces`.
-2. **AI workflow tests are still mostly stubs**: `ai-features.spec.ts` still contains `test.skip()` paths and no persisted AI outcomes.
-3. **Security coverage is partial**: RLS test covers one cross-tenant venue scenario, but not full resource matrix and no explicit API auth boundary matrix.
-4. **Subscription/billing happy paths are still missing**: plan/usage page checks and Stripe redirect assertions are not covered end-to-end.
-5. **Integration/API test layer is still unimplemented**: `tests/integration/*` helpers and route contract suites are still pending.
+1. **Subscription/billing happy paths are still missing**: plan/usage page checks and Stripe redirect assertions are not covered end-to-end.
+2. **Integration/API test layer is still unimplemented**: `tests/integration/*` helpers and route contract suites are still pending.
+3. **Mobile/performance specs**: `mobile-responsiveness.spec.ts` and `performance-security.spec.ts` are still largely structural.
 
 ---
 
@@ -47,17 +45,19 @@ Replace all structure-only tests with business-outcome tests. Add coverage for e
 | `calendar-integration.spec.ts` | Month/week visibility + click-through to detail page | **Done** |
 | `budget-tracking.spec.ts` | Budget summary + variance recalculation after quote update | **Done** |
 | `venue-public-page.spec.ts` | Public-page editor save/persist + publish/unpublish behavior checks | **Partial** |
-| `security-rls.spec.ts` | Cross-tenant venue access blocked for another user | **Partial** |
-| `error-handling.spec.ts` | LIMIT_REACHED prompts + conflict and 500 handling (mocked routes) | **Partial** |
+| `security-rls.spec.ts` | Cross-tenant venue/event/lead/client access blocked (API + URL checks) | **Done** |
+| `error-handling.spec.ts` | LIMIT_REACHED prompts, conflict/500/404 mocked paths, lead update 500 | **Done** |
+| `space-delete-blocked.spec.ts` | Deleting a space with active events returns `409 SPACE_HAS_EVENTS` and shows blocking UI message | **Done** |
 | `api-auth-boundaries.spec.ts` | Unauthenticated protected API endpoints return `401` | **Done** |
 | `public-venue-data-boundaries.spec.ts` | Published vs draft slug behavior and public payload data leak assertions | **Done** |
 | `password-reset.spec.ts` | Forgot-password initiation submission path | **Done** |
 | `event-review.spec.ts` | Event review summary, vendor list, and client contact data integrity | **Done** |
 | `public-marketplace.spec.ts` | Public/auth page structure and basic navigation checks | Legacy structural |
-| `manager-portal.spec.ts` | Manager portal structure/presence checks | Legacy structural |
+| `manager-portal.spec.ts` | Portal navigation, CTA data-testids, stat-card values, search outcome, subscription plan assertions | **Done** |
 | `mobile-responsiveness.spec.ts` | Mobile layout/overflow checks | Legacy structural |
 | `performance-security.spec.ts` | Basic load budgets + route guard checks | Legacy structural |
-| `ai-features.spec.ts` | Largely structural with skipped flows | Legacy stub |
+| `ai-features.spec.ts` | Mocked NLP extraction → form population, chat send/clear, mocked agent start, proposal API | **Done** |
+| `testid-baseline.spec.ts` | Validates all key data-testid attributes across sidebar, CTAs, event/lead/page-editor | **Done** |
 | `example.spec.ts` | Playwright scaffold example | Legacy scaffold |
 
 ---
@@ -82,10 +82,11 @@ Replace all structure-only tests with business-outcome tests. Add coverage for e
 - `venue-public-page.spec.ts`: editor changes persist (tagline + tone) and publish-state behavior validated against public slug
 
 ### Security + Error Handling
-- `security-rls.spec.ts`: cross-tenant access to another venue is blocked
+- `security-rls.spec.ts`: cross-tenant access is blocked for venues, events, leads, and clients (API + URL checks)
 - `error-handling.spec.ts`: mocked `LIMIT_REACHED` and `500` paths show expected upgrade/error UI
 - `api-auth-boundaries.spec.ts`: unauthenticated protected API calls return `401`
 - `public-venue-data-boundaries.spec.ts`: published slugs are accessible, draft slugs return `404`, and private venue fields are excluded
+- `space-delete-blocked.spec.ts`: `SPACE_HAS_EVENTS` guard is enforced and surfaced to users
 
 ### Auth + Review Additions
 - `password-reset.spec.ts`: forgot-password flow submits and reaches success state
@@ -98,22 +99,25 @@ Replace all structure-only tests with business-outcome tests. Add coverage for e
 
 ## Remaining Work and Recommended Next Tests
 
-### P0 Remaining (high confidence gaps)
-- **Task 10.4**: Add space delete block test (`SPACE_HAS_EVENTS`).
-- **Task 1.3**: Finish/verify the full `data-testid` baseline across the identified top interactions.
+### Codex gaps — now closed
+- **Task 1.3** ✅ `testid-baseline.spec.ts` — validates all 10+ data-testid targets exist and are reachable.
+- **Task 10.1 / 10.3** ✅ `error-handling.spec.ts` — extended with 500 for events/vendors/spaces, 404 for non-existent records, and lead-update 500.
+- **AI workflow stubs** ✅ `ai-features.spec.ts` — replaced with mocked NLP extraction, chat send/clear, agent start, and proposal endpoint tests.
+- **Legacy structural → outcome** ✅ `manager-portal.spec.ts` — converted to use data-testid selectors and business-outcome assertions.
 
-### Already Started But Not Fully Closed
+### Still Open
 - **Task 2.1**: Signup->OTP->onboarding is behind `PLAYWRIGHT_SIGNUP_E2E=1`; keep as non-default smoke until stabilized.
 - **Task 3.1**: Event test currently seeds create via admin API; still missing full UI create+delete path.
-- **Task 3.5**: Public-page spec is strong but currently avoids destructive unpublish in some branches.
-- **Task 1.4**: CI pipeline is present in `.github/workflows/playwright.yml`; align naming/documentation and confirm it fully matches done criteria.
-- **Task 7.1**: RLS currently covers venue only; expand to leads/events/clients cross-tenant access.
-- **Task 10.1 / 10.3**: Conflict and 500 coverage is partial (not all routes/messages asserted end-to-end).
+- **Task 3.5**: Public-page spec avoids destructive unpublish in some branches.
+- **Task 1.4**: CI pipeline is present in `.github/workflows/playwright.yml`; confirm it fully matches done criteria.
+- **Phase 6**: Subscription/billing (Stripe redirect, usage enforcement) is still untested.
+- **Phase 7**: Integration/API contract layer (`tests/integration/*`) is still unimplemented.
+- **`mobile-responsiveness.spec.ts`** and **`performance-security.spec.ts`**: still largely structural.
 
 ### Recommended Next Implementation Order
-1. **Implement Task 10.4** (space delete blocked by active events) to complete a high-risk safety rule.
-2. **Expand Task 7.1** (cross-tenant RLS checks for leads/events/clients) beyond venue-only coverage.
-3. **Complete Task 1.3** (`data-testid` baseline) to reduce locator brittleness across the suite.
+1. **Complete Phase 6** (subscription/billing): plan display, usage enforcement, Stripe redirect.
+2. **Phase 7** (integration/API layer): route contract suites and service-role helpers.
+3. **Convert mobile/performance specs** to have interaction-level outcome assertions.
 
 ---
 
