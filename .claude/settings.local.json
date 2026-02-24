@@ -24,7 +24,9 @@
       "Bash(npx tsx:*)",
       "Bash(node -r dotenv/config -e:*)",
       "Bash(git -C /home/prashant/Repos/venue-assistant-saas show HEAD:middleware.ts)",
-      "Bash(git -C /home/prashant/Repos/venue-assistant-saas show HEAD~1:middleware.ts)"
+      "Bash(git -C /home/prashant/Repos/venue-assistant-saas show HEAD~1:middleware.ts)",
+      "Bash(wc:*)",
+      "Bash(xargs cat:*)"
     ],
     "additionalDirectories": [
       "c:\\Users\\prashant\\repos\\venue-assistant-saas\\app\\api\\venues\\public\\[slug]",
