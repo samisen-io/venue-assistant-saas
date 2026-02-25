@@ -73,13 +73,14 @@ No email is sent today. The `RESEND_API_KEY` is not configured. These are the mi
 
 - [ ] Add `RESEND_API_KEY` to Vercel environment and Supabase secrets
 - [ ] Create shared `sendEmail(to, template, data)` utility in `lib/email/` (may already exist as a stub — wire it up)
+- [ ] **Welcome email:** fires on first login. Subject: "Your venue page is 3 steps from live." Links directly to the page editor. Send from founder's name (not "no-reply"). Add a P.S. at the bottom: "If you get stuck, reply to this email and I'll help personally. — [Founder name]."
 - [ ] **Trial expiring — 3 days out:** subject "Your trial ends in 3 days", CTA to upgrade
 - [ ] **Trial expiring — 1 day out:** subject "Last day of your trial", urgent CTA
 - [ ] **Payment failed:** subject "Action required — payment failed", link to billing portal
 - [ ] **New inquiry received (to venue manager):** notify when a public inquiry form is submitted, include prospect name, event type, date, guest count
 - [ ] **Inquiry confirmation (to prospect):** "We received your inquiry and will be in touch" auto-reply
 
-Skip for now: lead follow-up sequences, testimonial requests, welcome email. Add those under Nice to Have once email is working.
+Skip for now: lead follow-up sequences, testimonial requests. Add those under Nice to Have once email is working.
 
 **Why it matters for our ICP:** A banquet hall manager is away from their desk constantly — setting up for an event, walking the space, on the phone with a client. Email is how they find out a hot lead just came in. If the notification doesn't fire, the lead goes cold.
 
@@ -109,26 +110,30 @@ The per-venue public page is the core marketing surface and the #1 reason a banq
 
 ---
 
-### M5. Proposals — Basic Version
+### M5. Proposals — With E-Signature
 
-API stubs exist. Venue managers need a way to send a proposal to a prospect. Keep it simple.
+API stubs exist. Venue managers need a way to send a proposal and get a confirmed answer — without a phone-tag loop.
 
 - [ ] Venue manager can create a proposal from a lead: fill in event details, package selection, pricing
 - [ ] Generate a clean PDF (`/lib/proposals/pdfGenerator.ts` exists — ensure it works end-to-end)
 - [ ] Send proposal via email (Resend): HTML email body + PDF attachment
-- [ ] Status tracking: `draft → sent → accepted / declined` (skip "viewed" tracking for now)
-- [ ] Venue manager can see proposal status on the lead detail page
+- [ ] **Client-facing acceptance page:** each proposal gets a unique public URL (e.g. `/proposals/:token`). Shows proposal summary with an "Accept Proposal" button.
+- [ ] **E-signature capture:** on accept, client types their name as a signature and clicks confirm. Record name, timestamp, and IP address. Store on the `proposals` table.
+- [ ] **Acceptance notification:** when a client accepts, fire a notification email to the venue manager ("🎉 [Client Name] accepted your proposal for [Event Date]") and auto-update lead status to `won`.
+- [ ] Status tracking: `draft → sent → viewed → accepted / declined` ("viewed" is set with a one-time flag when the proposal URL is first opened — cheap to implement, useful for follow-up timing)
+- [ ] Venue manager sees proposal status on the lead detail page
 
-Skip: AI-assisted content generation, client-facing acceptance portal. The manager emails it; the client replies by phone or email.
+Skip: AI-assisted content generation, full DocuSign audit trail, complex signature certificate.
 
-**Why it matters for our ICP:** This is how banquet halls close deals. Right now they're emailing Word documents or writing up quotes by hand. A clean, branded PDF proposal with a package breakdown is a direct upgrade. For boutique hotels, a polished proposal signals professionalism and justifies the room rate.
+**Why it matters for our ICP:** Right now the close loop is: send PDF → client calls back → manager manually updates the lead. With e-signature the loop becomes: client clicks Accept → lead auto-updates to won → manager gets a notification. A trial user who sends their first proposal and watches a client accept it digitally will convert to paid before the trial ends. This is the single clearest ROI moment in the product.
 
 ---
 
 ### M6. Analytics Dashboard — Basic
 
-Venue managers need to see whether their public page is working. Keep it to one simple page.
+Venue managers need to see whether their public page is working. Keep it to one simple page — plus one number visible on every login.
 
+- [ ] **Hero metric on the main dashboard (not buried in analytics):** "Leads this month: X" with a trend arrow (↑ vs last month). Visible every login. This is the number they care about — put it front and centre.
 - [ ] `/dashboard/analytics` page with:
   - Page views over the last 30 days (line chart)
   - Total leads created this month
@@ -139,7 +144,7 @@ Venue managers need to see whether their public page is working. Keep it to one 
 
 Skip: CSV export, PDF export, funnel charts, cross-venue comparison.
 
-**Why it matters for our ICP:** A banquet hall manager who just paid $99–$199/mo will ask "is this working?" within the first two weeks. If they can't see leads coming in, they'll cancel. This dashboard is retention insurance.
+**Why it matters for our ICP:** A banquet hall manager who just paid $99–$199/mo will ask "is this working?" within the first two weeks. If they can't see leads coming in, they'll cancel. The hero metric on the main dashboard — leads this month with a trend arrow — is what makes them open the app weekly and attribute business growth to the product. This is retention insurance.
 
 ---
 
@@ -149,10 +154,11 @@ The chat widget is live but has two gaps that hurt quality.
 
 - [ ] Add spam/trolling guard to the system prompt: instruct the AI to stay on-topic and politely disengage from off-topic or abusive messages
 - [ ] Wire availability checking as a real tool call: when a visitor asks about dates, the AI should query the `venue_availability` table and return accurate results rather than guessing
+- [ ] **Graceful fallback message:** when the AI cannot answer a question (pricing specifics, catering details, anything outside its configured knowledge), it must not guess. Default fallback: "I don't have that detail right now, but [Venue Name] will get back to you within 24 hours — leave your name and contact below and I'll make sure they follow up." This recovers the lead instead of losing it.
 
 Skip: stage-based conversation flow enforcement, confidence score surfacing to managers.
 
-**Why it matters for our ICP:** "Is June 14th available?" is the single most common question a venue gets. If the AI chat answers it accurately, it converts. If it says "I'm not sure, please contact us," it's just a slower version of the contact form. For a banquet hall getting 20 inquiries a week, accurate availability answers in the chat widget is a meaningful time saver.
+**Why it matters for our ICP:** "Is June 14th available?" is the single most common question a venue gets. If the AI answers it accurately, it converts. If it guesses wrong, it destroys trust with a real prospect. The fallback message handles everything the AI can't answer by routing it back to the manager — so no inquiry falls through the cracks.
 
 ---
 
@@ -172,6 +178,106 @@ Skip: stage-based conversation flow enforcement, confidence score surfacing to m
 - [ ] Fix flaky auth setup test in `tests/auth.setup.ts` — add retry logic for slow cold starts
 - [ ] Add Playwright test: public inquiry form → lead created → confirmation shown
 - [ ] Add Playwright test: subscription limit hit → upgrade prompt shown in UI
+
+---
+
+### M10. Onboarding Flow — New User Activation
+
+A new user who lands on an empty dashboard with no guidance will leave within 10 minutes. No product tour needed — just a visible 5-step checklist that gets them to a live page before their first session ends.
+
+#### Setup Checklist (shown on dashboard until completed, auto-hides after all steps done or after 7 days)
+
+| Step | Action | Completes When |
+|---|---|---|
+| 1 | Name your venue | Venue name saved |
+| 2 | Add your first space | First space record created |
+| 3 | Upload 3 photos | Photo count ≥ 3 |
+| 4 | Preview your public page | Preview link opened |
+| 5 | Copy your page link | (manual tick or clipboard event) |
+
+- [ ] `onboarding_steps_completed` JSONB field on the `venues` table (or `users`) — stores array of completed step IDs
+- [ ] Checklist component on the main dashboard: shows "X of 5 steps complete" progress bar, each step links directly to the relevant section
+- [ ] Mark steps complete automatically based on data state (step 2 completes when first space is created, step 3 when photo count hits 3, etc.)
+- [ ] Hide checklist permanently once all steps complete OR after 7 days — don't nag returning users
+- [ ] **Empty state copy for every major section** (currently all say "No data yet"):
+  - Leads: "No leads yet — share your page link to start getting inquiries" + "Share page link" button
+  - Events: "No events yet — convert a lead to book your first event" + "View leads" button
+  - Vendors: "No vendors added — add your preferred caterers and photographers" + "Add vendor" button
+  - Proposals: "No proposals sent — create one from any lead" + "View leads" button
+
+Skip: interactive product tours, tooltips, in-app video walkthroughs. Text + checklist is enough for this ICP.
+
+**Why it matters for our ICP:** Users who complete activation steps within the first 3 days are 3–4x more likely to convert to paid. A solo banquet hall owner who lands on a blank dashboard and doesn't know what to do next will close the tab and not come back. The checklist makes the path to value obvious without needing a support call.
+
+---
+
+### M11. Trial Expiry Experience
+
+The trial lifecycle needs more than emails. The in-app experience at the moment of expiry determines whether a user upgrades or disappears — and what their prospects see in the meantime.
+
+- [ ] **In-app countdown banner:** appears on the dashboard from day 10 onward. "Your trial ends in X days — upgrade to keep your page live." Sticky at top, dismissible once per day, includes a direct upgrade CTA button.
+- [ ] **Expired trial state:** when trial lapses, show a single full-screen upgrade prompt. Block creation of new events/leads but do NOT delete any data. Show the pricing options and a clear CTA.
+- [ ] **Public page on trial expiry:** do NOT serve a 404. Render a holding page: "This venue is updating their booking system — check back soon." Include the venue name. A real prospect landing during expiry should not see a broken page.
+- [ ] **Smart upgrade pre-selection:** pre-select the plan based on usage during trial (e.g. if they created 2 spaces, default to Growth not Starter). Reduces friction at the payment step.
+
+**Why it matters for our ICP:** A 404 on a venue's public page during trial expiry is catastrophic — a real prospect lands, sees a broken page, and the venue manager has no idea. The holding page keeps their credibility intact and gives them a concrete reason to upgrade immediately rather than quietly churn.
+
+---
+
+### M12. Demo Environment
+
+Every cold email, LinkedIn message, and sales call will link to a demo. Without a pre-populated demo, prospects see an empty shell and have to imagine what the product looks like. That imagination gap kills conversion.
+
+#### Demo Venue: "The Grand Oak Event Space"
+A fictional but realistic independent banquet hall. Should feel like a real venue a prospect could find in Nashville or Austin.
+
+- [ ] Create a seed script at `scripts/seed-demo.ts` that populates a dedicated demo account:
+  - 1 venue: "The Grand Oak Event Space", Nashville TN, banquet/wedding category
+  - 2 spaces: "The Grand Ballroom" (capacity 250) and "The Garden Terrace" (capacity 80)
+  - 6 photos across both spaces (use Unsplash placeholder images — real-looking, not generic stock)
+  - 5 leads in different pipeline stages: new, contacted, proposal sent, won, lost
+  - 3 past events with realistic names (e.g. "Chen-Patel Wedding Reception", "Hartley Corporate Dinner Q1")
+  - 2 sent proposals (one accepted, one pending)
+  - 4 vendors: caterer, photographer, florist, AV company
+  - Published public page with AI chat enabled and accurate availability data
+- [ ] Demo account is read-only for any visitor — no mutations. Use a `is_demo` flag on the account and guard all write endpoints.
+- [ ] Deploy to production at a fixed URL: `/demo` (or redirect to `/venues/grand-oak-event-space`)
+- [ ] AI chat on the demo page must answer availability questions accurately using the seeded event data
+
+**Why it matters for our ICP:** Every outreach email will link to this page. A venue manager who explores the Grand Oak demo and sees a working AI chat, a professional proposal, and a clean lead pipeline will have zero imagination gap. This is the single most important sales asset before real customer testimonials exist.
+
+---
+
+### M13. Support Channel — Visible Inside the Product
+
+There is currently no visible way to get help inside the product. A solo banquet hall owner who hits a wall will not search for a help centre — they'll cancel.
+
+- [ ] **In-app support link:** "Need help? Email [support@domain]" in the dashboard sidebar footer. Always visible, every page.
+- [ ] **Inline FAQ on the onboarding checklist** (M10): three common questions that expand inline:
+  - "How do I publish my page?"
+  - "Why isn't my AI chat responding?"
+  - "How do I change my pricing?"
+  Each gets a 2-sentence answer. No separate help centre needed for v1.
+- [ ] **Support inbox autoresponder:** configure a reply confirming receipt and setting expectation: "We respond within 24 hours, typically faster." A founder managing 5–10 early customers can handle this volume manually.
+
+Skip: Intercom, Zendesk, knowledge base, in-product chatbot. All over-engineered for this stage.
+
+**Why it matters for our ICP:** Banquet hall owners are not technical. They will get confused. The question is whether confusion turns into a support email (recoverable) or a silent cancellation (not). A visible email address converts confusion into conversation.
+
+---
+
+### M14. iCal Feed — Calendar Sync
+
+Every competitor has calendar sync. Without it, venue managers have to manually update two systems after every booking — your app and their existing Google Calendar. That double-entry friction is a common reason people abandon new software.
+
+- [ ] `GET /api/venues/:id/calendar.ics` — stateless endpoint returning all confirmed events as an RFC 5545 iCal feed
+- [ ] Each event in the feed includes: event name, start/end datetime, space name in the location field, client name in the description
+- [ ] Subscribe URL shown in `/dashboard/settings` with a "Copy link" button and one-line instructions: "Paste into Google Calendar → Other calendars → From URL"
+- [ ] Feed refreshes on every GET request (stateless — no caching needed for v1)
+
+Skip: two-way Google Calendar OAuth sync, Outlook OAuth. The iCal subscription covers 90% of the use case with 5% of the complexity.
+
+**Why it matters for our ICP:** A banquet hall owner who confirms a booking in the app and still has to update their Google Calendar manually will eventually stop using the app for confirmations. The iCal feed makes your system the source of truth without forcing them to abandon their existing tools.
 
 ---
 
@@ -212,12 +318,7 @@ Skip: admin role, ownership transfer, "leave venue" self-service.
 
 ### N3. Google Calendar / iCal Sync
 
-Banquet hall managers and boutique hotel GMs already live in their calendar. Confirmed event bookings should appear there automatically.
-
-- [ ] **iCal export:** `GET /api/venues/:id/calendar.ics` — returns all confirmed events as an iCal feed. Manager subscribes to this URL in Google Calendar, Apple Calendar, or Outlook. Covers the 80% case with minimal code.
-- [ ] Re-generate the feed on event create/update/cancel (it's stateless — any fresh request returns current data)
-
-Skip: two-way Google Calendar OAuth sync. The iCal subscription achieves the same result for these operators.
+> **Promoted to M14 (Must Have).** See M14 for the full spec. Remove this item once M14 is shipped.
 
 ---
 
@@ -238,8 +339,8 @@ Skip: time-limited promotional pricing on packages, cross-venue bundle deals.
 
 Once core email (M2) is working, add these:
 
-- [ ] **Welcome / onboarding email:** sent on first login, links directly to the public page editor with a "your page is 3 steps from live" message
 - [ ] **Lead follow-up nudge:** if a lead has been in `contacted` status for 3+ days with no activity, show a reminder badge on the leads list (in-app, not email for now)
+- [ ] **Testimonial request email:** triggered manually by the venue manager from the event detail page. Sends a simple email with a direct link to submit a testimonial for the venue's public page. (Requires M2 live first. See also N1.)
 
 Skip: automated email sequences, multi-step nurture flows. A solo manager should decide when to follow up personally.
 
@@ -295,6 +396,40 @@ Skip: before/after diffs, per-field change tracking, CSV export. A small team do
 
 ---
 
+---
+
+## Build Order — Final Push to GTM-Ready
+
+Work in this exact sequence. Dependencies are noted. GTM starts when every Must Have has a green checkbox — not before.
+
+### Week 1 — Make it real for one person
+The goal this week is a complete, working end-to-end experience for a single demo user. Nothing else matters until the product can be shown.
+
+1. **M3** (photo storage) — 30 minutes. Unblocks the public page from being embarrassing.
+2. **M4** (public page gaps) — Fix the 404, wire preview token, add honeypot.
+3. **M7** (AI chat) — Real availability tool call + graceful fallback message. This is the first thing every prospect will test on the demo.
+4. **M12** (demo environment) — Seed the Grand Oak account. Build this in parallel with everything else this week. It's your sales asset from day one.
+
+### Week 2 — Make money work
+5. **M2** (email) — Wire Resend first. Stripe webhooks trigger emails, so email must exist before billing.
+6. **M1** (billing) — Stripe with new pricing. Annual billing toggle. Enterprise removed from self-serve.
+7. **M11** (trial expiry) — In-app countdown banner + graceful public page holding state. Wire immediately after billing.
+
+### Week 3 — Make deals close and users stay
+8. **M5** (proposals + e-signature) — The acceptance moment is the clearest trial→paid conversion trigger. A user who watches a client accept their first proposal will upgrade.
+9. **M6** (analytics + hero metric) — Hero metric on main dashboard first. Then the analytics page. Retention insurance.
+10. **M10** (onboarding checklist + empty states) — Mostly frontend. Do alongside M6, same sprint.
+
+### Week 4 — Harden before you scale
+11. **M14** (iCal sync) — One endpoint + settings UI. Lightweight.
+12. **M13** (support channel) — Sidebar link + inline FAQ + autoresponder. Prevents silent churn.
+13. **M8** (security) — MFA, account deletion, data export, privacy policy. Boutique hotel GMs will ask about this.
+14. **M9** (testing) — Fix flaky tests, add critical Playwright coverage.
+
+**First cold email goes out after Week 4. Not before.**
+
+---
+
 ## Out of Scope
 
 Worth knowing about, but don't build without a direct customer request. These are either wrong for our ICP or require significant complexity that isn't justified at this stage.
@@ -327,7 +462,9 @@ Worth knowing about, but don't build without a direct customer request. These ar
 
 **F&B / catering management:** Menus, dietary tracking, catering cost integration. Out of scope for a venue booking tool.
 
-**Two-way Google Calendar OAuth sync:** The iCal feed subscription (N3) achieves the same result for our ICP with a fraction of the complexity.
+**Two-way Google Calendar OAuth sync:** The iCal feed (M14) achieves the same result for our ICP with a fraction of the complexity.
+
+**Interactive product tours / in-app tooltips:** Overkill for this ICP. The onboarding checklist (M10) and empty states are enough. Revisit only if users consistently report confusion after the checklist is in place.
 
 ---
 
@@ -339,4 +476,4 @@ Worth knowing about, but don't build without a direct customer request. These ar
 | Public Marketplace | `docs/tasks/PublicMarketplace_TaskList.md`, `docs/prds/MARKETPLACE_PRD.md` |
 | Public Venue Pages | `docs/tasks/PUBLIC_PAGES_TASKS.md` |
 | AI Chat & Proposals | `docs/prds/MARKETPLACE_PRD.md` §3.2–3.4 |
-| Last reorganized | 2026-02-25 — scoped for independent banquet halls and boutique hotels; pricing updated to Starter $99, Growth $199, Professional $299, Enterprise custom |
+| Last reorganized | 2026-02-25 — added M10 (onboarding flow), M11 (trial expiry), M12 (demo environment), M13 (support channel), M14 (iCal sync, promoted from N3); strengthened M5 (e-signature + acceptance notification), M6 (hero metric), M7 (graceful fallback); added 4-week build order; updated Out of Scope |
