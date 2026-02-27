@@ -1,12 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { PhotoUploader } from "@/components/shared/PhotoUploader"
 import { uploadVenuePhoto } from "@/lib/storage/upload"
+import { useToast } from "@/hooks/use-toast"
 import type { Database } from "@/lib/types/database.types"
+
+type PhotoLimit = { allowed: boolean; current: number; max: number | null; reason?: string }
 
 type VenuePhoto = Database["public"]["Tables"]["venue_photos"]["Row"]
 
@@ -25,6 +28,15 @@ export function PhotosMediaEditor({
 }) {
   const [section, setSection] = useState("Main Venue")
   const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [photoLimit, setPhotoLimit] = useState<PhotoLimit | null>(null)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    fetch(`/api/venues/${venueId}/photos`)
+      .then((r) => r.json())
+      .then((data: PhotoLimit) => setPhotoLimit(data))
+      .catch(() => null)
+  }, [venueId])
 
   const persistPhotoRecords = async (urls: string[]) => {
     if (!urls.length) return
@@ -39,7 +51,15 @@ export function PhotosMediaEditor({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ photos: payload }),
     })
-    if (!res.ok) return
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      const description =
+        res.status === 403
+          ? (data.error ?? "You've reached your photo limit. Upgrade your plan to upload more.")
+          : (data.error ?? "Failed to save photos. Please try again.")
+      toast({ title: "Upload failed", description, variant: "destructive" })
+      return
+    }
     const created = (await res.json()) as VenuePhoto[]
     onPhotosChange([...photos, ...created])
   }
@@ -96,8 +116,14 @@ export function PhotosMediaEditor({
           <Input value={section} onChange={(e) => setSection(e.target.value)} />
         </div>
 
+        {photoLimit && !photoLimit.allowed && (
+          <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {photoLimit.reason ?? "You've reached your photo limit. Upgrade your plan to upload more."}
+          </p>
+        )}
+
         <PhotoUploader
-          maxFiles={20}
+          maxFiles={photoLimit?.max !== null && photoLimit?.max !== undefined ? Math.max(0, photoLimit.max - photos.length) : 20}
           onUpload={(file) => uploadVenuePhoto(venueId, file, section)}
           onChange={persistPhotoRecords}
         />
