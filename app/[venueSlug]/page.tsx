@@ -68,12 +68,7 @@ export default async function PublicVenuePage({
   const { venue } = data
   const privacySettings = (venue.privacy_settings as { hide_phone?: boolean; hide_email?: boolean; hide_address?: boolean } | null) ?? null
   if (venue.page_status !== "published") {
-    return (
-      <main className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <h1 className="text-3xl font-semibold">This page is not currently available</h1>
-        <p className="mt-3 text-muted-foreground">Please check back later or contact the venue directly.</p>
-      </main>
-    )
+    notFound()
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://venuemanager.pro"

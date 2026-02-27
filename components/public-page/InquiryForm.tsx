@@ -31,6 +31,7 @@ export function InquiryForm({ slug }: InquiryFormProps) {
         ? Number(formData.get("guest_count"))
         : undefined,
       message: formData.get("message") || undefined,
+      _hp: formData.get("_hp") || undefined,
     }
 
     try {
@@ -112,6 +113,12 @@ export function InquiryForm({ slug }: InquiryFormProps) {
           className="w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           placeholder="Tell us about your event..."
         />
+      </div>
+
+      {/* Honeypot — hidden from humans, bots fill it in */}
+      <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: "1px", height: "1px", overflow: "hidden" }}>
+        <label htmlFor="inq-hp">Leave this empty</label>
+        <input id="inq-hp" name="_hp" type="text" tabIndex={-1} autoComplete="off" />
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

@@ -39,33 +39,26 @@ export async function GET(request: Request) {
       )
     }
 
-    // Try to verify token
-    try {
-      const tokenRes = await (supabase as any)
-        .from("preview_tokens")
-        .select("*")
-        .eq("token", token)
-        .eq("venue_id", venueId)
-        .single()
+    // Verify token against preview_tokens table
+    const tokenRes = await (supabase as any)
+      .from("preview_tokens")
+      .select("expires_at")
+      .eq("token", token)
+      .eq("venue_id", venueId)
+      .single()
 
-      if (tokenRes.error || !tokenRes.data) {
-        return NextResponse.json(
-          { error: "Invalid token" },
-          { status: 401 }
-        )
+    if (tokenRes.error) {
+      // code 42P01 = relation does not exist (table not migrated yet)
+      if (tokenRes.error.code === "42P01") {
+        console.debug("preview_tokens table not found — run migrations/setup-preview-tokens.sql")
+        return NextResponse.json({ valid: true })
       }
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+    }
 
-      const expiresAt = new Date(tokenRes.data.expires_at)
-      if (expiresAt < new Date()) {
-        return NextResponse.json(
-          { error: "Token expired" },
-          { status: 401 }
-        )
-      }
-    } catch (e) {
-      // Preview tokens table might not exist
-      // For now, allow preview with just token existence check
-      console.debug("Could not verify token in database, allowing preview")
+    const expiresAt = new Date(tokenRes.data.expires_at)
+    if (expiresAt < new Date()) {
+      return NextResponse.json({ error: "Token expired" }, { status: 401 })
     }
 
     return NextResponse.json({ valid: true })

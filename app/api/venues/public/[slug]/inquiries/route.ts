@@ -21,7 +21,7 @@ export async function POST(
 
     const { slug } = await params
     const body = await request.json()
-    const { name, email, phone, event_type, event_date, guest_count, message } =
+    const { name, email, phone, event_type, event_date, guest_count, message, _hp } =
       body as {
         name?: string
         email?: string
@@ -30,7 +30,13 @@ export async function POST(
         event_date?: string
         guest_count?: number
         message?: string
+        _hp?: string
       }
+
+    // Honeypot check — bots fill in hidden fields, humans don't
+    if (_hp) {
+      return NextResponse.json({ success: true, message: "Inquiry submitted." })
+    }
 
     if (!name || !email) {
       return NextResponse.json(
