@@ -4,6 +4,8 @@ import { stripe } from '@/lib/stripe/client'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { getPlanByPriceId } from '@/lib/stripe/config'
 import Stripe from 'stripe'
+import { sendEmail } from '@/lib/email/resend'
+import { generatePaymentFailedSubject, generatePaymentFailedHTML } from '@/lib/email/templates/paymentFailed'
 
 export async function POST(request: Request) {
     const body = await request.text()
@@ -152,6 +154,40 @@ export async function POST(request: Request) {
                         updated_at: new Date().toISOString(),
                     })
                     .eq('stripe_customer_id', customerId)
+
+                // Notify user of payment failure — fire-and-forget
+                ;(async () => {
+                    try {
+                        const { data: sub } = await (supabase as any)
+                            .from('subscriptions')
+                            .select('user_id')
+                            .eq('stripe_customer_id', customerId)
+                            .single()
+
+                        if (sub?.user_id) {
+                            const { data: profile } = await (supabase as any)
+                                .from('profiles')
+                                .select('email, full_name')
+                                .eq('id', sub.user_id)
+                                .single()
+
+                            if (profile?.email) {
+                                const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+                                await sendEmail({
+                                    to: profile.email,
+                                    from: process.env.RESEND_FROM_EMAIL || 'noreply@venuemanager.com',
+                                    subject: generatePaymentFailedSubject(),
+                                    body: generatePaymentFailedHTML({
+                                        fullName: profile.full_name || '',
+                                        billingUrl: `${baseUrl}/dashboard/settings/billing`,
+                                    }),
+                                })
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Failed to send payment failed email:', err)
+                    }
+                })()
 
                 console.log(`Payment failed for customer ${customerId}`)
                 break
