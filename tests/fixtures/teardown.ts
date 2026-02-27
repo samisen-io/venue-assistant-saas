@@ -74,8 +74,9 @@ export async function teardownTestFixtures(ids: TestIds): Promise<void> {
   await safeDelete(admin, 'venues', 'id', venueId);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function safeDelete(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   table: string,
   column: string,
   id: string

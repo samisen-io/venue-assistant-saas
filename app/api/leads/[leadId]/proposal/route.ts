@@ -147,6 +147,11 @@ export async function POST(
     })
 
     if (body.send === true && lead.contact_email) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.venuemanager.com"
+      const acceptUrl = (updatedProposal as any).public_token
+        ? `${appUrl}/proposals/${(updatedProposal as any).public_token}`
+        : undefined
+
       await sendEmail({
         to: lead.contact_email,
         from: venue.email || "noreply@venuemanager.com",
@@ -165,6 +170,7 @@ export async function POST(
           totalEstimated: updatedProposal.total_estimated,
           validUntil: updatedProposal.valid_until,
           pdfUrl: updatedProposal.pdf_url || "",
+          acceptUrl,
         }),
       })
 

@@ -55,6 +55,11 @@ export async function POST(
       )
     }
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.venuemanager.com"
+    const acceptUrl = proposal.public_token
+      ? `${appUrl}/proposals/${proposal.public_token}`
+      : undefined
+
     const subject = generateProposalEmailSubject({
       prospectName: proposal.lead.contact_name,
       venueName: proposal.venue?.name || "Venue",
@@ -70,6 +75,7 @@ export async function POST(
       totalEstimated: proposal.total_estimated,
       validUntil: proposal.valid_until,
       pdfUrl: proposal.pdf_url,
+      acceptUrl,
     })
 
     const result = await sendEmail({

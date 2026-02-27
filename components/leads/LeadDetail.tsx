@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,8 @@ import { LeadStatusDropdown } from "./LeadStatusDropdown"
 import { ConversationTranscript } from "./ConversationTranscript"
 import { AIInsightsPanel } from "./AIInsightsPanel"
 import { ActivityTimeline } from "./ActivityTimeline"
+import { ProposalPreview } from "@/components/proposals/ProposalPreview"
+import { ProposalStatusBadge } from "@/components/proposals/ProposalStatusBadge"
 import { useToast } from "@/hooks/use-toast"
 import {
   Calendar,
@@ -22,6 +24,8 @@ import {
   Building,
   Users,
   CheckCircle,
+  FileText,
+  ExternalLink,
 } from "lucide-react"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -36,8 +40,102 @@ export function LeadDetail({ leadId }: { leadId: string }) {
   const { data, loading, error, refetch } = useLead(leadId)
   const { updateLead, updating } = useUpdateLead()
   const [isConverting, setIsConverting] = useState(false)
+  const [proposal, setProposal] = useState<any>(null)
+  const [proposalLoading, setProposalLoading] = useState(true)
+  const [creatingProposal, setCreatingProposal] = useState(false)
+  const [savingProposal, setSavingProposal] = useState(false)
+  const [sendingProposal, setSendingProposal] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
+
+  const fetchProposal = useCallback(async () => {
+    setProposalLoading(true)
+    try {
+      const res = await fetch(`/api/leads/${leadId}/proposal`)
+      if (res.ok) {
+        const data = await res.json()
+        setProposal(data)
+      }
+    } catch {
+      // no-op
+    } finally {
+      setProposalLoading(false)
+    }
+  }, [leadId])
+
+  useEffect(() => {
+    fetchProposal()
+  }, [fetchProposal])
+
+  const handleCreateProposal = async () => {
+    setCreatingProposal(true)
+    try {
+      const res = await fetch(`/api/leads/${leadId}/proposal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      })
+      const created = await res.json()
+      if (!res.ok) {
+        toast({ title: "Error", description: created.error || "Failed to create proposal", variant: "destructive" })
+        return
+      }
+      setProposal(created)
+      toast({ title: "Proposal draft created", description: "Edit and send it to the client." })
+    } catch {
+      toast({ title: "Error", description: "Failed to create proposal", variant: "destructive" })
+    } finally {
+      setCreatingProposal(false)
+    }
+  }
+
+  const handleSaveProposal = async (updates: any) => {
+    if (!proposal) return
+    setSavingProposal(true)
+    try {
+      const res = await fetch(`/api/proposals/${proposal.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      })
+      const updated = await res.json()
+      if (!res.ok) {
+        toast({ title: "Error", description: updated.error || "Failed to save", variant: "destructive" })
+        return
+      }
+      setProposal(updated)
+      toast({ title: "Draft saved" })
+    } catch {
+      toast({ title: "Error", description: "Failed to save proposal", variant: "destructive" })
+    } finally {
+      setSavingProposal(false)
+    }
+  }
+
+  const handleSendProposal = async () => {
+    if (!proposal) return
+    setSendingProposal(true)
+    try {
+      const res = await fetch(`/api/proposals/${proposal.id}/send`, { method: "POST" })
+      const result = await res.json()
+      if (!res.ok) {
+        toast({ title: "Error", description: result.error || "Failed to send", variant: "destructive" })
+        return
+      }
+      setProposal((p: any) => ({ ...p, status: "sent" }))
+      refetch()
+      toast({ title: "Proposal sent!", description: "The client has been emailed." })
+    } catch {
+      toast({ title: "Error", description: "Failed to send proposal", variant: "destructive" })
+    } finally {
+      setSendingProposal(false)
+    }
+  }
+
+  const proposalPublicUrl =
+    proposal?.public_token
+      ? `${typeof window !== "undefined" ? window.location.origin : ""}/proposals/${proposal.public_token}`
+      : null
 
   if (loading) return <Loading />
   if (error) return <ErrorMessage message={error} onRetry={refetch} />
@@ -204,6 +302,67 @@ export function LeadDetail({ leadId }: { leadId: string }) {
             insights={lead.ai_insights}
             extractedData={conversation?.extracted_data}
           />
+
+          {/* Proposal section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Proposal
+              </h2>
+              {proposal && proposal.public_token && (
+                <a
+                  href={proposalPublicUrl || "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Client view
+                </a>
+              )}
+            </div>
+
+            {proposalLoading ? (
+              <p className="text-sm text-muted-foreground">Loading proposal...</p>
+            ) : proposal ? (
+              <div className="space-y-3">
+                {proposal.status && (
+                  <div className="flex items-center gap-2">
+                    <ProposalStatusBadge status={proposal.status} />
+                    {proposal.accepted_by_name && (
+                      <span className="text-xs text-muted-foreground">
+                        Signed by {proposal.accepted_by_name}
+                      </span>
+                    )}
+                  </div>
+                )}
+                <ProposalPreview
+                  proposal={proposal}
+                  onSave={handleSaveProposal}
+                  onSend={handleSendProposal}
+                  saving={savingProposal}
+                  sending={sendingProposal}
+                />
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-4">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    No proposal yet. Create one to send pricing details to this lead.
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={handleCreateProposal}
+                    disabled={creatingProposal}
+                  >
+                    <FileText className="mr-1.5 h-3.5 w-3.5" />
+                    {creatingProposal ? "Creating..." : "Create Proposal"}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
 
         {/* Sidebar */}
