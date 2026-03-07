@@ -3,17 +3,18 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { generateProposalPDF, uploadProposalPdf } from "@/lib/proposals/pdfGenerator"
 
-async function getAuthedVenueId(supabase: any) {
+// Get the venue_id via the proposal — the RLS on proposals enforces ownership.
+async function getAuthedVenueIdForProposal(supabase: any, proposalId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return null
-  const { data: venue } = await supabase
-    .from("venues")
-    .select("id")
-    .eq("owner_id", user.id)
-    .single()
-  return venue?.id ?? null
+  const { data: proposal } = await supabase
+    .from("proposals")
+    .select("venue_id")
+    .eq("id", proposalId)
+    .maybeSingle()
+  return proposal?.venue_id ?? null
 }
 
 export async function GET(
@@ -22,9 +23,9 @@ export async function GET(
 ) {
   try {
     const supabase = await createClient()
-    const venueId = await getAuthedVenueId(supabase)
-    if (!venueId) return new NextResponse("Unauthorized", { status: 401 })
     const { proposalId } = await params
+    const venueId = await getAuthedVenueIdForProposal(supabase, proposalId)
+    if (!venueId) return new NextResponse("Unauthorized", { status: 401 })
 
     const { data: proposal, error } = await (supabase as any)
       .from("proposals")
@@ -49,9 +50,9 @@ export async function PUT(
 ) {
   try {
     const supabase = await createClient()
-    const venueId = await getAuthedVenueId(supabase)
-    if (!venueId) return new NextResponse("Unauthorized", { status: 401 })
     const { proposalId } = await params
+    const venueId = await getAuthedVenueIdForProposal(supabase, proposalId)
+    if (!venueId) return new NextResponse("Unauthorized", { status: 401 })
     const body = await request.json()
 
     const { data: existing, error: existingError } = await (supabase as any)

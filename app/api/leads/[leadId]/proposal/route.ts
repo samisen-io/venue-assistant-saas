@@ -9,17 +9,19 @@ import {
   generateProposalEmailSubject,
 } from "@/lib/email/templates/proposal"
 
-async function getAuthedVenueId(supabase: any) {
+// Get the venue_id via the lead itself — the RLS on leads already enforces ownership,
+// so if the user can see the lead they own the venue. This handles multi-venue accounts.
+async function getAuthedVenueIdForLead(supabase: any, leadId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return null
-  const { data: venue } = await supabase
-    .from("venues")
-    .select("id")
-    .eq("owner_id", user.id)
-    .single()
-  return venue?.id ?? null
+  const { data: lead } = await supabase
+    .from("leads")
+    .select("venue_id")
+    .eq("id", leadId)
+    .maybeSingle()
+  return lead?.venue_id ?? null
 }
 
 export async function GET(
@@ -28,10 +30,9 @@ export async function GET(
 ) {
   try {
     const supabase = await createClient()
-    const venueId = await getAuthedVenueId(supabase)
-    if (!venueId) return new NextResponse("Unauthorized", { status: 401 })
-
     const { leadId } = await params
+    const venueId = await getAuthedVenueIdForLead(supabase, leadId)
+    if (!venueId) return new NextResponse("Unauthorized", { status: 401 })
     const { data: proposal, error } = await (supabase as any)
       .from("proposals")
       .select("*")
@@ -55,9 +56,9 @@ export async function POST(
 ) {
   try {
     const supabase = await createClient()
-    const venueId = await getAuthedVenueId(supabase)
-    if (!venueId) return new NextResponse("Unauthorized", { status: 401 })
     const { leadId } = await params
+    const venueId = await getAuthedVenueIdForLead(supabase, leadId)
+    if (!venueId) return new NextResponse("Unauthorized", { status: 401 })
     const body = await request.json()
 
     const { data: lead, error: leadError } = await (supabase as any)
