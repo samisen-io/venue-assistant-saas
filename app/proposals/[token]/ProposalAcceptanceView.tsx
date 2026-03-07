@@ -176,23 +176,67 @@ export function ProposalAcceptanceView({ proposal, token }: ProposalAcceptanceVi
 
           {/* Pricing */}
           {lineItems.length > 0 && (
-            <div className="border-t pt-4 space-y-2 text-sm">
-              <p className="font-semibold text-gray-700">Pricing Breakdown</p>
-              {lineItems.map((item, i) => (
-                <div key={i} className="flex justify-between">
-                  <span className="text-gray-600">{String(item.label ?? "Item")}</span>
-                  <span>${Number(item.amount ?? 0).toFixed(2)}</span>
-                </div>
-              ))}
-              <div className="border-t pt-2 space-y-1">
-                <div className="flex justify-between font-bold text-base">
+            <div className="border-t pt-4 text-sm">
+              <p className="font-semibold text-gray-700 mb-3">Pricing Breakdown</p>
+
+              {/* Column headers */}
+              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 text-xs text-gray-400 uppercase tracking-wide mb-1 px-1">
+                <span>Description</span>
+                <span className="text-right">Qty</span>
+                <span className="text-right">Unit Price</span>
+                <span className="text-right">Amount</span>
+              </div>
+
+              {/* Line items */}
+              <div className="divide-y divide-gray-100 border rounded-lg overflow-hidden">
+                {lineItems.map((item, i) => {
+                  const qty = Number(item.quantity ?? 1)
+                  const unitPrice = item.unitPrice != null
+                    ? Number(item.unitPrice)
+                    : Number(item.amount ?? 0)
+                  const amount = item.unitPrice != null
+                    ? qty * unitPrice
+                    : Number(item.amount ?? 0)
+                  return (
+                    <div key={i} className="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 px-3 py-2.5 bg-white items-center">
+                      <span className="text-gray-800">{String(item.label ?? "Item")}</span>
+                      <span className="text-right text-gray-500 tabular-nums">{qty}</span>
+                      <span className="text-right text-gray-500 tabular-nums">${unitPrice.toFixed(2)}</span>
+                      <span className="text-right font-medium tabular-nums">${amount.toFixed(2)}</span>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Subtotal / Tax / Total */}
+              <div className="mt-3 space-y-1 text-sm">
+                {(() => {
+                  const pricing = proposal.pricing_breakdown as Record<string, unknown>
+                  const subtotal = Number(pricing?.subtotal ?? 0)
+                  const tax = Number(pricing?.taxes ?? 0)
+                  return (
+                    <>
+                      <div className="flex justify-between text-gray-500">
+                        <span>Subtotal</span>
+                        <span className="tabular-nums">${subtotal.toFixed(2)}</span>
+                      </div>
+                      {tax > 0 && (
+                        <div className="flex justify-between text-gray-500">
+                          <span>Tax</span>
+                          <span className="tabular-nums">${tax.toFixed(2)}</span>
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
+                <div className="flex justify-between font-bold text-base pt-1 border-t">
                   <span>Total Estimate</span>
-                  <span>${Number(proposal.total_estimated ?? 0).toLocaleString()}</span>
+                  <span className="tabular-nums">${Number(proposal.total_estimated ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 {proposal.deposit_amount && (
                   <div className="flex justify-between text-gray-500">
                     <span>Deposit Required</span>
-                    <span>${Number(proposal.deposit_amount).toLocaleString()}</span>
+                    <span className="tabular-nums">${Number(proposal.deposit_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 )}
               </div>
