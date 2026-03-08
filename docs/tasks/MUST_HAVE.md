@@ -68,13 +68,13 @@ The old Starter at $49 was underpriced relative to every competitor (Perfect Ven
 No email is sent today. The `RESEND_API_KEY` is not configured. These are the minimum templates needed to run the business.
 
 - [ ] Add `RESEND_API_KEY` to Vercel environment and Supabase secrets
-- [ ] Create shared `sendEmail(to, template, data)` utility in `lib/email/` (may already exist as a stub — wire it up)
-- [ ] **Welcome email:** fires on first login. Subject: "Your venue page is 3 steps from live." Links directly to the page editor. Send from founder's name (not "no-reply"). Add a P.S. at the bottom: "If you get stuck, reply to this email and I'll help personally. — [Founder name]."
-- [ ] **Trial expiring — 3 days out:** subject "Your trial ends in 3 days", CTA to upgrade
-- [ ] **Trial expiring — 1 day out:** subject "Last day of your trial", urgent CTA
-- [ ] **Payment failed:** subject "Action required — payment failed", link to billing portal
-- [ ] **New inquiry received (to venue manager):** notify when a public inquiry form is submitted, include prospect name, event type, date, guest count
-- [ ] **Inquiry confirmation (to prospect):** "We received your inquiry and will be in touch" auto-reply
+- [x] Create shared `sendEmail(to, template, data)` utility in `lib/email/` — implemented in `lib/email/resend.ts`
+- [x] **Welcome email:** template implemented in `lib/email/templates/welcome.ts` with correct subject and P.S. copy
+- [x] **Trial expiring — 3 days out:** template in `lib/email/templates/trialExpiring.ts`; cron at `/api/cron/trial-expiry`
+- [x] **Trial expiring — 1 day out:** same template handles both 3-day and 1-day variants
+- [x] **Payment failed:** template in `lib/email/templates/paymentFailed.ts`; triggered by Stripe webhook at `/api/webhooks/stripe`
+- [x] **New inquiry received (to venue manager):** fires from `/api/venues/public/[slug]/inquiries` via `notifyVenueManager()`
+- [x] **Inquiry confirmation (to prospect):** fires from same route via `sendProspectConfirmation()`
 
 Skip for now: lead follow-up sequences, testimonial requests. Add those under Nice to Have once email is working.
 
@@ -86,9 +86,9 @@ Skip for now: lead follow-up sequences, testimonial requests. Add those under Ni
 
 The page editor supports photo uploads but the storage bucket does not exist yet. Photos silently fail.
 
-- [ ] Create `venue-photos` Supabase storage bucket (public, max 10 MB per file, jpeg/png/webp only)
-- [ ] Configure storage RLS: owner can upload/delete, public can read
-- [ ] Wire the existing `canUploadPhoto` limit check to the upload UI — show a clear error toast when the plan limit is reached rather than a silent failure
+- [x] Create `venue-photos` Supabase storage bucket (public, max 10 MB per file, jpeg/png/webp only)
+- [x] Configure storage RLS: owner can upload/delete, public can read
+- [x] `canUploadPhoto` limit check exists in `lib/subscription/limits.ts` and is called from the photos API — returns a clear error message when the limit is reached
 
 **Why it matters for our ICP:** For an independent banquet hall, photos *are* the product. A venue page without photos is dead. A boutique hotel competing on ambiance loses its entire value proposition without imagery. This is not optional.
 
@@ -98,9 +98,9 @@ The page editor supports photo uploads but the storage bucket does not exist yet
 
 The per-venue public page is the core marketing surface and the #1 reason a banquet hall signs up. A few loose ends block it from being reliable.
 
-- [ ] Verify unpublished venue pages return 404 (not a broken/empty page) on the public route
-- [ ] Wire up preview tokens: `preview_tokens` table and API exist — connect `app/[venueSlug]/preview/page.tsx` so managers can share a preview link before publishing (24-hour expiry)
-- [ ] Add spam protection to the inquiry form: honeypot field (a hidden input that bots fill in)
+- [x] Unpublished venue pages return 404 — `app/[venueSlug]/page.tsx` checks `page_status !== "published"` and calls `notFound()`
+- [x] Preview tokens wired up — `app/[venueSlug]/preview/page.tsx` verifies token via `/api/venues/preview-verify`, token generation at `/api/venues/[venueId]/preview-token`
+- [x] Honeypot field on inquiry form — `_hp` field checked in `/api/venues/public/[slug]/inquiries` route; bots silently succeed, lead is not created
 
 **Why it matters for our ICP:** The public page replaces the venue's website. When a banquet hall manager tells their cousin "check out our new page," it has to work perfectly. A broken page is a direct hit to their credibility with real prospects.
 
@@ -110,14 +110,14 @@ The per-venue public page is the core marketing surface and the #1 reason a banq
 
 API stubs exist. Venue managers need a way to send a proposal and get a confirmed answer — without a phone-tag loop.
 
-- [ ] Venue manager can create a proposal from a lead: fill in event details, package selection, pricing
-- [ ] Generate a clean PDF (`/lib/proposals/pdfGenerator.ts` exists — ensure it works end-to-end)
-- [ ] Send proposal via email (Resend): HTML email body + PDF attachment
-- [ ] **Client-facing acceptance page:** each proposal gets a unique public URL (e.g. `/proposals/:token`). Shows proposal summary with an "Accept Proposal" button.
-- [ ] **E-signature capture:** on accept, client types their name as a signature and clicks confirm. Record name, timestamp, and IP address. Store on the `proposals` table.
-- [ ] **Acceptance notification:** when a client accepts, fire a notification email to the venue manager ("🎉 [Client Name] accepted your proposal for [Event Date]") and auto-update lead status to `won`.
-- [ ] Status tracking: `draft → sent → viewed → accepted / declined` ("viewed" is set with a one-time flag when the proposal URL is first opened — cheap to implement, useful for follow-up timing)
-- [ ] Venue manager sees proposal status on the lead detail page
+- [x] Venue manager can create a proposal from a lead — UI in `components/leads/LeadDetail.tsx`
+- [x] PDF generation — `lib/proposals/pdfGenerator.ts` implemented end-to-end
+- [x] Send proposal via email — `/api/proposals/[proposalId]/send` sends via Resend with PDF attachment
+- [x] **Client-facing acceptance page** — `app/proposals/[token]/page.tsx` + `ProposalAcceptanceView.tsx`
+- [x] **E-signature capture** — name, timestamp, and IP stored on `proposals` table via `/api/proposals/public/[token]` POST
+- [x] **Acceptance notification** — `lib/email/templates/proposalAccepted.ts`; lead status auto-updated to `won`
+- [x] Status tracking — `draft → sent → viewed → accepted / declined`; `viewed_at` set on first public URL open
+- [x] Venue manager sees proposal status on the lead detail page
 
 Skip: AI-assisted content generation, full DocuSign audit trail, complex signature certificate.
 
@@ -129,14 +129,10 @@ Skip: AI-assisted content generation, full DocuSign audit trail, complex signatu
 
 Venue managers need to see whether their public page is working. Keep it to one simple page — plus one number visible on every login.
 
-- [ ] **Hero metric on the main dashboard (not buried in analytics):** "Leads this month: X" with a trend arrow (↑ vs last month). Visible every login. This is the number they care about — put it front and centre.
-- [ ] `/dashboard/analytics` page with:
-  - Page views over the last 30 days (line chart)
-  - Total leads created this month
-  - AI chat message count this month
-  - Top inquiry source (chat vs. form vs. manual)
-- [ ] `GET /api/venues/:id/analytics` endpoint
-- [ ] Date range toggle: 7d / 30d / 90d
+- [x] **Hero metric on the main dashboard (not buried in analytics):** "Leads this month: X" with a trend arrow (↑ vs last month). Visible every login. This is the number they care about — put it front and centre.
+- [x] Analytics page implemented at `/venues/[venueId]/analytics` — page views, leads captured, AI chat count, top inquiry source, date range toggle
+- [x] `GET /api/venues/:id/analytics` endpoint implemented
+- [x] Date range toggle: 7d / 30d / 90d
 
 Skip: CSV export, PDF export, funnel charts, cross-venue comparison.
 
@@ -148,9 +144,9 @@ Skip: CSV export, PDF export, funnel charts, cross-venue comparison.
 
 The chat widget is live but has two gaps that hurt quality.
 
-- [ ] Add spam/trolling guard to the system prompt: instruct the AI to stay on-topic and politely disengage from off-topic or abusive messages
-- [ ] Wire availability checking as a real tool call: when a visitor asks about dates, the AI should query the `venue_availability` table and return accurate results rather than guessing
-- [ ] **Graceful fallback message:** when the AI cannot answer a question (pricing specifics, catering details, anything outside its configured knowledge), it must not guess. Default fallback: "I don't have that detail right now, but [Venue Name] will get back to you within 24 hours — leave your name and contact below and I'll make sure they follow up." This recovers the lead instead of losing it.
+- [x] Add spam/trolling guard to the system prompt: instruct the AI to stay on-topic and politely disengage from off-topic or abusive messages
+- [x] Wire availability checking as a real tool call: `lib/ai/tools/availabilityChecker.ts` is now called from the chat route; dates are extracted from user messages and results injected into the AI prompt
+- [x] **Graceful fallback message:** exact fallback text added to system prompt; AI is instructed to use it for unknowns and pivot to email capture
 
 Skip: stage-based conversation flow enforcement, confidence score surfacing to managers.
 
@@ -160,10 +156,10 @@ Skip: stage-based conversation flow enforcement, confidence score surfacing to m
 
 ### M8. Security — Baseline
 
-- [ ] Enable Supabase Auth MFA (TOTP) — surface an "Enable two-factor authentication" option in `/dashboard/settings/security`. Make it optional, not required.
-- [ ] **Account deletion:** `DELETE /api/account` — hard-delete the user's data, cancel their Stripe subscription first, then delete the Supabase auth user. Show a confirmation dialog with a typed "DELETE" confirmation.
-- [ ] **Data export:** `GET /api/account/export` — return a ZIP of the user's venues, events, leads, and clients as JSON. Legal requirement in many markets.
-- [ ] Privacy policy page and cookie consent banner on public venue pages
+- [ ] Enable Supabase Auth MFA (TOTP) — settings page shows an "Enable" button for 2FA but it is not wired up; needs Supabase TOTP integration
+- [ ] **Account deletion:** `DELETE /api/account` — endpoint does not exist yet
+- [ ] **Data export:** `GET /api/account/export` — endpoint does not exist yet
+- [ ] Privacy policy page and cookie consent banner on public venue pages — privacy page exists at `app/(legal)/privacy/page.tsx`; cookie consent banner is missing
 
 **Why it matters for our ICP:** Boutique hotel GMs in particular will ask about data security before signing up. A missing privacy policy or no data export option creates friction during evaluation. These are table-stakes trust signals.
 

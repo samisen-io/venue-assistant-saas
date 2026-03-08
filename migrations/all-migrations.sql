@@ -815,5 +815,110 @@ ALTER TABLE lead_activities
 
 
 -- =====================================================
+-- MIGRATION 14: Venue Photos Storage Bucket
+-- =====================================================
+-- Creates the venue-photos Supabase Storage bucket and
+-- RLS policies. Idempotent — safe to re-run.
+-- =====================================================
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+SELECT
+  'venue-photos',
+  'venue-photos',
+  true,
+  10485760, -- 10 MB
+  ARRAY['image/jpeg', 'image/png', 'image/webp']
+WHERE NOT EXISTS (
+  SELECT 1 FROM storage.buckets WHERE id = 'venue-photos'
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects'
+      AND policyname = 'Public can view venue photos'
+  ) THEN
+    CREATE POLICY "Public can view venue photos"
+      ON storage.objects FOR SELECT
+      USING (bucket_id = 'venue-photos');
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects'
+      AND policyname = 'Venue owners can upload venue photos'
+  ) THEN
+    CREATE POLICY "Venue owners can upload venue photos"
+      ON storage.objects FOR INSERT TO authenticated
+      WITH CHECK (
+        bucket_id = 'venue-photos'
+        AND EXISTS (
+          SELECT 1 FROM venues
+          WHERE venues.owner_id = auth.uid()
+            AND split_part(storage.objects.name, '/', 1) = venues.id::text
+        )
+      );
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects'
+      AND policyname = 'Venue owners can delete venue photos'
+  ) THEN
+    CREATE POLICY "Venue owners can delete venue photos"
+      ON storage.objects FOR DELETE TO authenticated
+      USING (
+        bucket_id = 'venue-photos'
+        AND EXISTS (
+          SELECT 1 FROM venues
+          WHERE venues.owner_id = auth.uid()
+            AND split_part(storage.objects.name, '/', 1) = venues.id::text
+        )
+      );
+  END IF;
+END $$;
+
+
+-- =====================================================
+-- MIGRATION 15: Proposals Storage Bucket
+-- =====================================================
+-- Creates the proposals Supabase Storage bucket for
+-- PDF attachments. Service role uploads via admin client.
+-- Idempotent — safe to re-run.
+-- =====================================================
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+SELECT
+  'proposals',
+  'proposals',
+  true,
+  20971520, -- 20 MB
+  ARRAY['application/pdf']
+WHERE NOT EXISTS (
+  SELECT 1 FROM storage.buckets WHERE id = 'proposals'
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects'
+      AND policyname = 'Public can view proposal PDFs'
+  ) THEN
+    CREATE POLICY "Public can view proposal PDFs"
+      ON storage.objects FOR SELECT
+      USING (bucket_id = 'proposals');
+  END IF;
+END $$;
+
+
+-- =====================================================
 -- ALL MIGRATIONS COMPLETE
 -- =====================================================

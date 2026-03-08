@@ -14,7 +14,8 @@ import {
     UserPlus,
     Flame,
     Zap,
-    CircleDot
+    CircleDot,
+    MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -69,6 +70,8 @@ export default function DashboardPage() {
     const [recentLeads, setRecentLeads] = useState<DashboardLead[]>([]);
     const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
     const [trialDaysRemaining, setTrialDaysRemaining] = useState<number | null>(null);
+    const [leadsThisMonth, setLeadsThisMonth] = useState(0);
+    const [leadsMonthTrend, setLeadsMonthTrend] = useState<{ value: number; isPositive: boolean } | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(true);
     const { activeVenue, isLoading: venueIsLoading } = useVenueContext();
 
@@ -111,6 +114,22 @@ export default function DashboardPage() {
                     const leadsData = await leadsRes.json();
                     if (Array.isArray(leadsData)) {
                         setRecentLeads(leadsData.slice(0, 5));
+
+                        const now = new Date();
+                        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                        const thisMonthCount = leadsData.filter((l: DashboardLead) => new Date(l.created_at) >= thisMonthStart).length;
+                        const lastMonthCount = leadsData.filter((l: DashboardLead) => {
+                            const d = new Date(l.created_at);
+                            return d >= lastMonthStart && d < thisMonthStart;
+                        }).length;
+                        setLeadsThisMonth(thisMonthCount);
+                        if (lastMonthCount > 0) {
+                            const pct = Math.round(((thisMonthCount - lastMonthCount) / lastMonthCount) * 100);
+                            setLeadsMonthTrend({ value: Math.abs(pct), isPositive: pct >= 0 });
+                        } else if (thisMonthCount > 0) {
+                            setLeadsMonthTrend({ value: 100, isPositive: true });
+                        }
                     }
                 }
 
@@ -191,10 +210,11 @@ export default function DashboardPage() {
                     description="Total event volume"
                 />
                 <StatCard
-                    title="Reliability Avg"
-                    value="94%"
-                    icon={TrendingUp}
-                    description="Vendor performance"
+                    title="Leads This Month"
+                    value={leadsThisMonth}
+                    icon={MessageSquare}
+                    trend={leadsMonthTrend}
+                    description="vs last month"
                 />
             </div>
 
