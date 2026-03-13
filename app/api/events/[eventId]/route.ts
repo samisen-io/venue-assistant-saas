@@ -34,7 +34,12 @@ export async function GET(
             .eq('id', eventId)
             .single()
 
-        if (error) throw error
+        if (error || !event) throw error
+
+        // Ownership check — defence-in-depth alongside RLS
+        if ((event as any).venues?.owner_id !== user.id) {
+            return new NextResponse('Not Found', { status: 404 })
+        }
 
         return NextResponse.json(event)
     } catch (error) {
@@ -54,6 +59,18 @@ export async function PUT(
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
             return new NextResponse('Unauthorized', { status: 401 })
+        }
+
+        // Verify ownership before update — defence-in-depth alongside RLS
+        const { data: existing } = await (supabase as any)
+            .from('events')
+            .select('id, venues!inner(owner_id)')
+            .eq('id', eventId)
+            .eq('venues.owner_id', user.id)
+            .single()
+
+        if (!existing) {
+            return new NextResponse('Not Found', { status: 404 })
         }
 
         const json = await request.json()
@@ -179,6 +196,18 @@ export async function DELETE(
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
             return new NextResponse('Unauthorized', { status: 401 })
+        }
+
+        // Verify ownership before delete — defence-in-depth alongside RLS
+        const { data: existing } = await (supabase as any)
+            .from('events')
+            .select('id, venues!inner(owner_id)')
+            .eq('id', eventId)
+            .eq('venues.owner_id', user.id)
+            .single()
+
+        if (!existing) {
+            return new NextResponse('Not Found', { status: 404 })
         }
 
         const { error } = await (supabase as any)

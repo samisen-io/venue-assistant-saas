@@ -19,8 +19,16 @@ export async function GET(request: Request) {
     const status = searchParams.get("status")
     const source = searchParams.get("source")
     const search = searchParams.get("search")
-    const sortBy = searchParams.get("sortBy") || "created_at"
-    const sortOrder = searchParams.get("sortOrder") || "desc"
+
+    // Whitelist sort columns to prevent PostgREST ORDER BY injection
+    const ALLOWED_SORT_COLUMNS = ["created_at", "updated_at", "contact_name", "status", "estimated_budget", "event_date"] as const
+    type SortColumn = typeof ALLOWED_SORT_COLUMNS[number]
+    const sortByRaw = searchParams.get("sortBy") || "created_at"
+    const sortBy: SortColumn = (ALLOWED_SORT_COLUMNS as readonly string[]).includes(sortByRaw)
+        ? (sortByRaw as SortColumn)
+        : "created_at"
+    // Strictly parse sort direction
+    const sortOrder = searchParams.get("sortOrder") === "asc" ? "asc" : "desc"
 
     let query = (supabase as any)
       .from("leads")
@@ -30,8 +38,14 @@ export async function GET(request: Request) {
     if (status && status !== "all") query = query.eq("status", status)
     if (source && source !== "all") query = query.eq("source", source)
     if (search) {
+      // Escape PostgREST/SQL LIKE wildcards to prevent filter-string injection
+      const safe = search
+        .slice(0, 100)
+        .replace(/\\/g, "\\\\")
+        .replace(/%/g, "\\%")
+        .replace(/_/g, "\\_")
       query = query.or(
-        `contact_name.ilike.%${search}%,contact_email.ilike.%${search}%,company.ilike.%${search}%`
+        `contact_name.ilike.%${safe}%,contact_email.ilike.%${safe}%,company.ilike.%${safe}%`
       )
     }
 

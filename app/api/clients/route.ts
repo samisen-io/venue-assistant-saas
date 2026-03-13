@@ -28,7 +28,12 @@ export async function GET(request: Request) {
             .order('created_at', { ascending: false })
 
         if (search) {
-            const escaped = search.replace(/%/g, '\\%').replace(/_/g, '\\_')
+            // Escape backslash first, then LIKE wildcards; cap length to prevent abuse
+            const escaped = search
+                .slice(0, 100)
+                .replace(/\\/g, '\\\\')
+                .replace(/%/g, '\\%')
+                .replace(/_/g, '\\_')
             query = query.or(
                 `contact_name.ilike.%${escaped}%,company_name.ilike.%${escaped}%,email.ilike.%${escaped}%,phone.ilike.%${escaped}%`
             )

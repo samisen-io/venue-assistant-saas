@@ -15,13 +15,17 @@ export async function GET(
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
+        // Scope to owner to prevent IDOR — RLS is primary defence, this is defence-in-depth
         const { data: venue, error } = await (supabase as any)
             .from('venues')
             .select('*')
             .eq('id', venueId)
+            .eq('owner_id', user.id)
             .single()
 
-        if (error) throw error
+        if (error || !venue) {
+            return new NextResponse('Not Found', { status: 404 })
+        }
 
         return NextResponse.json(venue)
     } catch (error) {
@@ -46,14 +50,18 @@ export async function PUT(
         const json = await request.json()
         const body = venueFormSchema.parse(json)
 
+        // Scope to owner to prevent IDOR — defence-in-depth alongside RLS
         const { data: venue, error } = await (supabase as any)
             .from('venues')
             .update(body)
             .eq('id', venueId)
+            .eq('owner_id', user.id)
             .select()
             .single()
 
-        if (error) throw error
+        if (error || !venue) {
+            return new NextResponse('Not Found', { status: 404 })
+        }
 
         return NextResponse.json(venue)
     } catch (error) {
@@ -129,10 +137,12 @@ export async function DELETE(
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
+        // Scope to owner to prevent IDOR — defence-in-depth alongside RLS
         const { error } = await (supabase as any)
             .from('venues')
             .delete()
             .eq('id', venueId)
+            .eq('owner_id', user.id)
 
         if (error) throw error
 

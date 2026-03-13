@@ -2,11 +2,21 @@ import { NextResponse } from 'next/server'
 // The client you created from the Server-Side Auth instructions
 import { createClient } from '@/lib/supabase/server'
 
+/** Validate that `next` is a safe relative path — blocks open-redirect to external hosts. */
+function getSafeNext(raw: string | null): string {
+    if (!raw) return '/dashboard'
+    // Must start with '/' but not '//' (protocol-relative) and contain no whitespace
+    if (raw.startsWith('/') && !raw.startsWith('//') && !/\s/.test(raw)) {
+        return raw
+    }
+    return '/dashboard'
+}
+
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
     const code = searchParams.get('code')
-    // if "next" is in param, use it as the redirect URL
-    const next = searchParams.get('next') ?? '/dashboard'
+    // Validate 'next' to prevent open-redirect attacks (CWE-601)
+    const next = getSafeNext(searchParams.get('next'))
 
     if (code) {
         const supabase = await createClient()
