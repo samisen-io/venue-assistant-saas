@@ -10,7 +10,7 @@ import { Loading } from "@/components/shared/Loading";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { PLAN_LIMITS } from "@/lib/stripe/config";
-import { getPlanLimits } from "@/lib/subscription/limits";
+import { getPlanLimits } from "@/lib/subscription/plan-limits";
 import { getSafeRedirectUrl } from "@/lib/utils/safeUrl";
 
 interface Subscription {
