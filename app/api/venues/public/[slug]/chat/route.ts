@@ -8,7 +8,51 @@ import { shouldEscalate } from "@/lib/ai/escalation"
 import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/utils/rateLimit"
 import { fetchVenuePublicPageData } from "@/lib/public-page/fetchPublicVenue"
 import { shouldCreateLead, createLeadFromConversation } from "@/lib/leads/leadCreator"
+import { canSendChatMessage } from "@/lib/subscription/limits"
+import { checkAvailability } from "@/lib/ai/tools/availabilityChecker"
 import type { ChatResponse, ExtractedEventData, SuggestedAction } from "@/lib/types/conversation.types"
+
+function extractDatesFromMessage(message: string): string[] {
+  const dates: string[] = []
+  const now = new Date()
+  const currentYear = now.getFullYear()
+
+  // ISO format: 2026-06-14
+  const isoRegex = /\b(\d{4})-(\d{2})-(\d{2})\b/g
+  let m: RegExpExecArray | null
+  while ((m = isoRegex.exec(message)) !== null) {
+    dates.push(m[0])
+  }
+
+  // "June 14", "June 14th", "June 14, 2026"
+  const monthNames = ["january","february","march","april","may","june","july","august","september","october","november","december"]
+  const monthRegex = /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*,?\s*(\d{4}))?\b/gi
+  while ((m = monthRegex.exec(message)) !== null) {
+    const monthIdx = monthNames.indexOf(m[1].toLowerCase())
+    const day = parseInt(m[2])
+    let year = m[3] ? parseInt(m[3]) : currentYear
+    if (!m[3] && (monthIdx < now.getMonth() || (monthIdx === now.getMonth() && day < now.getDate()))) {
+      year = currentYear + 1
+    }
+    if (monthIdx >= 0 && day >= 1 && day <= 31) {
+      dates.push(`${year}-${String(monthIdx + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`)
+    }
+  }
+
+  // MM/DD/YYYY or MM/DD
+  const slashRegex = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/g
+  while ((m = slashRegex.exec(message)) !== null) {
+    const month = parseInt(m[1])
+    const day = parseInt(m[2])
+    let year = m[3] ? parseInt(m[3]) : currentYear
+    if (year < 100) year += 2000
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      dates.push(`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`)
+    }
+  }
+
+  return [...new Set(dates)]
+}
 
 const CHAT_RATE_LIMIT = {
   limit: 30,
@@ -50,6 +94,17 @@ export async function POST(
 
     const { venue, spaces, packages, packageAddons, amenities, eventTypes, aiSettings } = venueData
     const supabase = createServiceRoleClient()
+
+    // Check the venue owner's plan allows more AI chat messages
+    if (venue.owner_id) {
+      const chatLimit = await canSendChatMessage(venue.owner_id, venue.id)
+      if (!chatLimit.allowed) {
+        return NextResponse.json(
+          { error: "This venue's AI assistant is temporarily unavailable. Please contact the venue directly." },
+          { status: 429 }
+        )
+      }
+    }
 
     // ---- Conversation management ----
     let convId = conversation_id
@@ -135,6 +190,26 @@ export async function POST(
       aiSettings,
     })
 
+    // Check availability for any dates mentioned in the message
+    let availabilityContext = ""
+    const mentionedDates = extractDatesFromMessage(message)
+    if (mentionedDates.length > 0) {
+      const results = await Promise.all(
+        mentionedDates.map((date) => checkAvailability(venue.id, date).catch(() => null))
+      )
+      const lines = results
+        .filter(Boolean)
+        .map((r) => {
+          if (!r) return null
+          const label = r.available ? "AVAILABLE" : `NOT AVAILABLE (${r.status})`
+          return `- ${r.date}: ${label}${r.note ? ` — ${r.note}` : ""}`
+        })
+        .filter(Boolean)
+      if (lines.length > 0) {
+        availabilityContext = `\n\n[AVAILABILITY CHECK RESULTS — report these facts accurately]\n${lines.join("\n")}`
+      }
+    }
+
     // Build the messages transcript for Claude
     const transcript = [...previousMessages, { role: "user" as const, content: message.trim() }]
       .map((m) => `${m.role === "user" ? "Prospect" : "You"}:\n${m.content}`)
@@ -142,9 +217,9 @@ export async function POST(
 
     let aiPrompt: string
     if (escalation.escalate) {
-      aiPrompt = `${transcript}\n\nIMPORTANT: The system has determined this conversation should be escalated to the venue manager. Your response should:\n1. Address the prospect's latest message helpfully.\n2. Smoothly transition to suggesting they connect with the venue manager.\n3. Use this escalation message naturally: "${escalation.reason}"\n4. Ask for their email or phone so the manager can reach out.\n\nRespond as "You:" (the assistant).`
+      aiPrompt = `${transcript}${availabilityContext}\n\nIMPORTANT: The system has determined this conversation should be escalated to the venue manager. Your response should:\n1. Address the prospect's latest message helpfully.\n2. Smoothly transition to suggesting they connect with the venue manager.\n3. Use this escalation message naturally: "${escalation.reason}"\n4. Ask for their email or phone so the manager can reach out.\n\nRespond as "You:" (the assistant).`
     } else {
-      aiPrompt = `${transcript}\n\nRespond as "You:" (the assistant). Remember to follow the conversation flow stages and keep your response natural and conversational.`
+      aiPrompt = `${transcript}${availabilityContext}\n\nRespond as "You:" (the assistant). Remember to follow the conversation flow stages and keep your response natural and conversational.`
     }
 
     const aiResponse = await askClaude(aiPrompt, {

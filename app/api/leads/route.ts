@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { resolveVenueWithFallback } from "@/lib/venues/resolveVenue"
 
 export async function GET(request: Request) {
   try {
@@ -10,20 +11,24 @@ export async function GET(request: Request) {
     } = await supabase.auth.getUser()
     if (!user) return new NextResponse("Unauthorized", { status: 401 })
 
-    // Get user's venue
-    const { data: venue } = await (supabase as any)
-      .from("venues")
-      .select("id")
-      .eq("owner_id", user.id)
-      .single()
-    if (!venue) return NextResponse.json([])
+    const resolved = await resolveVenueWithFallback(request, supabase, user.id)
+    if (resolved.error) return NextResponse.json([])
+    const venue = resolved.venue!
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status")
     const source = searchParams.get("source")
     const search = searchParams.get("search")
-    const sortBy = searchParams.get("sortBy") || "created_at"
-    const sortOrder = searchParams.get("sortOrder") || "desc"
+
+    // Whitelist sort columns to prevent PostgREST ORDER BY injection
+    const ALLOWED_SORT_COLUMNS = ["created_at", "updated_at", "contact_name", "status", "estimated_budget", "event_date"] as const
+    type SortColumn = typeof ALLOWED_SORT_COLUMNS[number]
+    const sortByRaw = searchParams.get("sortBy") || "created_at"
+    const sortBy: SortColumn = (ALLOWED_SORT_COLUMNS as readonly string[]).includes(sortByRaw)
+        ? (sortByRaw as SortColumn)
+        : "created_at"
+    // Strictly parse sort direction
+    const sortOrder = searchParams.get("sortOrder") === "asc" ? "asc" : "desc"
 
     let query = (supabase as any)
       .from("leads")
@@ -33,8 +38,14 @@ export async function GET(request: Request) {
     if (status && status !== "all") query = query.eq("status", status)
     if (source && source !== "all") query = query.eq("source", source)
     if (search) {
+      // Escape PostgREST/SQL LIKE wildcards to prevent filter-string injection
+      const safe = search
+        .slice(0, 100)
+        .replace(/\\/g, "\\\\")
+        .replace(/%/g, "\\%")
+        .replace(/_/g, "\\_")
       query = query.or(
-        `contact_name.ilike.%${search}%,contact_email.ilike.%${search}%,company.ilike.%${search}%`
+        `contact_name.ilike.%${safe}%,contact_email.ilike.%${safe}%,company.ilike.%${safe}%`
       )
     }
 
@@ -58,13 +69,10 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser()
     if (!user) return new NextResponse("Unauthorized", { status: 401 })
 
-    const { data: venue } = await (supabase as any)
-      .from("venues")
-      .select("id")
-      .eq("owner_id", user.id)
-      .single()
-    if (!venue)
-      return NextResponse.json({ error: "No venue found" }, { status: 400 })
+    const resolved = await resolveVenueWithFallback(request, supabase, user.id)
+    if (resolved.error)
+      return NextResponse.json({ error: resolved.error }, { status: resolved.status })
+    const venue = resolved.venue!
 
     const body = await request.json()
 

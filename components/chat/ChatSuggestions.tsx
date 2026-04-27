@@ -17,7 +17,7 @@ interface ChatSuggestionsProps {
 
 export function ChatSuggestions({ onSelect, disabled }: ChatSuggestionsProps) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-6">
+    <div className="flex flex-col items-center justify-center gap-4 px-4 py-6">
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
         <MessageCircle className="h-6 w-6" />
       </div>

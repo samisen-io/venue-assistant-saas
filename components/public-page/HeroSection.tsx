@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Image from "next/image"
-import { Button } from "@/components/ui/button"
 
 interface HeroSectionProps {
   name: string
@@ -71,14 +70,6 @@ export function HeroSection({ name, city, state, tagline, heroImageUrl }: HeroSe
         <p className="mb-2 text-sm uppercase tracking-[0.2em]">{location || "Event Venue"}</p>
         <h1 className="text-3xl font-bold md:text-5xl">{name}</h1>
         {tagline && <p className="mt-3 max-w-2xl text-base md:text-lg">{tagline}</p>}
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <Button asChild size="lg" className="min-h-11 min-w-32">
-            <a href="#availability">Check Availability</a>
-          </Button>
-          <Button asChild size="lg" variant="secondary" className="min-h-11 min-w-32">
-            <a href="#ai-chat">Start Planning</a>
-          </Button>
-        </div>
       </div>
     </section>
   )

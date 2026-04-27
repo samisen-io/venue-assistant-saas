@@ -1,7 +1,40 @@
 import { NextResponse } from "next/server"
 import { getAuthorizedVenue } from "@/lib/venues/editorAuth"
+import { canUploadPhoto, getPlanLimits } from "@/lib/subscription/limits"
+import type { PlanTier } from "@/lib/stripe/config"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ venueId: string }> }
+) {
+  try {
+    const { venueId } = await params
+    const auth = await getAuthorizedVenue(venueId)
+    if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status })
+
+    const check = await canUploadPhoto(auth.user!.id, venueId)
+
+    const { count } = await (auth.supabase as any)
+      .from("venue_photos")
+      .select("id", { count: "exact", head: true })
+      .eq("venue_id", venueId)
+
+    const { data: sub } = await (auth.supabase as any)
+      .from("subscriptions")
+      .select("plan_tier")
+      .eq("user_id", auth.user!.id)
+      .single()
+
+    const limits = getPlanLimits((sub?.plan_tier ?? "trial") as PlanTier)
+    const max = limits.maxPhotos === Infinity ? null : limits.maxPhotos
+
+    return NextResponse.json({ allowed: check.allowed, reason: check.reason, current: count ?? 0, max })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || "Internal Error" }, { status: 500 })
+  }
+}
 
 export async function POST(
   request: Request,
@@ -11,6 +44,9 @@ export async function POST(
     const { venueId } = await params
     const auth = await getAuthorizedVenue(venueId)
     if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status })
+
+    const limit = await canUploadPhoto(auth.user!.id, venueId)
+    if (!limit.allowed) return NextResponse.json({ error: limit.reason }, { status: 403 })
 
     const body = await request.json()
     const photos = Array.isArray(body.photos) ? body.photos : []

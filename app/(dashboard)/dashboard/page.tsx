@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useVenueContext } from "@/lib/context/VenueContext";
+import { withVenueHeader } from "@/lib/utils/venueHeader";
 import {
     Calendar,
     Users,
@@ -12,7 +14,8 @@ import {
     UserPlus,
     Flame,
     Zap,
-    CircleDot
+    CircleDot,
+    MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -67,17 +70,26 @@ export default function DashboardPage() {
     const [recentLeads, setRecentLeads] = useState<DashboardLead[]>([]);
     const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
     const [trialDaysRemaining, setTrialDaysRemaining] = useState<number | null>(null);
+    const [leadsThisMonth, setLeadsThisMonth] = useState(0);
+    const [leadsMonthTrend, setLeadsMonthTrend] = useState<{ value: number; isPositive: boolean } | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(true);
+    const { activeVenue, isLoading: venueIsLoading } = useVenueContext();
 
     useEffect(() => {
+        if (venueIsLoading) return;
+        if (!activeVenue) {
+            setIsLoading(false);
+            return;
+        }
         const fetchDashboardData = async () => {
             setIsLoading(true);
+            const venueHeaders = withVenueHeader(activeVenue.id);
             try {
                 const [eventsRes, vendorsRes, subRes, leadsRes] = await Promise.all([
-                    fetch("/api/events"),
-                    fetch("/api/vendors"),
+                    fetch("/api/events", { headers: venueHeaders }),
+                    fetch("/api/vendors", { headers: venueHeaders }),
                     fetch("/api/subscription"),
-                    fetch("/api/leads"),
+                    fetch("/api/leads", { headers: venueHeaders }),
                 ]);
 
                 if (eventsRes.ok && vendorsRes.ok) {
@@ -102,6 +114,22 @@ export default function DashboardPage() {
                     const leadsData = await leadsRes.json();
                     if (Array.isArray(leadsData)) {
                         setRecentLeads(leadsData.slice(0, 5));
+
+                        const now = new Date();
+                        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                        const thisMonthCount = leadsData.filter((l: DashboardLead) => new Date(l.created_at) >= thisMonthStart).length;
+                        const lastMonthCount = leadsData.filter((l: DashboardLead) => {
+                            const d = new Date(l.created_at);
+                            return d >= lastMonthStart && d < thisMonthStart;
+                        }).length;
+                        setLeadsThisMonth(thisMonthCount);
+                        if (lastMonthCount > 0) {
+                            const pct = Math.round(((thisMonthCount - lastMonthCount) / lastMonthCount) * 100);
+                            setLeadsMonthTrend({ value: Math.abs(pct), isPositive: pct >= 0 });
+                        } else if (thisMonthCount > 0) {
+                            setLeadsMonthTrend({ value: 100, isPositive: true });
+                        }
                     }
                 }
 
@@ -123,7 +151,7 @@ export default function DashboardPage() {
         };
 
         fetchDashboardData();
-    }, []);
+    }, [activeVenue?.id, venueIsLoading]);
 
     if (isLoading) return <Loading />;
 
@@ -136,16 +164,16 @@ export default function DashboardPage() {
             )}
 
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <div className="flex items-center gap-3 mb-1">
-                        <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+                <div className="min-w-0">
+                    <div className="mb-1 flex flex-wrap items-center gap-2 sm:gap-3">
+                        <h1 className="min-w-0 text-2xl font-bold tracking-tight sm:text-3xl">Dashboard Overview</h1>
                         {subscription && (
                             <SubscriptionBadge tier={subscription.plan_tier} status={subscription.status} />
                         )}
                     </div>
-                    <p className="text-muted-foreground mt-1">Welcome back! Here&apos;s what&apos;s happening with your venues.</p>
+                    <p className="mt-1 text-muted-foreground">Welcome back! Here&apos;s what&apos;s happening with your venues.</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                     <Button asChild variant="outline">
                         <Link href="/vendors/new">
                             <Plus className="mr-2 h-4 w-4" />
@@ -182,10 +210,11 @@ export default function DashboardPage() {
                     description="Total event volume"
                 />
                 <StatCard
-                    title="Reliability Avg"
-                    value="94%"
-                    icon={TrendingUp}
-                    description="Vendor performance"
+                    title="Leads This Month"
+                    value={leadsThisMonth}
+                    icon={MessageSquare}
+                    trend={leadsMonthTrend}
+                    description="vs last month"
                 />
             </div>
 

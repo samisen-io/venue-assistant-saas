@@ -66,6 +66,7 @@ export default function VenueSetupPage() {
                 email: values.email,
                 venue_type: values.venue_type,
                 owner_id: userData.user.id,
+                is_default: true,
             });
 
             if (error) throw error;

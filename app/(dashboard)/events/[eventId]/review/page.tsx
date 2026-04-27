@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Star, Check, AlertCircle } from "lucide-react";
+import { Star, Check } from "lucide-react";
 import { Event, Vendor, EventVendor } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,11 +15,20 @@ type EventVendorWithData = EventVendor & {
     event_services?: { name: string } | null;
 };
 
+type EventWithRelations = Event & {
+    clients?: {
+        contact_name?: string | null;
+        company_name?: string | null;
+        email?: string | null;
+        phone?: string | null;
+    } | null;
+};
+
 export default function EventReviewPage({ params }: { params: Promise<{ eventId: string }> }) {
     const { eventId } = use(params);
     const router = useRouter();
     const { toast } = useToast();
-    const [event, setEvent] = useState<Event | null>(null);
+    const [event, setEvent] = useState<EventWithRelations | null>(null);
     const [vendors, setVendors] = useState<EventVendorWithData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [reviews, setReviews] = useState<Record<string, any>>({});
@@ -100,6 +109,52 @@ export default function EventReviewPage({ params }: { params: Promise<{ eventId:
                 <h1 className="text-3xl font-bold">Post-Event Review</h1>
                 <p className="text-muted-foreground mt-2">Rate the performance of your vendors for {event.event_name}.</p>
             </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Event Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2">
+                    <div>
+                        <p className="text-xs uppercase text-gray-500">Event Name</p>
+                        <p className="font-medium" data-testid="event-review-name">{event.event_name}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs uppercase text-gray-500">Event Date</p>
+                        <p className="font-medium" data-testid="event-review-date">{event.event_date}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs uppercase text-gray-500">Guest Count</p>
+                        <p className="font-medium" data-testid="event-review-guest-count">{event.guest_count}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs uppercase text-gray-500">Budget</p>
+                        <p className="font-medium" data-testid="event-review-budget">
+                            {event.budget_total?.toLocaleString(undefined, {
+                                style: "currency",
+                                currency: "USD",
+                            })}
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Client Contact</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                    <p data-testid="event-review-client-name">
+                        {event.clients?.contact_name || event.clients?.company_name || "No client assigned"}
+                    </p>
+                    {event.clients?.email && (
+                        <p data-testid="event-review-client-email">{event.clients.email}</p>
+                    )}
+                    {event.clients?.phone && (
+                        <p data-testid="event-review-client-phone">{event.clients.phone}</p>
+                    )}
+                </CardContent>
+            </Card>
 
             <div className="space-y-6">
                 {vendors.map((v) => {

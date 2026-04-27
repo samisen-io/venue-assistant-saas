@@ -36,22 +36,6 @@ export interface SeedDataResult {
     };
 }
 
-async function safeDeleteWhereNotEq(
-  supabase: SupabaseClient,
-  table: string,
-  column: string = 'id'
-): Promise<void> {
-  const { error } = await supabase
-    .from(table as unknown as never)
-    .delete()
-    .neq(column, '00000000-0000-0000-0000-000000000000');
-
-  if (error) {
-    const code = (error as { code?: string })?.code;
-    if (code === '42P01') return;
-    throw error;
-  }
-}
 
 export async function clearAllData(
   supabase: SupabaseClient,
@@ -62,63 +46,105 @@ export async function clearAllData(
   await safeDeleteWhereNotEq(supabase, 'venue_search_queries');
   await safeDeleteWhereNotEq(supabase, 'venue_public_settings');
 
-  // New public-page and AI tables (delete first due FK dependencies)
-  await safeDeleteWhereNotEq(supabase, 'conversation_messages');
-  await safeDeleteWhereNotEq(supabase, 'conversations');
-  await safeDeleteWhereNotEq(supabase, 'lead_activities');
-  await safeDeleteWhereNotEq(supabase, 'proposals');
-  await safeDeleteWhereNotEq(supabase, 'leads');
-  await safeDeleteWhereNotEq(supabase, 'page_analytics');
-  await safeDeleteWhereNotEq(supabase, 'venue_page_versions');
-  await safeDeleteWhereNotEq(supabase, 'venue_ai_settings');
-  await safeDeleteWhereNotEq(supabase, 'venue_blackout_dates');
-  await safeDeleteWhereNotEq(supabase, 'venue_calendar_settings');
-  await safeDeleteWhereNotEq(supabase, 'venue_availability');
-  await safeDeleteWhereNotEq(supabase, 'venue_testimonials');
-  await safeDeleteWhereNotEq(supabase, 'venue_package_addons');
-  await safeDeleteWhereNotEq(supabase, 'venue_packages');
-  await safeDeleteWhereNotEq(supabase, 'venue_event_types');
-  await safeDeleteWhereNotEq(supabase, 'venue_amenities');
-  await safeDeleteWhereNotEq(supabase, 'venue_photos');
+  // Scope all deletes to the current user's data only.
+  // Fetch IDs hierarchically so we never touch other users' rows.
 
-  // Agent/vendor outreach tables (delete before events/vendors due to FK deps)
-  await safeDeleteWhereNotEq(supabase, 'vendor_quotes');
-  await safeDeleteWhereNotEq(supabase, 'vendor_communications');
-  await safeDeleteWhereNotEq(supabase, 'agent_runs');
-  await safeDeleteWhereNotEq(supabase, 'preview_tokens');
+  const { data: userVenues } = await supabase
+    .from('venues')
+    .select('id')
+    .eq('owner_id', userId);
+  const venueIds = (userVenues ?? []).map((v: { id: string }) => v.id);
 
-  // Delete in correct order due to foreign key constraints
-  // Reviews first (references events and vendors)
-  await safeDeleteWhereNotEq(supabase, 'vendor_reviews');
+  if (venueIds.length === 0) {
+    // Nothing to clean up
+    return;
+  }
 
-  // Event vendors (references events and vendors)
-  await safeDeleteWhereNotEq(supabase, 'event_vendors');
+  // Collect child IDs needed for deeper deletes
+  const { data: userEvents } = await supabase
+    .from('events')
+    .select('id')
+    .in('venue_id', venueIds);
+  const eventIds = (userEvents ?? []).map((e: { id: string }) => e.id);
 
-  // Event service requirements
-  await safeDeleteWhereNotEq(supabase, 'event_service_requirements');
+  const { data: userVendors } = await supabase
+    .from('vendors')
+    .select('id')
+    .in('venue_id', venueIds);
+  const vendorIds = (userVendors ?? []).map((v: { id: string }) => v.id);
 
-  // Vendor services
-  await safeDeleteWhereNotEq(supabase, 'vendor_services', 'vendor_id');
+  const { data: userClients } = await supabase
+    .from('clients')
+    .select('id')
+    .in('venue_id', venueIds);
+  const clientIds = (userClients ?? []).map((c: { id: string }) => c.id);
 
-  // Event services
-  await safeDeleteWhereNotEq(supabase, 'event_services');
+  const { data: userLeads } = await supabase
+    .from('leads')
+    .select('id')
+    .in('venue_id', venueIds);
+  const leadIds = (userLeads ?? []).map((l: { id: string }) => l.id);
 
-  // Client communications
-  await safeDeleteWhereNotEq(supabase, 'client_communications');
+  const { data: userConversations } = await supabase
+    .from('conversations')
+    .select('id')
+    .in('venue_id', venueIds);
+  const conversationIds = (userConversations ?? []).map((c: { id: string }) => c.id);
 
-  // Events (references spaces and venues)
-  await safeDeleteWhereNotEq(supabase, 'events');
+  // Helper: delete rows scoped to a list of IDs (no-op if empty)
+  async function scopedDelete(table: string, column: string, ids: string[]) {
+    if (ids.length === 0) return;
+    const { error } = await supabase
+      .from(table as unknown as never)
+      .delete()
+      .in(column, ids);
+    if (error) {
+      const code = (error as { code?: string })?.code;
+      if (code === '42P01') return; // table doesn't exist yet
+      throw error;
+    }
+  }
 
-  // Vendors (references venues)
-  await safeDeleteWhereNotEq(supabase, 'vendors');
+  // Delete in FK dependency order (deepest first)
+  await scopedDelete('conversation_messages', 'conversation_id', conversationIds);
+  await scopedDelete('lead_activities', 'lead_id', leadIds);
+  await scopedDelete('proposals', 'lead_id', leadIds);
 
-  // Clients (references venues)
-  await safeDeleteWhereNotEq(supabase, 'clients');
+  // Event-scoped tables
+  await scopedDelete('vendor_quotes', 'event_id', eventIds);
+  await scopedDelete('vendor_communications', 'event_id', eventIds);
+  await scopedDelete('agent_runs', 'event_id', eventIds);
+  await scopedDelete('vendor_reviews', 'event_id', eventIds);
+  await scopedDelete('event_vendors', 'event_id', eventIds);
+  await scopedDelete('event_service_requirements', 'event_id', eventIds);
 
-  // Spaces (references venues)
-  await safeDeleteWhereNotEq(supabase, 'spaces');
+  // Vendor/client-scoped tables
+  await scopedDelete('vendor_services', 'vendor_id', vendorIds);
+  await scopedDelete('client_communications', 'client_id', clientIds);
 
-  // Venues (references user)
+  // Venue-scoped tables
+  await scopedDelete('preview_tokens', 'venue_id', venueIds);
+  await scopedDelete('page_analytics', 'venue_id', venueIds);
+  await scopedDelete('venue_page_versions', 'venue_id', venueIds);
+  await scopedDelete('venue_ai_settings', 'venue_id', venueIds);
+  await scopedDelete('venue_blackout_dates', 'venue_id', venueIds);
+  await scopedDelete('venue_calendar_settings', 'venue_id', venueIds);
+  await scopedDelete('venue_availability', 'venue_id', venueIds);
+  await scopedDelete('venue_testimonials', 'venue_id', venueIds);
+  await scopedDelete('venue_package_addons', 'venue_id', venueIds);
+  await scopedDelete('venue_packages', 'venue_id', venueIds);
+  await scopedDelete('venue_event_types', 'venue_id', venueIds);
+  await scopedDelete('venue_amenities', 'venue_id', venueIds);
+  await scopedDelete('venue_photos', 'venue_id', venueIds);
+  await scopedDelete('event_services', 'venue_id', venueIds);
+  await scopedDelete('events', 'venue_id', venueIds);
+  await scopedDelete('vendors', 'venue_id', venueIds);
+  await scopedDelete('clients', 'venue_id', venueIds);
+  await scopedDelete('leads', 'venue_id', venueIds);
+  await scopedDelete('conversations', 'venue_id', venueIds);
+  await scopedDelete('spaces', 'venue_id', venueIds);
+
+  // Venues last
   await supabase.from('venues').delete().eq('owner_id', userId);
 }
 
@@ -137,6 +163,7 @@ export async function seedDemoData(
       .from('venues')
       .insert({
         owner_id: userId,
+        is_default: true,
         name: 'Grand Hotel & Conference Center',
         address: '123 Main Street',
         city: 'San Francisco',
@@ -608,7 +635,7 @@ export async function seedDemoData(
     // Completed event 1 assignments with actual costs
     const completedEvent1Vendors = [
       {
-        event_id: events[3].id,
+        event_id: events[12].id,
         vendor_id: vendors.find((v) => v.name === 'Gourmet Catering Co.')?.id,
         event_service_id: getServiceId('catering'),
         assignment_type: 'primary',
@@ -617,7 +644,7 @@ export async function seedDemoData(
         confirmed: true,
       },
       {
-        event_id: events[3].id,
+        event_id: events[12].id,
         vendor_id: vendors.find((v) => v.name === 'TechSound Audio Visual')?.id,
         event_service_id: getServiceId('av'),
         assignment_type: 'primary',
@@ -626,7 +653,7 @@ export async function seedDemoData(
         confirmed: true,
       },
       {
-        event_id: events[3].id,
+        event_id: events[12].id,
         vendor_id: vendors.find((v) => v.name === 'VIP Valet Services')?.id,
         event_service_id: getServiceId('parking'),
         assignment_type: 'primary',
@@ -640,7 +667,7 @@ export async function seedDemoData(
     // Completed event 2 assignments
     const completedEvent2Vendors = [
       {
-        event_id: events[4].id,
+        event_id: events[14].id,
         vendor_id: vendors.find((v) => v.name === 'Premium Feast Services')?.id,
         event_service_id: getServiceId('catering'),
         assignment_type: 'primary',
@@ -649,7 +676,7 @@ export async function seedDemoData(
         confirmed: true,
       },
       {
-        event_id: events[4].id,
+        event_id: events[14].id,
         vendor_id: vendors.find((v) => v.name === 'ProAV Solutions')?.id,
         event_service_id: getServiceId('av'),
         assignment_type: 'primary',
@@ -699,7 +726,7 @@ export async function seedDemoData(
       if (assignment.vendor_id) {
         const vendor = vendors.find((v) => v.id === assignment.vendor_id);
         reviews.push({
-          event_id: events[3].id,
+          event_id: events[12].id,
           vendor_id: assignment.vendor_id,
           on_time: vendor?.name !== 'TechSound Audio Visual', // AV was late
           quality_rating: vendor?.name === 'Gourmet Catering Co.' ? 5 : 4,
@@ -719,7 +746,7 @@ export async function seedDemoData(
     for (const assignment of completedEvent2Vendors) {
       if (assignment.vendor_id) {
         reviews.push({
-          event_id: events[4].id,
+          event_id: events[14].id,
           vendor_id: assignment.vendor_id,
           on_time: true,
           quality_rating: 5,
@@ -1446,11 +1473,9 @@ export async function seedDemoData(
           event_id: holidayGala.id,
           vendor_id: gourmetCatering!.id,
           communication_id: gourmetInbound?.id,
-          total_cost: 18000,
+          quoted_amount: 18000,
           breakdown: { per_person: 45, guests: 400, total: 18000 },
-          availability_confirmed: true,
-          available_date: holidayGala.event_date,
-          payment_terms: 'Net 30, 50% deposit',
+          terms: 'Net 30, 50% deposit',
           status: 'approved',
           approved_at: agentRunCompleted1.toISOString(),
         },
@@ -1458,12 +1483,9 @@ export async function seedDemoData(
           event_id: holidayGala.id,
           vendor_id: techSoundAV!.id,
           communication_id: techSoundInbound?.id,
-          total_cost: 1650,
+          quoted_amount: 1650,
           breakdown: { sound_system: 600, projectors: 400, lighting: 450, setup: 200 },
-          availability_confirmed: true,
-          available_date: holidayGala.event_date,
-          setup_time: '3 hours before event',
-          payment_terms: 'Due on event day',
+          terms: 'Due on event day',
           status: 'approved',
           approved_at: agentRunCompleted1.toISOString(),
         },
@@ -1471,11 +1493,9 @@ export async function seedDemoData(
           event_id: holidayGala.id,
           vendor_id: vipValet!.id,
           communication_id: vipValetInbound?.id,
-          total_cost: 4500,
+          quoted_amount: 4500,
           breakdown: { rate_per_car: 15, estimated_cars: 300, valets: 6 },
-          availability_confirmed: true,
-          available_date: holidayGala.event_date,
-          payment_terms: 'Net 15',
+          terms: 'Net 15',
           status: 'approved',
           approved_at: agentRunCompleted1.toISOString(),
         },
@@ -1483,11 +1503,9 @@ export async function seedDemoData(
           event_id: awardsEvent.id,
           vendor_id: premiumFeast!.id,
           communication_id: premiumFeastInbound?.id,
-          total_cost: 18200,
+          quoted_amount: 18200,
           breakdown: { per_person: 65, guests: 280, includes: 'appetizers, plated dinner, dessert station' },
-          availability_confirmed: true,
-          available_date: awardsEvent.event_date,
-          payment_terms: '50% deposit, balance due 7 days before event',
+          terms: '50% deposit, balance due 7 days before event',
           status: 'approved',
           approved_at: agentRunCompleted2.toISOString(),
         },
@@ -1674,36 +1692,380 @@ export async function seedDemoData(
       throw new Error(pageVersionsError.message || 'Failed to seed page versions');
     }
 
+    // =====================================================================
+    // VENUE 2: The Skyline Rooftop (Austin, TX) — multi-venue test data
+    // =====================================================================
+
+    const { data: venue2, error: venue2Error } = await supabase
+      .from('venues')
+      .insert({
+        owner_id: userId,
+        is_default: false,
+        name: 'The Skyline Rooftop',
+        address: '500 Congress Avenue',
+        city: 'Austin',
+        state: 'TX',
+        zip_code: '78701',
+        phone: '(512) 555-0200',
+        email: `rooftop+${demoEmailSuffix}@example.com`,
+        venue_type: 'rooftop',
+        description: "Austin's premier rooftop event space with panoramic city views",
+        website: 'https://skylineroof.example.com',
+        slug: `skyline-rooftop-${demoEmailSuffix.toLowerCase()}`,
+        tagline: 'Elevate your event above the Austin skyline',
+        hero_image_url: 'https://images.unsplash.com/photo-1501117716987-c8e1ecb2104f?auto=format&fit=crop&w=1920&q=80',
+        page_status: 'published',
+        latitude: 30.2672,
+        longitude: -97.7431,
+        social_links: {
+          instagram: 'https://instagram.com/skylineroof',
+          facebook: 'https://facebook.com/skylineroof',
+        },
+        privacy_settings: { hide_address: false, hide_phone: false, hide_email: false },
+        business_hours: {
+          mon: { open: '10:00', close: '22:00' },
+          tue: { open: '10:00', close: '22:00' },
+          wed: { open: '10:00', close: '22:00' },
+          thu: { open: '10:00', close: '23:00' },
+          fri: { open: '10:00', close: '00:00' },
+          sat: { open: '10:00', close: '00:00' },
+          sun: { open: '11:00', close: '21:00' },
+        },
+        seo_title: 'The Skyline Rooftop | Austin Rooftop Event Space',
+        seo_description: "Host your next corporate event, cocktail party, or celebration at Austin's most stunning rooftop venue.",
+        seo_keywords: 'austin rooftop venue, rooftop event space, corporate events austin, cocktail party venue',
+        og_image_url: 'https://images.unsplash.com/photo-1501117716987-c8e1ecb2104f?auto=format&fit=crop&w=1200&q=80',
+      })
+      .select()
+      .single();
+
+    if (venue2Error || !venue2) {
+      console.error('Venue 2 error:', venue2Error);
+      throw new Error(venue2Error?.message || 'Failed to create venue 2');
+    }
+
+    // V2 Spaces
+    const { data: v2Spaces, error: v2SpacesError } = await supabase
+      .from('spaces')
+      .insert([
+        {
+          venue_id: venue2.id,
+          name: 'Main Rooftop Deck',
+          capacity: 200,
+          space_type: 'rooftop',
+          floor_level: 'Rooftop',
+          square_footage: 3000,
+          hourly_rate: 1200,
+          notes: 'Full open-air deck with panoramic city views and central bar',
+          capacity_standing: 300,
+          capacity_theater: 220,
+          photo_url: 'https://images.unsplash.com/photo-1501117716987-c8e1ecb2104f?auto=format&fit=crop&w=1200&q=80',
+          display_order: 1,
+          public_description: 'Our flagship open-air deck with 360° Austin skyline views.',
+        },
+        {
+          venue_id: venue2.id,
+          name: 'Sky Lounge',
+          capacity: 80,
+          space_type: 'lounge',
+          floor_level: 'Rooftop',
+          square_footage: 1200,
+          hourly_rate: 700,
+          notes: 'Climate-controlled indoor lounge adjacent to the rooftop deck',
+          capacity_standing: 120,
+          capacity_theater: 90,
+          photo_url: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=1200&q=80',
+          display_order: 2,
+          public_description: 'Stylish indoor lounge perfect for intimate gatherings and private dinners.',
+        },
+        {
+          venue_id: venue2.id,
+          name: 'Private Cabana',
+          capacity: 30,
+          space_type: 'conference_room',
+          floor_level: 'Rooftop',
+          square_footage: 500,
+          hourly_rate: 350,
+          notes: 'Semi-private VIP area with retractable shading and dedicated bar',
+          capacity_standing: 40,
+          capacity_theater: 35,
+          photo_url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80',
+          display_order: 3,
+          public_description: 'Exclusive semi-private space ideal for VIP groups and executive gatherings.',
+        },
+      ])
+      .select();
+
+    if (v2SpacesError || !v2Spaces || v2Spaces.length === 0) {
+      throw new Error(v2SpacesError?.message || 'Failed to create venue 2 spaces');
+    }
+
+    const v2SpaceByName = new Map(v2Spaces.map((s) => [s.name, s]));
+    const v2MainDeck = v2SpaceByName.get('Main Rooftop Deck')!;
+    const v2SkyLounge = v2SpaceByName.get('Sky Lounge')!;
+
+    // V2 Event Services catalog
+    const { data: v2EventServices, error: v2ServicesError } = await supabase
+      .from('event_services')
+      .insert([
+        { venue_id: venue2.id, name: 'Catering', slug: 'catering' },
+        { venue_id: venue2.id, name: 'Bar Service', slug: 'bar' },
+        { venue_id: venue2.id, name: 'Entertainment', slug: 'entertainment' },
+        { venue_id: venue2.id, name: 'Photography', slug: 'photography' },
+        { venue_id: venue2.id, name: 'AV & Lighting', slug: 'av' },
+      ])
+      .select();
+
+    if (v2ServicesError || !v2EventServices) {
+      throw new Error(v2ServicesError?.message || 'Failed to create venue 2 event services');
+    }
+
+    const v2ServiceIdBySlug = new Map(v2EventServices.map((s) => [s.slug, s.id]));
+
+    // V2 Vendors
+    const v2VendorSeedData = [
+      { venue_id: venue2.id, name: 'Skyline Kitchen Co.', category: 'catering', contact_name: 'Ava Martinez', contact_email: 'ava@skylinekitchen.com', contact_phone: '(512) 555-2001', cost_per_unit: 55, reliability_score: 90, total_events: 14, on_time_count: 13, on_time_percentage: 92.9, avg_quality_rating: 4.6 },
+      { venue_id: venue2.id, name: 'Craft Cocktail Bar Co.', category: 'bar', contact_name: 'Jake Rivera', contact_email: 'jake@craftcocktail.com', contact_phone: '(512) 555-2002', cost_per_unit: 35, reliability_score: 93, total_events: 20, on_time_count: 19, on_time_percentage: 95, avg_quality_rating: 4.8 },
+      { venue_id: venue2.id, name: 'Urban Beats DJ', category: 'entertainment', contact_name: 'Zoe Kim', contact_email: 'zoe@urbanbeats.com', contact_phone: '(512) 555-2003', cost_per_unit: 1400, reliability_score: 88, total_events: 32, on_time_count: 30, on_time_percentage: 93.8, avg_quality_rating: 4.5 },
+      { venue_id: venue2.id, name: 'Flash Photography Studio', category: 'photography', contact_name: 'Carlos Nguyen', contact_email: 'carlos@flashphoto.com', contact_phone: '(512) 555-2004', cost_per_unit: 2200, reliability_score: 95, total_events: 18, on_time_count: 18, on_time_percentage: 100, avg_quality_rating: 4.9 },
+      { venue_id: venue2.id, name: 'Luminary AV Crew', category: 'av', contact_name: 'Dana Patel', contact_email: 'dana@luminaryav.com', contact_phone: '(512) 555-2005', cost_per_unit: 1800, reliability_score: 87, total_events: 22, on_time_count: 20, on_time_percentage: 90.9, avg_quality_rating: 4.4 },
+    ];
+
+    const v2VendorData = v2VendorSeedData.map(({ category, ...vendor }) => { void category; return vendor; });
+    const { data: v2Vendors, error: v2VendorsError } = await supabase
+      .from('vendors')
+      .insert(v2VendorData)
+      .select();
+
+    if (v2VendorsError || !v2Vendors) {
+      throw new Error('Failed to create venue 2 vendors');
+    }
+
+    const v2VendorServices = v2VendorSeedData
+      .map((vs) => {
+        const vendor = v2Vendors.find((v) => v.name === vs.name);
+        const serviceId = v2ServiceIdBySlug.get(vs.category);
+        if (!vendor || !serviceId) return null;
+        return { vendor_id: vendor.id, event_service_id: serviceId };
+      })
+      .filter((item): item is { vendor_id: string; event_service_id: string } => Boolean(item));
+    await supabase.from('vendor_services').insert(v2VendorServices);
+
+    // V2 Events (3 future + 3 completed)
+    const { data: v2Events, error: v2EventsError } = await supabase
+      .from('events')
+      .insert([
+        { space_id: v2MainDeck.id, venue_id: venue2.id, event_name: 'Tech Startup Launch Party', event_type: 'corporate', event_date: futureDate2.toISOString().split('T')[0], event_time: '18:00', guest_count: 120, budget_total: 22000, status: 'planning' },
+        { space_id: v2SkyLounge.id, venue_id: venue2.id, event_name: 'Anniversary Celebration', event_type: 'social', event_date: futureDate3.toISOString().split('T')[0], event_time: '19:00', guest_count: 60, budget_total: 12000, status: 'confirmed' },
+        { space_id: v2MainDeck.id, venue_id: venue2.id, event_name: 'Corporate Summer Bash', event_type: 'corporate', event_date: futureDate5.toISOString().split('T')[0], event_time: '17:00', guest_count: 150, budget_total: 28000, status: 'planning' },
+        { space_id: v2MainDeck.id, venue_id: venue2.id, event_name: "New Year's Eve Party", event_type: 'social', event_date: pastDate2.toISOString().split('T')[0], event_time: '20:00', guest_count: 180, budget_total: 35000, status: 'completed' },
+        { space_id: v2SkyLounge.id, venue_id: venue2.id, event_name: 'Product Launch Cocktail', event_type: 'corporate', event_date: pastDate3.toISOString().split('T')[0], event_time: '18:30', guest_count: 70, budget_total: 14000, status: 'completed' },
+        { space_id: v2MainDeck.id, venue_id: venue2.id, event_name: 'Charity Auction Night', event_type: 'fundraiser', event_date: pastDate4.toISOString().split('T')[0], event_time: '19:00', guest_count: 130, budget_total: 25000, status: 'completed' },
+      ])
+      .select();
+
+    if (v2EventsError || !v2Events) {
+      throw new Error('Failed to create venue 2 events');
+    }
+
+    // V2 vendor assignments for completed events (indices 3 & 4)
+    const v2NewYearsEve = v2Events[3];
+    const v2ProductLaunch = v2Events[4];
+    const v2SkykitchenVendor = v2Vendors.find((v) => v.name === 'Skyline Kitchen Co.')!;
+    const v2UrbanBeatsVendor = v2Vendors.find((v) => v.name === 'Urban Beats DJ')!;
+    const v2CraftBarVendor = v2Vendors.find((v) => v.name === 'Craft Cocktail Bar Co.')!;
+    const v2FlashPhotoVendor = v2Vendors.find((v) => v.name === 'Flash Photography Studio')!;
+
+    const v2Assignments = [
+      { event_id: v2NewYearsEve.id, vendor_id: v2SkykitchenVendor.id, event_service_id: v2ServiceIdBySlug.get('catering'), assignment_type: 'primary', quoted_cost: 9900, actual_cost: 9900, confirmed: true },
+      { event_id: v2NewYearsEve.id, vendor_id: v2UrbanBeatsVendor.id, event_service_id: v2ServiceIdBySlug.get('entertainment'), assignment_type: 'primary', quoted_cost: 1400, actual_cost: 1400, confirmed: true },
+      { event_id: v2ProductLaunch.id, vendor_id: v2CraftBarVendor.id, event_service_id: v2ServiceIdBySlug.get('bar'), assignment_type: 'primary', quoted_cost: 2450, actual_cost: 2450, confirmed: true },
+      { event_id: v2ProductLaunch.id, vendor_id: v2FlashPhotoVendor.id, event_service_id: v2ServiceIdBySlug.get('photography'), assignment_type: 'primary', quoted_cost: 2200, actual_cost: 2200, confirmed: true },
+    ];
+    const { data: v2EventVendors } = await supabase.from('event_vendors').insert(v2Assignments).select();
+
+    // V2 Vendor reviews
+    const v2Reviews = [
+      { event_id: v2NewYearsEve.id, vendor_id: v2SkykitchenVendor.id, on_time: true, quality_rating: 5, cost_accurate: true, would_use_again: true, notes: 'Exceptional food spread. Guests raved about the menu all night.' },
+      { event_id: v2NewYearsEve.id, vendor_id: v2UrbanBeatsVendor.id, on_time: true, quality_rating: 5, cost_accurate: true, would_use_again: true, notes: 'Kept the energy going until midnight. Highly recommend.' },
+      { event_id: v2ProductLaunch.id, vendor_id: v2CraftBarVendor.id, on_time: true, quality_rating: 5, cost_accurate: true, would_use_again: true, notes: 'Creative cocktail menu impressed all attendees.' },
+      { event_id: v2ProductLaunch.id, vendor_id: v2FlashPhotoVendor.id, on_time: true, quality_rating: 4, cost_accurate: true, would_use_again: true, notes: 'Great shots and quick turnaround. Would book again.' },
+    ];
+    const { data: v2ReviewsData } = await supabase.from('vendor_reviews').insert(v2Reviews).select();
+
+    // V2 Clients
+    const { data: v2Clients } = await supabase
+      .from('clients')
+      .insert([
+        { venue_id: venue2.id, name: 'Marcus Thompson', company: 'NovaTech Corp', email: `marcus.nt+${demoEmailSuffix}@example.com`, phone: '(512) 555-3001', notes: 'Recurring corporate client. Prefers rooftop deck for product launches.' },
+        { venue_id: venue2.id, name: 'Olivia Chen', company: 'Chen Events Group', email: `olivia.ceg+${demoEmailSuffix}@example.com`, phone: '(512) 555-3002', notes: 'Books 1–2 events per quarter. Prefers Sky Lounge for intimate dinners.' },
+      ])
+      .select();
+
+    if (v2Clients && v2Clients.length > 0) {
+      await supabase.from('client_communications').insert([
+        { client_id: v2Clients[0].id, event_id: v2Events[0]?.id, message_type: 'booking_confirmed', subject: 'Booking Confirmed – Tech Startup Launch Party', body: 'Confirmed rooftop deck booking. AV setup and catering walk-through scheduled 3 days before event.', sent_by: userId },
+        { client_id: v2Clients[1].id, event_id: v2Events[1]?.id, message_type: 'general', subject: 'Anniversary Celebration Details', body: 'Shared floor plan and cocktail menu options for the Sky Lounge. Awaiting final guest count.', sent_by: userId },
+      ]);
+    }
+
+    // V2 Leads
+    const { data: v2Leads } = await supabase
+      .from('leads')
+      .insert([
+        { venue_id: venue2.id, source: 'ai_chat', contact_name: 'Tyler Brooks', contact_email: `tyler.b+${demoEmailSuffix}@example.com`, contact_phone: '(512) 555-4001', company: 'Brooks & Co.', event_type: 'Birthday Party', event_date: futureDate3.toISOString().split('T')[0], guest_count: 60, estimated_budget: 10000, status: 'new', priority_score: 58 },
+        { venue_id: venue2.id, source: 'manual', contact_name: 'Sofia Reyes', contact_email: `sofia.r+${demoEmailSuffix}@example.com`, contact_phone: '(512) 555-4002', company: 'Apex Technologies', event_type: 'Corporate Mixer', event_date: futureDate2.toISOString().split('T')[0], guest_count: 100, estimated_budget: 18000, status: 'qualified', priority_score: 79 },
+        { venue_id: venue2.id, source: 'phone', contact_name: 'Jordan Lee', contact_email: `jordan.l+${demoEmailSuffix}@example.com`, contact_phone: '(512) 555-4003', event_type: 'Anniversary Dinner', guest_count: 40, estimated_budget: 8000, status: 'won', priority_score: 95 },
+      ])
+      .select();
+
+    if (v2Leads && v2Leads.length > 0) {
+      await supabase.from('lead_activities').insert(
+        v2Leads.flatMap((lead) => [
+          { lead_id: lead.id, activity_type: 'created', description: 'Lead created from seed data', metadata: { source: lead.source } },
+          { lead_id: lead.id, activity_type: 'status_changed', description: `Status set to ${lead.status}`, metadata: { status: lead.status } },
+        ])
+      );
+    }
+
+    // V2 Public page – Photos
+    const { data: v2Photos } = await supabase.from('venue_photos').insert([
+      { venue_id: venue2.id, section_name: 'Main Venue', image_url: 'https://images.unsplash.com/photo-1501117716987-c8e1ecb2104f?auto=format&fit=crop&w=1600&q=80', caption: 'Main Rooftop Deck', alt_text: 'Open rooftop deck with city skyline at sunset', display_order: 1, is_section_thumbnail: true },
+      { venue_id: venue2.id, section_name: 'Main Venue', image_url: 'https://images.unsplash.com/photo-1519167758481-83f29c89b7b5?auto=format&fit=crop&w=1600&q=80', caption: 'Evening ambiance', alt_text: 'Rooftop venue lit up at night', display_order: 2, is_section_thumbnail: false },
+      { venue_id: venue2.id, section_name: 'Event Spaces', image_url: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=1600&q=80', caption: 'Sky Lounge interior', alt_text: 'Stylish indoor lounge adjacent to rooftop', display_order: 3, is_section_thumbnail: true },
+      { venue_id: venue2.id, section_name: 'Event Spaces', image_url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1600&q=80', caption: 'Private Cabana', alt_text: 'Semi-private VIP cabana area', display_order: 4, is_section_thumbnail: false },
+      { venue_id: venue2.id, section_name: 'Past Events', image_url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1600&q=80', caption: "New Year's Eve celebration", alt_text: 'NYE rooftop party in full swing', display_order: 5, is_section_thumbnail: true },
+      { venue_id: venue2.id, section_name: 'Past Events', image_url: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=1600&q=80', caption: 'Product launch night', alt_text: 'Corporate cocktail launch event on rooftop', display_order: 6, is_section_thumbnail: false },
+    ]).select();
+
+    // V2 Amenities
+    const { data: v2Amenities } = await supabase.from('venue_amenities').insert([
+      { venue_id: venue2.id, name: 'Panoramic City Views', icon: 'eye', description: '360° Austin skyline views from the rooftop' },
+      { venue_id: venue2.id, name: 'Full-Service Bar', icon: 'wine', description: 'Craft cocktails, beer, and curated wine list' },
+      { venue_id: venue2.id, name: 'Built-in Sound System', icon: 'music', description: 'High-fidelity speakers throughout deck and lounge' },
+      { venue_id: venue2.id, name: 'LED Lighting Rig', icon: 'lightbulb', description: 'Programmable ambient and stage lighting' },
+      { venue_id: venue2.id, name: 'Climate-Controlled Lounge', icon: 'thermometer', description: 'Indoor Sky Lounge with A/C for all-season comfort' },
+      { venue_id: venue2.id, name: 'Private Elevator Access', icon: 'arrow-up', description: 'Dedicated elevator for VIP and guest arrival' },
+    ]).select();
+
+    // V2 Event Types
+    const { data: v2EventTypes } = await supabase.from('venue_event_types').insert([
+      { venue_id: venue2.id, event_type_key: 'corporate_events', event_type_label: 'Corporate Events' },
+      { venue_id: venue2.id, event_type_key: 'social_celebrations', event_type_label: 'Social Celebrations' },
+      { venue_id: venue2.id, event_type_key: 'cocktail_receptions', event_type_label: 'Cocktail Receptions' },
+      { venue_id: venue2.id, event_type_key: 'fundraisers_galas', event_type_label: 'Fundraisers & Galas' },
+    ]).select();
+
+    // V2 Packages
+    const { data: v2Packages } = await supabase.from('venue_packages').insert([
+      { venue_id: venue2.id, name: 'Skyline Starter', description: 'Intimate gatherings up to 80 guests in the Sky Lounge.', base_price: 3500, pricing_model: 'flat', inclusions: ['Sky Lounge rental (4 hrs)', 'Bar service', 'Basic sound system', 'Event coordinator'], is_visible_on_public_page: true, display_order: 1 },
+      { venue_id: venue2.id, name: 'Skyline Premier', description: 'Full rooftop experience for up to 200 guests — the complete package.', base_price: 8000, pricing_model: 'flat', inclusions: ['Main Rooftop Deck + Sky Lounge (6 hrs)', 'Full-service bar', 'DJ & lighting rig', 'Catering', 'Dedicated event manager'], is_visible_on_public_page: true, display_order: 2 },
+    ]).select();
+
+    // V2 Package Addons
+    const { data: v2PackageAddons } = await supabase.from('venue_package_addons').insert([
+      { venue_id: venue2.id, name: 'Photo Booth', price: 600, description: 'Branded photo booth with unlimited prints for 4 hours' },
+      { venue_id: venue2.id, name: 'Extended Bar (1 hr)', price: 400, description: 'Add an extra hour of full open bar service' },
+      { venue_id: venue2.id, name: 'Floral Centerpieces', price: 800, description: 'Curated floral arrangements for each table' },
+    ]).select();
+
+    // V2 Testimonials
+    const { data: v2Testimonials } = await supabase.from('venue_testimonials').insert([
+      { venue_id: venue2.id, author_name: 'Marcus Thompson', author_title: 'Head of Events, NovaTech Corp', content: "The Skyline Rooftop delivered an unforgettable product launch. The views alone had our guests speechless. We'll be back every quarter.", rating: 5, event_type: 'Corporate Event', is_featured: true, is_approved: true, photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80' },
+      { venue_id: venue2.id, author_name: 'Olivia Chen', author_title: 'Event Planner, Chen Events Group', content: "Hosted a NYE party here and it was flawless. Staff were incredibly professional and the space looks amazing at night.", rating: 5, event_type: 'Social Celebration', is_featured: true, is_approved: true },
+    ]).select();
+
+    // V2 Availability (30 days rolling)
+    const v2AvailabilitySeed: Array<{ venue_id: string; date: string; status: 'available' | 'tentative' | 'booked'; note?: string; event_id?: string }> = [];
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      let status: 'available' | 'tentative' | 'booked' = 'available';
+      let note: string | undefined;
+      let eventId: string | undefined;
+      if (i % 10 === 0) { status = 'booked'; note = 'Confirmed booking'; eventId = v2Events[0]?.id; }
+      else if (i % 6 === 0) { status = 'tentative'; note = 'Tentative hold'; }
+      v2AvailabilitySeed.push({ venue_id: venue2.id, date: d.toISOString().split('T')[0], status, note, event_id: eventId });
+    }
+    const { data: v2Availability } = await supabase.from('venue_availability').insert(v2AvailabilitySeed).select();
+
+    // V2 Blackout Dates
+    const v2Blackout1Start = new Date(today); v2Blackout1Start.setDate(today.getDate() + 12);
+    const v2Blackout1End = new Date(today); v2Blackout1End.setDate(today.getDate() + 12);
+    const v2Blackout2Start = new Date(today); v2Blackout2Start.setDate(today.getDate() + 28);
+    const v2Blackout2End = new Date(today); v2Blackout2End.setDate(today.getDate() + 28);
+    const { data: v2BlackoutDates } = await supabase.from('venue_blackout_dates').insert([
+      { venue_id: venue2.id, start_date: v2Blackout1Start.toISOString().split('T')[0], end_date: v2Blackout1End.toISOString().split('T')[0], reason: 'Private buyout' },
+      { venue_id: venue2.id, start_date: v2Blackout2Start.toISOString().split('T')[0], end_date: v2Blackout2End.toISOString().split('T')[0], reason: 'Maintenance day' },
+    ]).select();
+
+    // V2 AI Settings
+    await supabase.from('venue_ai_settings').insert({
+      venue_id: venue2.id,
+      tone: 'friendly',
+      response_length: 'balanced',
+      greeting_message: "Hi! I'm Sky, your Skyline Rooftop assistant. Tell me about your event and I'll help you plan something spectacular.",
+      show_pricing_in_chat: true,
+      request_contact_after_messages: 3,
+      suggest_alternative_dates: true,
+      manager_name: 'Priya Singh',
+      manager_email: `rooftop.manager+${demoEmailSuffix}@example.com`,
+    });
+
+    // V2 Page Analytics (last 10 days)
+    const v2AnalyticsSeed = Array.from({ length: 10 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i - 1);
+      return {
+        venue_id: venue2.id,
+        date: d.toISOString().split('T')[0],
+        page_views: 25 + (i % 3) * 12,
+        unique_visitors: 15 + (i % 3) * 7,
+        chat_opens: 3 + (i % 4),
+        leads_created: i % 3 === 0 ? 1 : 0,
+        avg_time_on_page: 75 + (i % 5) * 20,
+      };
+    });
+    const { data: v2Analytics } = await supabase.from('page_analytics').insert(v2AnalyticsSeed).select();
+
+    // V2 Page Versions
+    const v2Version1Date = new Date(today); v2Version1Date.setDate(today.getDate() - 40);
+    const v2Version2Date = new Date(today); v2Version2Date.setDate(today.getDate() - 8);
+    const { data: v2PageVersions } = await supabase.from('venue_page_versions').insert([
+      { venue_id: venue2.id, version_number: 1, snapshot: { name: venue2.name, tagline: venue2.tagline, page_status: 'published', photos_count: 4, amenities_count: 4 }, published_by: userId, change_summary: 'Initial publish with rooftop photos and amenities', created_at: v2Version1Date.toISOString() },
+      { venue_id: venue2.id, version_number: 2, snapshot: { name: venue2.name, tagline: venue2.tagline, page_status: 'published', photos_count: 6, packages_count: 2, amenities_count: 6, testimonials_count: 2, ai_chat_enabled: true }, published_by: userId, change_summary: 'Added packages, testimonials, and AI chat', created_at: v2Version2Date.toISOString() },
+    ]).select();
+
     return {
       success: true,
       message: 'Demo data seeded successfully!',
       counts: {
-        venues: 1,
-        spaces: spaces.length,
-        vendors: vendors.length,
-        events: events.length,
-        assignments: eventVendors?.length || 0,
-        reviews: reviews.length,
-        clients: clients.length,
+        venues: 2,
+        spaces: spaces.length + (v2Spaces?.length || 0),
+        vendors: vendors.length + (v2Vendors?.length || 0),
+        events: events.length + (v2Events?.length || 0),
+        assignments: (eventVendors?.length || 0) + (v2EventVendors?.length || 0),
+        reviews: reviews.length + (v2ReviewsData?.length || 0),
+        clients: clients.length + (v2Clients?.length || 0),
         client_communications: clientCommunications?.length || 0,
-        venue_photos: venuePhotos?.length || 0,
-        venue_amenities: venueAmenities?.length || 0,
-        venue_event_types: venueEventTypes?.length || 0,
-        venue_packages: venuePackages?.length || 0,
-        venue_package_addons: venuePackageAddons?.length || 0,
-        venue_testimonials: venueTestimonials?.length || 0,
-        venue_availability: venueAvailability?.length || 0,
-        venue_blackout_dates: venueBlackoutDates?.length || 0,
+        venue_photos: (venuePhotos?.length || 0) + (v2Photos?.length || 0),
+        venue_amenities: (venueAmenities?.length || 0) + (v2Amenities?.length || 0),
+        venue_event_types: (venueEventTypes?.length || 0) + (v2EventTypes?.length || 0),
+        venue_packages: (venuePackages?.length || 0) + (v2Packages?.length || 0),
+        venue_package_addons: (venuePackageAddons?.length || 0) + (v2PackageAddons?.length || 0),
+        venue_testimonials: (venueTestimonials?.length || 0) + (v2Testimonials?.length || 0),
+        venue_availability: (venueAvailability?.length || 0) + (v2Availability?.length || 0),
+        venue_blackout_dates: (venueBlackoutDates?.length || 0) + (v2BlackoutDates?.length || 0),
         conversations: conversations?.length || 0,
         conversation_messages: conversationMessages?.length || 0,
-        leads: leads?.length || 0,
+        leads: (leads?.length || 0) + (v2Leads?.length || 0),
         lead_activities: leadActivities?.length || 0,
         proposals: proposals?.length || 0,
         agent_runs: agentRuns?.length || 0,
         vendor_communications: vendorComms?.length || 0,
         vendor_quotes: vendorQuotes?.length || 0,
-        page_analytics: pageAnalytics?.length || 0,
-        venue_page_versions: pageVersions?.length || 0,
+        page_analytics: (pageAnalytics?.length || 0) + (v2Analytics?.length || 0),
+        venue_page_versions: (pageVersions?.length || 0) + (v2PageVersions?.length || 0),
         venue_public_settings: 1,
       },
     };

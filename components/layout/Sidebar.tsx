@@ -18,7 +18,8 @@ import {
     Globe,
     ChevronLeft,
     Megaphone,
-    ExternalLink
+    ExternalLink,
+    MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -26,79 +27,19 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowUpCircle } from "lucide-react";
+import { useVenueContext } from "@/lib/context/VenueContext";
 
-const sidebarItems = [
-    {
-        title: "Dashboard",
-        href: "/dashboard",
-        icon: LayoutDashboard,
-    },
-    {
-        title: "Calendar",
-        href: "/calendar",
-        icon: Calendar,
-    },
-    {
-        title: "Events",
-        href: "/events",
-        icon: CalendarDays,
-    },
-    {
-        title: "Spaces",
-        href: "/spaces",
-        icon: Building2,
-    },
-    {
-        title: "Vendors",
-        href: "/vendors",
-        icon: Briefcase,
-    },
-    {
-        title: "Clients",
-        href: "/clients",
-        icon: Users,
-    },
-    {
-        title: "Leads",
-        href: "/leads",
-        icon: Users,
-    },
-    {
-        title: "Settings",
-        href: "/settings",
-        icon: Settings,
-    },
+const staticItems = [
+    { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { title: "Calendar", href: "/calendar", icon: Calendar },
+    { title: "Events", href: "/events", icon: CalendarDays },
+    { title: "Spaces", href: "/spaces", icon: Building2 },
+    { title: "Vendors", href: "/vendors", icon: Briefcase },
+    { title: "Clients", href: "/clients", icon: Users },
+    { title: "Leads", href: "/leads", icon: Users },
+    { title: "Venues", href: "/venues", icon: MapPin },
+    { title: "Settings", href: "/settings", icon: Settings },
 ];
-
-const dynamicItems = (venueId?: string, venueSlug?: string | null) => {
-    const items = [];
-    if (venueId) {
-        items.push({
-            title: "Public Page",
-            href: `/venues/${venueId}/public-page`,
-            icon: Globe,
-        });
-        items.push({
-            title: "Marketplace",
-            href: `/venues/${venueId}/marketplace`,
-            icon: Megaphone,
-        });
-        items.push({
-            title: "Analytics",
-            href: `/venues/${venueId}/analytics`,
-            icon: TrendingUp,
-        });
-        if (venueSlug) {
-            items.push({
-                title: "View Live Page",
-                href: `/${venueSlug}`,
-                icon: ExternalLink,
-                external: true,
-            });
-        }
-    }
-    return items;
-};
 
 export function Sidebar() {
     const pathname = usePathname();
@@ -107,31 +48,24 @@ export function Sidebar() {
     const { toast } = useToast();
     const [isSeeding, setIsSeeding] = useState(false);
     const [planTier, setPlanTier] = useState<string | null>(null);
-    const [venueId, setVenueId] = useState<string | null>(null);
     const [venueSlug, setVenueSlug] = useState<string | null>(null);
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [userEmail, setUserEmail] = useState<string | null>(null);
+    const { activeVenue } = useVenueContext();
 
     useEffect(() => {
-        // Fetch subscription plan tier
         fetch("/api/subscription")
             .then(res => res.ok ? res.json() : null)
             .then(data => { if (data?.plan_tier) setPlanTier(data.plan_tier); })
             .catch(() => {});
-        
-        // Fetch user's venue ID
-        fetch("/api/venues")
-            .then(res => res.ok ? res.json() : null)
-            .then(data => {
-                if (data && data.length > 0) {
-                    setVenueId(data[0].id);
+        supabase.auth.getUser().then(({ data }) => {
+            if (data.user?.email) setUserEmail(data.user.email);
                     setVenueSlug(data[0].slug || null);
-                }
-            })
-            .catch(() => {});
+        });
     }, []);
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: "local" });
         router.push("/login");
     };
 
@@ -139,29 +73,18 @@ export function Sidebar() {
         if (!confirm('⚠️ This will DELETE all your existing data and replace it with demo data. This action cannot be undone. Continue?')) {
             return;
         }
-
         setIsSeeding(true);
         try {
-            const response = await fetch('/api/seed', {
-                method: 'POST',
-            });
-
+            const response = await fetch('/api/seed', { method: 'POST' });
             const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to seed data');
-            }
-
+            if (!response.ok) throw new Error(data.error || 'Failed to seed data');
             toast({
                 title: "Success!",
                 description: `Demo data loaded: ${data.counts.venues} venues, ${data.counts.vendors} vendors, ${data.counts.events} events`,
             });
-
-            // Refresh the page to show new data
             router.refresh();
             router.push('/dashboard');
         } catch (error: any) {
-            console.error('Seed error:', error);
             toast({
                 title: "Error",
                 description: error.message || "Failed to refresh data",
@@ -171,6 +94,11 @@ export function Sidebar() {
             setIsSeeding(false);
         }
     };
+
+    const venueItems = activeVenue ? [
+        { title: "Public Page", href: `/venues/${activeVenue.id}/public-page`, icon: Globe },
+        { title: "Analytics", href: `/venues/${activeVenue.id}/analytics`, icon: TrendingUp },
+    ] : [];
 
     return (
         <div className={cn("flex flex-col border-r bg-gray-50/40 transition-all duration-300", isCollapsed ? "w-20 h-screen" : "w-64 h-screen")}>
@@ -194,19 +122,24 @@ export function Sidebar() {
                     <ChevronLeft className={cn("h-4 w-4 transition-transform", isCollapsed && "rotate-180")} />
                 </button>
             </div>
+
             <div className="flex-1 overflow-auto py-4">
                 <nav className="grid items-start px-2 text-sm font-medium gap-1">
-                    {sidebarItems.map((item, index) => {
+                    {staticItems.map((item) => {
                         const Icon = item.icon;
+                        const isActive = item.href === "/venues"
+                            ? pathname.startsWith("/venues") && !pathname.includes("/public-page") && !pathname.includes("/analytics")
+                            : pathname.startsWith(item.href);
                         return (
                             <Link
-                                key={index}
+                                key={item.href}
                                 href={item.href}
+                                data-testid={`nav-${item.title.toLowerCase()}`}
                                 title={isCollapsed ? item.title : ""}
                                 className={cn(
                                     "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
                                     isCollapsed && "justify-center",
-                                    pathname.startsWith(item.href)
+                                    isActive
                                         ? "bg-gray-100 text-primary"
                                         : "text-gray-500 hover:bg-gray-100"
                                 )}
@@ -216,17 +149,17 @@ export function Sidebar() {
                             </Link>
                         );
                     })}
-                    
-                    {/* Divider and Venue Management Section */}
-                    {venueId && (
+
+                    {/* Venue-specific items */}
+                    {venueItems.length > 0 && (
                         <>
                             <div className={cn("my-2", isCollapsed ? "hidden" : "border-t")} />
-                            {dynamicItems(venueId, venueSlug).map((item, index) => {
+                            {venueItems.map((item) => {
                                 const Icon = item.icon;
                                 const isExternal = "external" in item && item.external;
                                 return (
                                     <Link
-                                        key={`dynamic-${index}`}
+                                        key={item.href}
                                         href={item.href}
                                         title={isCollapsed ? item.title : ""}
                                         {...(isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
@@ -247,6 +180,7 @@ export function Sidebar() {
                     )}
                 </nav>
             </div>
+
             <div className={cn("border-t p-2 space-y-2", !isCollapsed && "p-4")}>
                 {planTier && planTier !== "enterprise" && (
                     <Link href="/pricing">
@@ -268,6 +202,7 @@ export function Sidebar() {
                         {planTier.charAt(0).toUpperCase() + planTier.slice(1)} Plan
                     </div>
                 )}
+                {userEmail === 'prashant@samisen.io' && (
                 <Button
                     variant="outline"
                     className={cn(
@@ -281,7 +216,9 @@ export function Sidebar() {
                     <RefreshCw className={cn("h-4 w-4 flex-shrink-0", isSeeding && "animate-spin")} />
                     {!isCollapsed && <span>{isSeeding ? "Loading..." : "Refresh"}</span>}
                 </Button>
+                )}
                 <Button
+                    data-testid="logout-button"
                     variant="ghost"
                     className={cn(
                         "justify-start gap-3 text-gray-500 hover:text-red-500",

@@ -16,7 +16,7 @@ interface Subscription {
 }
 
 interface Usage {
-    spaces_created: number;
+    venues_created: number;
     events_created: number;
     vendors_created: number;
     month: string;
@@ -74,14 +74,14 @@ export function useUsage() {
     return { usage, loading, error, refetch: fetchUsage };
 }
 
-const PLAN_LIMITS: Record<string, { maxSpaces: number; maxEventsPerMonth: number; maxVendors: number }> = {
-    trial: { maxSpaces: 1, maxEventsPerMonth: 5, maxVendors: 10 },
-    starter: { maxSpaces: 1, maxEventsPerMonth: 10, maxVendors: 50 },
-    professional: { maxSpaces: 3, maxEventsPerMonth: 50, maxVendors: Infinity },
-    enterprise: { maxSpaces: Infinity, maxEventsPerMonth: Infinity, maxVendors: Infinity },
+const PLAN_LIMITS: Record<string, { maxVenues: number; maxEventsPerMonth: number; maxVendors: number }> = {
+    trial: { maxVenues: 1, maxEventsPerMonth: 5, maxVendors: 10 },
+    starter: { maxVenues: 1, maxEventsPerMonth: 10, maxVendors: 50 },
+    professional: { maxVenues: 3, maxEventsPerMonth: 50, maxVendors: Infinity },
+    enterprise: { maxVenues: Infinity, maxEventsPerMonth: Infinity, maxVendors: Infinity },
 };
 
-export function useCanCreate(resource: "space" | "event" | "vendor") {
+export function useCanCreate(resource: "venue" | "space" | "event" | "vendor") {
     const { subscription, loading: subLoading } = useSubscription();
     const { usage, loading: usageLoading } = useUsage();
 
@@ -98,11 +98,11 @@ export function useCanCreate(resource: "space" | "event" | "vendor") {
     const limits = PLAN_LIMITS[subscription.plan_tier] || PLAN_LIMITS.trial;
 
     switch (resource) {
+        case "venue":
         case "space":
-            if (limits.maxSpaces !== Infinity && usage.spaces_created >= limits.maxSpaces) {
-                return { canCreate: false, loading: false, reason: `Space limit reached (${limits.maxSpaces})` };
-            }
-            break;
+            // Venue count checked server-side; client-side we allow optimistically
+            // The server will reject if over limit
+            return { canCreate: true, loading: false, reason: null };
         case "event":
             if (limits.maxEventsPerMonth !== Infinity && usage.events_created >= limits.maxEventsPerMonth) {
                 return { canCreate: false, loading: false, reason: `Monthly event limit reached (${limits.maxEventsPerMonth})` };

@@ -1,7 +1,7 @@
 export type PlanTier = 'trial' | 'starter' | 'professional' | 'enterprise'
 
 export interface PlanLimits {
-    maxSpaces: number
+    maxVenues: number
     maxEventsPerMonth: number
     maxVendors: number
     maxPhotos: number
@@ -21,7 +21,7 @@ export interface PlanConfig {
 
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     trial: {
-        maxSpaces: 1,
+        maxVenues: 1,
         maxEventsPerMonth: 5,
         maxVendors: 10,
         maxPhotos: 10,
@@ -30,7 +30,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
         apiAccess: false,
     },
     starter: {
-        maxSpaces: 1,
+        maxVenues: 1,
         maxEventsPerMonth: 10,
         maxVendors: 50,
         maxPhotos: 20,
@@ -39,7 +39,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
         apiAccess: false,
     },
     professional: {
-        maxSpaces: 3,
+        maxVenues: 3,
         maxEventsPerMonth: 50,
         maxVendors: Infinity,
         maxPhotos: 50,
@@ -48,7 +48,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
         apiAccess: false,
     },
     enterprise: {
-        maxSpaces: Infinity,
+        maxVenues: Infinity,
         maxEventsPerMonth: Infinity,
         maxVendors: Infinity,
         maxPhotos: Infinity,
@@ -66,7 +66,7 @@ export const PLANS: PlanConfig[] = [
         priceMonthly: 49,
         limits: PLAN_LIMITS.starter,
         features: [
-            '1 space',
+            '1 venue',
             '10 events per month',
             '50 vendors',
             '20 venue photos',
@@ -84,7 +84,7 @@ export const PLANS: PlanConfig[] = [
         priceMonthly: 149,
         limits: PLAN_LIMITS.professional,
         features: [
-            '3 spaces',
+            'Up to 3 venues',
             '50 events per month',
             'Unlimited vendors',
             '50 venue photos',
@@ -103,7 +103,7 @@ export const PLANS: PlanConfig[] = [
         priceMonthly: 299,
         limits: PLAN_LIMITS.enterprise,
         features: [
-            'Unlimited spaces',
+            'Unlimited venues',
             'Unlimited events',
             'Unlimited vendors',
             'Unlimited photos',

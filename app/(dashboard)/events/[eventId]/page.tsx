@@ -122,7 +122,7 @@ export default function EventDetailsPage({ params }: { params: Promise<{ eventId
                 {/* Title and Status */}
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                     <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{event.event_name}</h1>
-                    <Badge variant="outline" className={getStatusColor(event.status)}>
+                    <Badge data-testid="event-status-badge" variant="outline" className={getStatusColor(event.status)}>
                         {event.status}
                     </Badge>
                 </div>
@@ -141,6 +141,7 @@ export default function EventDetailsPage({ params }: { params: Promise<{ eventId
                     )}
                     {event.status !== "completed" && event.status !== "cancelled" && (
                         <Button
+                            data-testid="event-complete-btn"
                             onClick={async () => {
                                 if (!confirm("Is this event over? You will be directed to review your vendors.")) return;
                                 await fetch(`/api/events/${eventId}`, {
@@ -156,6 +157,7 @@ export default function EventDetailsPage({ params }: { params: Promise<{ eventId
                     )}
                     {event.status !== "completed" && event.status !== "cancelled" && (
                         <Button
+                            data-testid="event-cancel-btn"
                             variant="destructive"
                             onClick={async () => {
                                 if (!confirm("Are you sure you want to cancel this event? This will release the space booking.")) return;

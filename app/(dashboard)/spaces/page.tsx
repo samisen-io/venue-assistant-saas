@@ -23,6 +23,8 @@ import { MobileFilters } from "@/components/shared/MobileFilters";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCanCreate } from "@/hooks/useSubscription";
 import { UpgradePrompt } from "@/components/subscription/UpgradePrompt";
+import { useVenueContext } from "@/lib/context/VenueContext";
+import { withVenueHeader } from "@/lib/utils/venueHeader";
 
 const spaceTypes: { value: string; label: string }[] = [
     { value: "ballroom", label: "Ballroom" },
@@ -41,6 +43,7 @@ export default function SpacesPage() {
     const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
     const isMobile = useIsMobile();
     const { canCreate, reason: limitReason } = useCanCreate("space");
+    const { activeVenue } = useVenueContext();
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         if (globalThis.window !== undefined) {
             return (localStorage.getItem("viewMode:spaces") as ViewMode) || "grid";
@@ -66,7 +69,8 @@ export default function SpacesPage() {
         setIsLoading(true);
         setError("");
         try {
-            const res = await fetch("/api/spaces");
+            const headers = withVenueHeader(activeVenue?.id);
+            const res = await fetch("/api/spaces", { headers });
             if (!res.ok) throw new Error("Failed to fetch spaces");
             const data = await res.json();
             setSpaces(data);
@@ -80,7 +84,7 @@ export default function SpacesPage() {
 
     useEffect(() => {
         fetchSpaces();
-    }, []);
+    }, [activeVenue?.id]);
 
     // Filter spaces based on search and filters
     const filteredSpaces = useMemo(() => {
@@ -141,14 +145,14 @@ export default function SpacesPage() {
                 <div className="flex items-center gap-3">
                     <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
                     {canCreate ? (
-                        <Button asChild>
+                        <Button asChild data-testid="add-space-btn">
                             <Link href="/spaces/new">
                                 <Plus className="mr-2 h-4 w-4" />
                                 Add Space
                             </Link>
                         </Button>
                     ) : (
-                        <Button onClick={() => setShowUpgradePrompt(true)}>
+                        <Button data-testid="add-space-btn" onClick={() => setShowUpgradePrompt(true)}>
                             <Plus className="mr-2 h-4 w-4" />
                             Add Space
                         </Button>

@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { venueFormSchema } from '@/lib/utils/validation'
-import { canCreateSpace } from '@/lib/subscription/limits'
-import { trackSpaceCreation } from '@/lib/subscription/usage'
+import { canCreateVenue } from '@/lib/subscription/limits'
 
 export async function GET(request: Request) {
     try {
@@ -13,10 +12,10 @@ export async function GET(request: Request) {
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
-        // RLS will handle filtering for current user
         const { data: venues, error } = await (supabase as any)
             .from('venues')
             .select('*')
+            .eq('owner_id', user.id)
             .order('created_at', { ascending: false })
 
         if (error) throw error
@@ -38,10 +37,10 @@ export async function POST(request: Request) {
         }
 
         // Check subscription limits
-        const spaceCheck = await canCreateSpace(user.id)
-        if (!spaceCheck.allowed) {
+        const venueCheck = await canCreateVenue(user.id)
+        if (!venueCheck.allowed) {
             return NextResponse.json(
-                { error: spaceCheck.reason, code: 'LIMIT_REACHED' },
+                { error: venueCheck.reason, code: 'LIMIT_REACHED' },
                 { status: 403 }
             )
         }
@@ -53,15 +52,13 @@ export async function POST(request: Request) {
             .from('venues')
             .insert({
                 ...body,
-                owner_id: user.id
+                owner_id: user.id,
+                is_default: false,
             })
             .select()
             .single()
 
         if (error) throw error
-
-        // Track usage
-        await trackSpaceCreation(user.id).catch(console.error)
 
         return NextResponse.json(venue)
     } catch (error) {

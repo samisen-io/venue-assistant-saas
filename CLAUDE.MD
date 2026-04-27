@@ -220,8 +220,9 @@ This comprehensive PRD contains:
 - **Database changes**: Update Supabase schema AND RLS policies
 - **Business logic**: Add to `lib/algorithms/` or `lib/utils/`
 
-### Testing Considerations:
+### Testing Requirements:
 
+- **Write tests for all new code** - Any new feature, API route, component, or business logic must be accompanied by corresponding Playwright tests in the `tests/` directory.
 - Test multi-tenant isolation (users should only see their data)
 - Verify vendor matching algorithm produces expected scores
 - Validate budget calculations and variance tracking

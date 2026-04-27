@@ -15,22 +15,28 @@ export async function GET(
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
+        // Fetch with ownership check via inner join — defence-in-depth alongside RLS
         const { data: vendor, error } = await (supabase as any)
             .from('vendors')
             .select(`
         *,
-        venues (name),
+        venues!inner (id, name, owner_id),
         vendor_services (
             event_service_id,
             event_services (id, name, slug)
         )
       `)
             .eq('id', vendorId)
+            .eq('venues.owner_id', user.id)
             .single()
 
-        if (error) throw error
+        if (error || !vendor) {
+            return new NextResponse('Not Found', { status: 404 })
+        }
 
-        return NextResponse.json(vendor)
+        // Reshape venues back to just name for the response
+        const { venues, ...vendorData } = vendor as any
+        return NextResponse.json({ ...vendorData, venues: { name: venues?.name } })
     } catch (error) {
         console.error('Error fetching vendor:', error)
         return new NextResponse('Internal Error', { status: 500 })
@@ -53,6 +59,18 @@ export async function PUT(
         const json = await request.json()
         const body = vendorFormSchema.partial().parse(json)
         const { event_service_ids, ...vendorFields } = body
+
+        // Verify ownership before update — defence-in-depth alongside RLS
+        const { data: existing } = await (supabase as any)
+            .from('vendors')
+            .select('id, venues!inner(owner_id)')
+            .eq('id', vendorId)
+            .eq('venues.owner_id', user.id)
+            .single()
+
+        if (!existing) {
+            return new NextResponse('Not Found', { status: 404 })
+        }
 
         const { data: vendor, error } = await (supabase as any)
             .from('vendors')
@@ -101,6 +119,18 @@ export async function DELETE(
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
             return new NextResponse('Unauthorized', { status: 401 })
+        }
+
+        // Verify ownership before soft-delete — defence-in-depth alongside RLS
+        const { data: existing } = await (supabase as any)
+            .from('vendors')
+            .select('id, venues!inner(owner_id)')
+            .eq('id', vendorId)
+            .eq('venues.owner_id', user.id)
+            .single()
+
+        if (!existing) {
+            return new NextResponse('Not Found', { status: 404 })
         }
 
         // Soft delete by setting is_active to false

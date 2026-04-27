@@ -15,6 +15,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { MobileSidebar } from "./MobileSidebar";
 import { NotificationBell } from "./NotificationBell";
+import { VenueSwitcher } from "./VenueSwitcher";
 
 // Map routes to page titles
 const routeTitles: Record<string, string> = {
@@ -25,27 +26,22 @@ const routeTitles: Record<string, string> = {
     "/vendors": "Vendors",
     "/clients": "Clients",
     "/leads": "Leads",
+    "/venues": "Venues",
     "/settings": "Settings",
     "/pricing": "Pricing",
 };
 
 function getPageTitle(pathname: string): string {
-    // Check exact match first
     if (routeTitles[pathname]) {
         return routeTitles[pathname];
     }
-
-    // Check dynamic routes
     if (pathname.includes("/public-page")) return "Public Page Editor";
     if (pathname.includes("/analytics")) return "Analytics";
-
-    // Check if pathname starts with a known route
     for (const [route, title] of Object.entries(routeTitles)) {
         if (pathname.startsWith(route)) {
             return title;
         }
     }
-
     return "Dashboard";
 }
 
@@ -56,21 +52,23 @@ export function Header() {
     const pageTitle = getPageTitle(pathname);
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: "local" });
         router.push("/login");
     };
 
     return (
-        <header className="flex h-14 items-center gap-4 border-b bg-gray-50/40 px-4 md:px-6 lg:h-[60px]">
+        <header className="flex h-14 items-center gap-2 border-b bg-gray-50/40 px-3 md:gap-4 md:px-6 lg:h-[60px]">
             <MobileSidebar />
-            <div className="flex-1">
-                <h1 className="text-lg font-semibold">{pageTitle}</h1>
+            <div className="min-w-0 flex-1">
+                <h1 className="truncate text-lg font-semibold">{pageTitle}</h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="min-w-0 flex items-center gap-1.5 md:gap-2">
+                <VenueSwitcher />
                 <NotificationBell />
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
+                            data-testid="user-menu"
                             variant="outline"
                             size="icon"
                             className="overflow-hidden rounded-full"

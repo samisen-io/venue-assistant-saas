@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Plus, Search } from "lucide-react"
 import { useLeads } from "@/hooks/useLeads"
+import { useVenueContext } from "@/lib/context/VenueContext"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -28,6 +29,7 @@ export function LeadList() {
   const [search, setSearch] = useState("")
   const [sortBy, setSortBy] = useState("created_at")
   const isMobile = useIsMobile()
+  const { activeVenue } = useVenueContext()
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (globalThis.window !== undefined) {
       return (localStorage.getItem("viewMode:leads") as ViewMode) || "grid"
@@ -46,6 +48,7 @@ export function LeadList() {
   }
 
   const { leads, loading, error, refetch } = useLeads({
+    venueId: activeVenue?.id,
     status: status !== "all" ? status : undefined,
     source: source !== "all" ? source : undefined,
     search: search || undefined,
@@ -62,7 +65,7 @@ export function LeadList() {
         <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
         <div className="flex items-center gap-3">
           <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
-          <Button asChild>
+          <Button asChild data-testid="add-lead-btn">
             <Link href="/leads/new">
               <Plus className="mr-2 h-4 w-4" />
               Add Lead
@@ -132,10 +135,19 @@ export function LeadList() {
           description={
             activeFilterCount > 0
               ? "No leads match your current filters."
-              : "Leads from AI chat conversations and manual entries will appear here."
+              : "No leads yet — share your page link to start getting inquiries."
           }
-          actionLabel={activeFilterCount > 0 ? undefined : "Add Lead"}
-          actionHref={activeFilterCount > 0 ? undefined : "/leads/new"}
+          actionLabel={activeFilterCount > 0 ? "Clear Filters" : "Add Lead"}
+          {...(activeFilterCount > 0
+            ? {
+                onAction: () => {
+                  setSearch("");
+                  setStatus("all");
+                  setSource("all");
+                }
+              }
+            : { actionHref: "/leads/new" }
+          )}
         />
       ) : isMobile || viewMode === "grid" ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

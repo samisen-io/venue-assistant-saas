@@ -62,22 +62,22 @@ export function EventBudget({ eventId, totalBudget, refreshKey }: EventBudgetPro
     return (
         <div className="space-y-6">
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-                <Card>
+                <Card data-testid="budget-card-total-allocated">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Allocated</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{formatCurrency(totalBudget)}</div>
+                        <div data-testid="budget-total-allocated-value" className="text-2xl font-bold">{formatCurrency(totalBudget)}</div>
                         <p className="text-xs text-muted-foreground mt-1">Starting event budget</p>
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card data-testid="budget-card-committed-spent">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Committed/Spent</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{formatCurrency(totalActual)}</div>
+                        <div data-testid="budget-committed-spent-value" className="text-2xl font-bold">{formatCurrency(totalActual)}</div>
                         <p className="text-xs text-muted-foreground mt-1">
                             {totalActual > totalBudget ? (
                                 <span className="text-red-500 flex items-center gap-1 font-medium">
@@ -90,12 +90,12 @@ export function EventBudget({ eventId, totalBudget, refreshKey }: EventBudgetPro
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card data-testid="budget-card-remaining">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Remaining</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{formatCurrency(remainingBudget)}</div>
+                        <div data-testid="budget-remaining-value" className="text-2xl font-bold">{formatCurrency(remainingBudget)}</div>
                         <Progress value={percentSpent} className="h-2 mt-2" />
                     </CardContent>
                 </Card>
@@ -128,7 +128,7 @@ export function EventBudget({ eventId, totalBudget, refreshKey }: EventBudgetPro
                                 eventVendors.map((association) => {
                                     const variance = (association.actual_cost || association.quoted_cost || 0) - (association.quoted_cost || 0);
                                     return (
-                                        <TableRow key={association.id}>
+                                        <TableRow key={association.id} data-testid="budget-row" data-association-id={association.id}>
                                             <TableCell className="font-medium">
                                                 {association.event_services?.name || "Service"}
                                             </TableCell>
@@ -138,9 +138,9 @@ export function EventBudget({ eventId, totalBudget, refreshKey }: EventBudgetPro
                                                     {association.confirmed ? "Confirmed" : "Pending"}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-right">{formatCurrency(association.quoted_cost || 0)}</TableCell>
-                                            <TableCell className="text-right">{formatCurrency(association.actual_cost || association.quoted_cost || 0)}</TableCell>
-                                            <TableCell className={`text-right ${variance > 0 ? "text-red-500" : "text-green-600"}`}>
+                                            <TableCell data-testid="budget-row-quoted" className="text-right">{formatCurrency(association.quoted_cost || 0)}</TableCell>
+                                            <TableCell data-testid="budget-row-actual" className="text-right">{formatCurrency(association.actual_cost || association.quoted_cost || 0)}</TableCell>
+                                            <TableCell data-testid="budget-row-variance" className={`text-right ${variance > 0 ? "text-red-500" : "text-green-600"}`}>
                                                 {variance === 0 ? "-" : formatCurrency(variance)}
                                             </TableCell>
                                         </TableRow>

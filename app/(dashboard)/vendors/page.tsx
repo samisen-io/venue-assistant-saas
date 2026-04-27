@@ -16,6 +16,8 @@ import { MobileFilters } from "@/components/shared/MobileFilters";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCanCreate } from "@/hooks/useSubscription";
 import { UpgradePrompt } from "@/components/subscription/UpgradePrompt";
+import { useVenueContext } from "@/lib/context/VenueContext";
+import { withVenueHeader } from "@/lib/utils/venueHeader";
 import {
     Select,
     SelectContent,
@@ -38,7 +40,7 @@ function VendorEmptyState({ hasFilters, onClearFilters }: Readonly<{ hasFilters:
     return (
         <EmptyState
             title="No vendors found"
-            description="Add vendors to your database to track performance and get AI-powered recommendations for events."
+            description="No vendors added — add your preferred caterers and photographers."
             actionLabel="Add Vendor"
             actionHref="/vendors/new"
         />
@@ -55,6 +57,7 @@ export default function VendorsPage() {
     const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
     const isMobile = useIsMobile();
     const { canCreate, reason: limitReason } = useCanCreate("vendor");
+    const { activeVenue } = useVenueContext();
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         if (globalThis.window !== undefined) {
             return (localStorage.getItem("viewMode:vendors") as ViewMode) || "grid";
@@ -74,7 +77,8 @@ export default function VendorsPage() {
         setIsLoading(true);
         setError("");
         try {
-            const res = await fetch("/api/vendors");
+            const headers = withVenueHeader(activeVenue?.id);
+            const res = await fetch("/api/vendors", { headers });
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
                 throw new Error(errorData.error || "Failed to fetch vendors");
@@ -91,7 +95,7 @@ export default function VendorsPage() {
 
     useEffect(() => {
         fetchVendors();
-    }, []);
+    }, [activeVenue?.id]);
 
     useEffect(() => {
         const fetchServices = async () => {
@@ -127,14 +131,14 @@ export default function VendorsPage() {
                 <div className="flex items-center gap-3">
                     <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
                     {canCreate ? (
-                        <Button asChild>
+                        <Button asChild data-testid="add-vendor-btn">
                             <Link href="/vendors/new">
                                 <Plus className="mr-2 h-4 w-4" />
                                 Add Vendor
                             </Link>
                         </Button>
                     ) : (
-                        <Button onClick={() => setShowUpgradePrompt(true)}>
+                        <Button data-testid="add-vendor-btn" onClick={() => setShowUpgradePrompt(true)}>
                             <Plus className="mr-2 h-4 w-4" />
                             Add Vendor
                         </Button>

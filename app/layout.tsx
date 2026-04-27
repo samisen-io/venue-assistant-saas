@@ -159,6 +159,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const shouldLoadVercelInsights = process.env.NODE_ENV === "production";
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -170,8 +172,8 @@ export default function RootLayout({
       <body className={inter.className}>
         {children}
         <Toaster />
-        <Analytics />
-        <SpeedInsights />
+        {shouldLoadVercelInsights && <Analytics />}
+        {shouldLoadVercelInsights && <SpeedInsights />}
       </body>
     </html>
   );

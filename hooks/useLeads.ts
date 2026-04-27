@@ -1,10 +1,13 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useVenueContext } from "@/lib/context/VenueContext"
+import { withVenueHeader } from "@/lib/utils/venueHeader"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 interface LeadFilters {
+  venueId?: string
   status?: string
   source?: string
   search?: string
@@ -29,7 +32,9 @@ export function useLeads(filters?: LeadFilters) {
       if (filters?.sortBy) params.set("sortBy", filters.sortBy)
       if (filters?.sortOrder) params.set("sortOrder", filters.sortOrder)
 
-      const res = await fetch(`/api/leads?${params.toString()}`)
+      const headers = withVenueHeader(filters?.venueId)
+
+      const res = await fetch(`/api/leads?${params.toString()}`, { headers })
       if (!res.ok) throw new Error("Failed to fetch leads")
 
       const data = await res.json()
@@ -39,7 +44,7 @@ export function useLeads(filters?: LeadFilters) {
     } finally {
       setLoading(false)
     }
-  }, [filters?.status, filters?.source, filters?.search, filters?.sortBy, filters?.sortOrder])
+  }, [filters?.venueId, filters?.status, filters?.source, filters?.search, filters?.sortBy, filters?.sortOrder])
 
   useEffect(() => {
     fetchLeads()
@@ -49,6 +54,7 @@ export function useLeads(filters?: LeadFilters) {
 }
 
 export function useLead(leadId: string | null) {
+  const { activeVenue } = useVenueContext()
   const [data, setData] = useState<{
     lead: any
     conversation: any
@@ -64,7 +70,9 @@ export function useLead(leadId: string | null) {
       setLoading(true)
       setError(null)
 
-      const res = await fetch(`/api/leads/${leadId}`)
+      const headers = withVenueHeader(activeVenue?.id)
+
+      const res = await fetch(`/api/leads/${leadId}`, { headers })
       if (!res.ok) throw new Error("Failed to fetch lead")
 
       const result = await res.json()
@@ -74,7 +82,7 @@ export function useLead(leadId: string | null) {
     } finally {
       setLoading(false)
     }
-  }, [leadId])
+  }, [leadId, activeVenue?.id])
 
   useEffect(() => {
     fetchLead()
@@ -84,15 +92,18 @@ export function useLead(leadId: string | null) {
 }
 
 export function useUpdateLead() {
+  const { activeVenue } = useVenueContext()
   const [updating, setUpdating] = useState(false)
 
   const updateLead = useCallback(
     async (leadId: string, updates: Record<string, unknown>) => {
       setUpdating(true)
       try {
+        const headers: HeadersInit = { "Content-Type": "application/json", ...withVenueHeader(activeVenue?.id) }
+
         const res = await fetch(`/api/leads/${leadId}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify(updates),
         })
         if (!res.ok) throw new Error("Failed to update lead")
@@ -101,24 +112,27 @@ export function useUpdateLead() {
         setUpdating(false)
       }
     },
-    []
+    [activeVenue?.id]
   )
 
   return { updateLead, updating }
 }
 
 export function useAddActivity() {
+  const { activeVenue } = useVenueContext()
   const addActivity = useCallback(
     async (leadId: string, activityType: string, description: string) => {
+      const headers: HeadersInit = { "Content-Type": "application/json", ...withVenueHeader(activeVenue?.id) }
+
       const res = await fetch(`/api/leads/${leadId}/activities`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ activity_type: activityType, description }),
       })
       if (!res.ok) throw new Error("Failed to add activity")
       return await res.json()
     },
-    []
+    [activeVenue?.id]
   )
 
   return { addActivity }

@@ -555,7 +555,7 @@ CREATE TABLE IF NOT EXISTS usage_tracking (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
     month DATE NOT NULL,
-    spaces_created INTEGER DEFAULT 0,
+    venues_created INTEGER DEFAULT 0,
     events_created INTEGER DEFAULT 0,
     vendors_created INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -710,6 +710,213 @@ SET outreach_status = CASE
 END,
 status_updated_at = COALESCE(confirmed_at, created_at)
 WHERE outreach_status IS NULL OR outreach_status = 'pending'::vendor_outreach_status;
+
+
+-- =====================================================
+-- MIGRATION 12: Multi-Venue Support
+-- =====================================================
+-- Removes the one-venue-per-user constraint and adds
+-- is_default flag so each user has a designated default venue.
+-- =====================================================
+
+-- Drop UNIQUE constraint on owner_id (was enforcing one venue per user)
+ALTER TABLE venues DROP CONSTRAINT IF EXISTS venues_owner_id_key;
+
+-- Add is_default column
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT false;
+
+-- Mark existing single venues as default
+UPDATE venues v
+SET is_default = true
+WHERE is_default = false
+  AND NOT EXISTS (
+    SELECT 1 FROM venues v2
+    WHERE v2.owner_id = v.owner_id AND v2.is_default = true
+  );
+
+CREATE INDEX IF NOT EXISTS idx_venues_owner_id ON venues(owner_id);
+CREATE INDEX IF NOT EXISTS idx_venues_owner_default ON venues(owner_id, is_default);
+
+
+-- =====================================================
+-- MIGRATION 13: Rename spaces_created to venues_created
+-- =====================================================
+-- Aligns usage_tracking column name with the multi-venue model.
+-- =====================================================
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'usage_tracking' AND column_name = 'spaces_created'
+  ) THEN
+    ALTER TABLE usage_tracking RENAME COLUMN spaces_created TO venues_created;
+  END IF;
+END $$;
+
+
+-- =====================================================
+-- MIGRATION: Proposals E-Signature Fields (M5)
+-- =====================================================
+-- Adds public_token and e-signature capture columns to proposals.
+-- Extends lead_activities activity_type CHECK to include accepted/declined.
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'proposals' AND column_name = 'public_token'
+  ) THEN
+    ALTER TABLE proposals ADD COLUMN public_token UUID UNIQUE NOT NULL DEFAULT gen_random_uuid();
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'proposals' AND column_name = 'accepted_by_name'
+  ) THEN
+    ALTER TABLE proposals ADD COLUMN accepted_by_name TEXT;
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'proposals' AND column_name = 'accepted_at'
+  ) THEN
+    ALTER TABLE proposals ADD COLUMN accepted_at TIMESTAMP WITH TIME ZONE;
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'proposals' AND column_name = 'accepted_ip'
+  ) THEN
+    ALTER TABLE proposals ADD COLUMN accepted_ip TEXT;
+  END IF;
+END $$;
+
+ALTER TABLE lead_activities
+  DROP CONSTRAINT IF EXISTS lead_activities_activity_type_check;
+
+ALTER TABLE lead_activities
+  ADD CONSTRAINT lead_activities_activity_type_check
+  CHECK (activity_type IN (
+    'created', 'email_sent', 'email_opened', 'proposal_sent',
+    'proposal_viewed', 'call_scheduled', 'call_completed',
+    'note_added', 'status_changed', 'assigned',
+    'proposal_accepted', 'proposal_declined'
+  ));
+
+
+-- =====================================================
+-- MIGRATION 14: Venue Photos Storage Bucket
+-- =====================================================
+-- Creates the venue-photos Supabase Storage bucket and
+-- RLS policies. Idempotent — safe to re-run.
+-- =====================================================
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+SELECT
+  'venue-photos',
+  'venue-photos',
+  true,
+  10485760, -- 10 MB
+  ARRAY['image/jpeg', 'image/png', 'image/webp']
+WHERE NOT EXISTS (
+  SELECT 1 FROM storage.buckets WHERE id = 'venue-photos'
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects'
+      AND policyname = 'Public can view venue photos'
+  ) THEN
+    CREATE POLICY "Public can view venue photos"
+      ON storage.objects FOR SELECT
+      USING (bucket_id = 'venue-photos');
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects'
+      AND policyname = 'Venue owners can upload venue photos'
+  ) THEN
+    CREATE POLICY "Venue owners can upload venue photos"
+      ON storage.objects FOR INSERT TO authenticated
+      WITH CHECK (
+        bucket_id = 'venue-photos'
+        AND EXISTS (
+          SELECT 1 FROM venues
+          WHERE venues.owner_id = auth.uid()
+            AND split_part(storage.objects.name, '/', 1) = venues.id::text
+        )
+      );
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects'
+      AND policyname = 'Venue owners can delete venue photos'
+  ) THEN
+    CREATE POLICY "Venue owners can delete venue photos"
+      ON storage.objects FOR DELETE TO authenticated
+      USING (
+        bucket_id = 'venue-photos'
+        AND EXISTS (
+          SELECT 1 FROM venues
+          WHERE venues.owner_id = auth.uid()
+            AND split_part(storage.objects.name, '/', 1) = venues.id::text
+        )
+      );
+  END IF;
+END $$;
+
+
+-- =====================================================
+-- MIGRATION 15: Proposals Storage Bucket
+-- =====================================================
+-- Creates the proposals Supabase Storage bucket for
+-- PDF attachments. Service role uploads via admin client.
+-- Idempotent — safe to re-run.
+-- =====================================================
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+SELECT
+  'proposals',
+  'proposals',
+  true,
+  20971520, -- 20 MB
+  ARRAY['application/pdf']
+WHERE NOT EXISTS (
+  SELECT 1 FROM storage.buckets WHERE id = 'proposals'
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects'
+      AND policyname = 'Public can view proposal PDFs'
+  ) THEN
+    CREATE POLICY "Public can view proposal PDFs"
+      ON storage.objects FOR SELECT
+      USING (bucket_id = 'proposals');
+  END IF;
+END $$;
 
 
 -- =====================================================

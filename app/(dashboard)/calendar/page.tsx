@@ -84,7 +84,9 @@ export default function CalendarPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Calendar</h1>
+        <h1 data-testid="calendar-page-title" className="text-3xl font-bold text-slate-900">
+          Calendar
+        </h1>
         <p className="text-slate-600 mt-1">
           View and manage your event bookings across all venues
         </p>

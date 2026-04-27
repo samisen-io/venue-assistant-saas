@@ -10,7 +10,6 @@ import { AvailabilityCalendar } from "@/components/public-page/AvailabilityCalen
 import { LocationContact } from "@/components/public-page/LocationContact"
 import { TestimonialsCarousel } from "@/components/public-page/TestimonialsCarousel"
 import { PricingPackages } from "@/components/public-page/PricingPackages"
-import { FooterCTA } from "@/components/public-page/FooterCTA"
 import { InquiryForm } from "@/components/public-page/InquiryForm"
 import { EmbeddedChat } from "@/components/public-page/EmbeddedChat"
 import { ChatWidget } from "@/components/public-page/ChatWidget"
@@ -72,12 +71,22 @@ export default async function PublicVenuePage({
   const { venue } = data
   const privacySettings = (venue.privacy_settings as { hide_phone?: boolean; hide_email?: boolean; hide_address?: boolean } | null) ?? null
   if (venue.page_status !== "published") {
-    return (
-      <main className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <h1 className="text-3xl font-semibold">This page is not currently available</h1>
-        <p className="mt-3 text-muted-foreground">Please check back later or contact the venue directly.</p>
-      </main>
-    )
+    notFound()
+  }
+
+  const { createServiceRoleClient } = await import("@/lib/supabase/server")
+  const supabase = createServiceRoleClient()
+  const { data: sub } = await (supabase as any).from("subscriptions").select("*").eq("user_id", venue.owner_id).single()
+
+  if (sub?.status === 'trialing' && sub?.trial_ends_at && new Date(sub.trial_ends_at).getTime() < Date.now()) {
+      return (
+          <div className="min-h-[70vh] flex items-center justify-center bg-background px-4">
+              <div className="max-w-md text-center space-y-4">
+                  <h1 className="text-3xl font-bold">Temporarily Unavailable</h1>
+                  <p className="text-muted-foreground">This venue is currently updating their booking system. Please check back soon.</p>
+              </div>
+          </div>
+      )
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://venuemanager.pro"
@@ -205,7 +214,14 @@ export default async function PublicVenuePage({
           <aside className="lg:sticky lg:top-24 lg:h-fit">
             <div className="space-y-4">
               <InquiryForm slug={venueSlug} />
-              <EmbeddedChat slug={venueSlug} greeting={null} />
+              <EmbeddedChat
+              slug={venueSlug}
+              greeting={null}
+              phone={venue.phone}
+              email={venue.email}
+              hidePhone={privacySettings?.hide_phone === true}
+              hideEmail={privacySettings?.hide_email === true}
+            />
 
               <FooterCTA
                 phone={venue.phone}
@@ -222,6 +238,10 @@ export default async function PublicVenuePage({
         slug={venueSlug}
         venueName={venue.name}
         greeting={null}
+        phone={venue.phone}
+        email={venue.email}
+        hidePhone={privacySettings?.hide_phone === true}
+        hideEmail={privacySettings?.hide_email === true}
       />
     </main>
   )

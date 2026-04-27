@@ -16,6 +16,8 @@ import { MobileFilters } from "@/components/shared/MobileFilters";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCanCreate } from "@/hooks/useSubscription";
 import { UpgradePrompt } from "@/components/subscription/UpgradePrompt";
+import { useVenueContext } from "@/lib/context/VenueContext";
+import { withVenueHeader } from "@/lib/utils/venueHeader";
 import {
     Select,
     SelectContent,
@@ -42,6 +44,7 @@ export default function EventsPage() {
     const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
     const isMobile = useIsMobile();
     const { canCreate, reason: limitReason } = useCanCreate("event");
+    const { activeVenue } = useVenueContext();
     const [viewMode, setViewMode] = useState<ViewMode>(() => {
         if (typeof window !== "undefined") {
             return (localStorage.getItem("viewMode:events") as ViewMode) || "grid";
@@ -61,7 +64,8 @@ export default function EventsPage() {
         setIsLoading(true);
         setError("");
         try {
-            const res = await fetch("/api/events");
+            const headers = withVenueHeader(activeVenue?.id);
+            const res = await fetch("/api/events", { headers });
             if (!res.ok) throw new Error("Failed to fetch events");
             const data = await res.json();
             setEvents(data);
@@ -74,7 +78,7 @@ export default function EventsPage() {
 
     useEffect(() => {
         fetchEvents();
-    }, []);
+    }, [activeVenue?.id]);
 
     const filteredEvents = events.filter((event) => {
         const matchesSearch = event.event_name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -93,14 +97,14 @@ export default function EventsPage() {
                 <div className="flex items-center gap-3">
                     <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
                     {canCreate ? (
-                        <Button asChild>
+                        <Button asChild data-testid="create-event-btn">
                             <Link href="/events/new">
                                 <Plus className="mr-2 h-4 w-4" />
                                 Create Event
                             </Link>
                         </Button>
                     ) : (
-                        <Button onClick={() => setShowUpgradePrompt(true)}>
+                        <Button data-testid="create-event-btn" onClick={() => setShowUpgradePrompt(true)}>
                             <Plus className="mr-2 h-4 w-4" />
                             Create Event
                         </Button>
@@ -138,10 +142,10 @@ export default function EventsPage() {
 
             {filteredEvents.length === 0 ? (
                 <EmptyState
-                    title={searchTerm || selectedStatus !== "all" ? "No matches found" : "No events found"}
+                    title={searchTerm || selectedStatus !== "all" ? "No matches found" : "No events yet"}
                     description={searchTerm || selectedStatus !== "all"
                         ? "Try adjusting your search filters to find more events."
-                        : "Create your first event to start managing vendors, tracking budgets, and coordinating details."}
+                        : "No events yet — convert a lead to book your first event."}
                     actionLabel={searchTerm || selectedStatus !== "all" ? "Clear Filters" : "Create Event"}
                     {...(searchTerm || selectedStatus !== "all"
                         ? {

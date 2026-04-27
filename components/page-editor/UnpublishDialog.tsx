@@ -58,6 +58,7 @@ export function UnpublishDialog({
   return (
     <>
       <Button
+        data-testid="unpublish-btn"
         variant="destructive"
         size="sm"
         onClick={() => setOpen(true)}

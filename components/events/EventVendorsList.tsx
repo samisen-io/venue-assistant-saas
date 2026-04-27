@@ -282,7 +282,7 @@ export function EventVendorsList({ eventId, refreshKey }: EventVendorsListProps)
     return (
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h3 className="text-lg font-semibold">Event Vendors</h3>
+                <h3 data-testid="event-vendors-title" className="text-lg font-semibold">Event Vendors</h3>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Filter by status" />
@@ -312,6 +312,8 @@ export function EventVendorsList({ eventId, refreshKey }: EventVendorsListProps)
                     return (
                         <Card
                             key={association.id}
+                            data-testid="event-vendor-card"
+                            data-vendor-id={vendor.id}
                             className={`overflow-hidden ${
                                 status === "needs_attention" ? "border-yellow-300 bg-yellow-50/30" :
                                 status === "confirmed" ? "border-green-200" :
