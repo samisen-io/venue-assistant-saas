@@ -10,7 +10,7 @@ import { Loading } from "@/components/shared/Loading";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { PLAN_LIMITS } from "@/lib/stripe/config";
-import type { PlanTier } from "@/lib/stripe/config";
+import { getPlanLimits } from "@/lib/subscription/limits";
 import { getSafeRedirectUrl } from "@/lib/utils/safeUrl";
 
 interface Subscription {
@@ -75,8 +75,9 @@ export default function SubscriptionPage() {
 
     if (isLoading) return <Loading />;
 
-    const tier = (subscription?.plan_tier || "trial") as PlanTier;
-    const limits = PLAN_LIMITS[tier] || PLAN_LIMITS.trial;
+    const tier = subscription?.plan_tier || "trial";
+    const limits = getPlanLimits(tier);
+    const isAppSumo = tier.startsWith("appsumo_");
 
     return (
         <div className="max-w-4xl space-y-8 animate-in fade-in duration-500">
@@ -119,20 +120,22 @@ export default function SubscriptionPage() {
                                         Trial ends: {new Date(subscription.trial_ends_at).toLocaleDateString()}
                                     </p>
                                 )}
-                                <div className="flex gap-3 pt-2">
-                                    <Button onClick={handleManageSubscription} disabled={isPortalLoading}>
-                                        <CreditCard className="mr-2 h-4 w-4" />
-                                        {isPortalLoading ? "Loading..." : "Manage Subscription"}
-                                    </Button>
-                                    {tier !== "enterprise" && (
-                                        <Button variant="outline" asChild>
-                                            <Link href="/pricing">
-                                                <ArrowUpCircle className="mr-2 h-4 w-4" />
-                                                Upgrade Plan
-                                            </Link>
+                                {!isAppSumo && (
+                                    <div className="flex gap-3 pt-2">
+                                        <Button onClick={handleManageSubscription} disabled={isPortalLoading}>
+                                            <CreditCard className="mr-2 h-4 w-4" />
+                                            {isPortalLoading ? "Loading..." : "Manage Subscription"}
                                         </Button>
-                                    )}
-                                </div>
+                                        {tier !== "enterprise" && (
+                                            <Button variant="outline" asChild>
+                                                <Link href="/pricing">
+                                                    <ArrowUpCircle className="mr-2 h-4 w-4" />
+                                                    Upgrade Plan
+                                                </Link>
+                                            </Button>
+                                        )}
+                                    </div>
+                                )}
                             </>
                         ) : (
                             <div className="text-center py-6">

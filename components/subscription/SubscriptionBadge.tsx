@@ -14,6 +14,9 @@ const tierColors: Record<string, string> = {
     starter: "bg-blue-100 text-blue-800 border-blue-200",
     professional: "bg-purple-100 text-purple-800 border-purple-200",
     enterprise: "bg-emerald-100 text-emerald-800 border-emerald-200",
+    appsumo_tier_1: "bg-indigo-100 text-indigo-800 border-indigo-200",
+    appsumo_tier_2: "bg-indigo-100 text-indigo-800 border-indigo-200",
+    appsumo_tier_3: "bg-indigo-100 text-indigo-800 border-indigo-200",
 };
 
 const statusColors: Record<string, string> = {
@@ -25,7 +28,10 @@ const statusColors: Record<string, string> = {
 };
 
 export function SubscriptionBadge({ tier, status, className }: SubscriptionBadgeProps) {
-    const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
+    const isAppSumo = tier.startsWith("appsumo_");
+    const tierLabel = isAppSumo 
+        ? "AppSumo Lifetime Deal" 
+        : tier.charAt(0).toUpperCase() + tier.slice(1);
 
     return (
         <div className={cn("flex items-center gap-2", className)}>
