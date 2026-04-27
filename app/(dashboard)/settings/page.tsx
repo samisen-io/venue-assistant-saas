@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { User, Shield, Bell, CreditCard } from "lucide-react";
+import { User, Shield, Bell, CreditCard, Calendar } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Profile } from "@/lib/types";
 import { Loading } from "@/components/shared/Loading";
+import { useVenueContext } from "@/lib/context/VenueContext";
 
 interface NotificationPrefs {
     emailEnabled: boolean;
@@ -22,6 +23,7 @@ interface NotificationPrefs {
 
 export default function SettingsPage() {
     const { toast } = useToast();
+    const { activeVenue } = useVenueContext();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -198,6 +200,31 @@ export default function SettingsPage() {
                                 <Link href="/settings/subscription">Manage</Link>
                             </Button>
                         </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Calendar className="h-5 w-5" />
+                            Calendar Sync
+                        </CardTitle>
+                        <CardDescription>Sync your venue events to external calendars like Google Calendar or Apple Calendar.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {activeVenue ? (
+                            <div className="flex flex-col sm:flex-row items-center gap-4">
+                                <Input readOnly value={`${typeof window !== 'undefined' ? window.location.origin : ''}/api/venues/${activeVenue.id}/calendar.ics`} />
+                                <Button className="w-full sm:w-auto" variant="outline" onClick={() => {
+                                    navigator.clipboard.writeText(`${window.location.origin}/api/venues/${activeVenue.id}/calendar.ics`);
+                                    toast({ title: "Copied!", description: "Calendar URL copied to clipboard" });
+                                }}>
+                                    Copy Link
+                                </Button>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">Select a venue to sync its calendar.</p>
+                        )}
                     </CardContent>
                 </Card>
 

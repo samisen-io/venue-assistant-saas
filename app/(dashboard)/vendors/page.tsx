@@ -40,7 +40,7 @@ function VendorEmptyState({ hasFilters, onClearFilters }: Readonly<{ hasFilters:
     return (
         <EmptyState
             title="No vendors found"
-            description="Add vendors to your database to track performance and get AI-powered recommendations for events."
+            description="No vendors added — add your preferred caterers and photographers."
             actionLabel="Add Vendor"
             actionHref="/vendors/new"
         />
