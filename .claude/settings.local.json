@@ -45,7 +45,8 @@
       "Bash(PATH=\"/usr/local/bin:$PATH\" npm run build)",
       "Bash(/usr/local/bin/node /usr/local/bin/npx next build)",
       "Bash(/usr/local/bin/node ./node_modules/.bin/tsc --noEmit)",
-      "PowerShell(npm run build 2>&1)"
+      "PowerShell(npm run build 2>&1)",
+      "PowerShell(\\(Get-Content \"c:\\\\Users\\\\prashant\\\\Repos\\\\venue-assistant-saas\\\\.env.local\" | Select-String \"ANTHROPIC_API_KEY\"\\).Line.Length)"
     ],
     "additionalDirectories": [
       "c:\\Users\\prashant\\repos\\venue-assistant-saas\\app\\api\\venues\\public\\[slug]",

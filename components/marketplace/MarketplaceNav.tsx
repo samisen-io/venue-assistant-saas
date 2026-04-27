@@ -14,7 +14,7 @@ import {
 
 const navLinks = [
   { href: "/search", label: "Search Venues" },
-  { href: "#how-it-works", label: "How It Works" },
+  { href: "/#how-it-works", label: "How It Works" },
   { href: "/for-venues", label: "For Venue Managers" },
 ]
 

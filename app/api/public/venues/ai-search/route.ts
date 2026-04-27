@@ -112,15 +112,22 @@ export async function POST(request: NextRequest) {
         `city.ilike.%${extraction.location}%,state.ilike.%${extraction.location}%`
       )
     }
-    if (extraction.venue_type) {
-      dbQuery = dbQuery.ilike("venue_type", `%${extraction.venue_type}%`)
-    }
+    // Note: venue_type is intentionally NOT filtered at DB level here.
+    // Many venues are categorised as "hotel" or "banquet_hall" but describe
+    // themselves as "rooftop", "barn", etc. in their name/description.
+    // We include the extracted venue_type as a keyword so those venues are found.
+
     // Note: capacity is on spaces table, filtered post-query
 
-    // Keyword search on name/description using trigram indexes
-    if (extraction.keywords.length > 0) {
-      const keywordFilter = extraction.keywords
-        .map((k) => `name.ilike.%${k}%,description.ilike.%${k}%`)
+    // Keyword search on name/description — includes extracted venue_type so that
+    // e.g. "rooftop" finds "Skyline Rooftop Austin" even if its venue_type is "hotel".
+    const searchTerms = [
+      ...extraction.keywords,
+      ...(extraction.venue_type ? [extraction.venue_type.replace(/_/g, " ")] : []),
+    ]
+    if (searchTerms.length > 0) {
+      const keywordFilter = searchTerms
+        .map((k) => `name.ilike.%${k}%,description.ilike.%${k}%,tagline.ilike.%${k}%`)
         .join(",")
       dbQuery = dbQuery.or(keywordFilter)
     }
@@ -146,15 +153,17 @@ export async function POST(request: NextRequest) {
     let filtered = venues || []
     if (extraction.event_types.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      filtered = filtered.filter((v: any) =>
-        (v.venue_event_types || []).some(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (et: any) =>
-            extraction.event_types.some((t) =>
-              et.event_type_key?.toLowerCase().includes(t.toLowerCase())
-            )
+      filtered = filtered.filter((v: any) => {
+        const types = v.venue_event_types || []
+        // If venue has no event types listed, include it — don't penalise incomplete data.
+        if (types.length === 0) return true
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return types.some((et: any) =>
+          extraction.event_types.some((t) =>
+            et.event_type_key?.toLowerCase().includes(t.toLowerCase())
+          )
         )
-      )
+      })
     }
     if (extraction.amenities.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -15,7 +15,7 @@ const getClaudeClient = () => {
 
 // Get the model to use from environment
 export const getClaudeModel = (): string => {
-  return process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514'
+  return process.env.CLAUDE_MODEL || 'claude-sonnet-4-6'
 }
 
 // Check if AI features are enabled
