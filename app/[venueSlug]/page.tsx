@@ -222,13 +222,6 @@ export default async function PublicVenuePage({
               hidePhone={privacySettings?.hide_phone === true}
               hideEmail={privacySettings?.hide_email === true}
             />
-
-              <FooterCTA
-                phone={venue.phone}
-                email={venue.email}
-                hidePhone={privacySettings?.hide_phone === true}
-                hideEmail={privacySettings?.hide_email === true}
-              />
             </div>
           </aside>
         </div>

@@ -84,10 +84,10 @@ test.describe('3.1 NLP Event Creation — mocked AI extraction', () => {
     await expect(page.getByText(/event details extracted/i)).toBeVisible({ timeout: 10_000 });
 
     // Form should be pre-populated — guest count visible in the form
-    await expect(page.getByDisplayValue('80')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('input[value="80"], textarea[value="80"]')).toBeVisible({ timeout: 5_000 });
 
     // Budget should be pre-populated
-    await expect(page.getByDisplayValue('5000')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('input[value="5000"], textarea[value="5000"]')).toBeVisible({ timeout: 5_000 });
 
     // Intercept the POST /api/events to capture the created ID
     const createResponse = page.waitForResponse(

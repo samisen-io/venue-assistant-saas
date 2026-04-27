@@ -37,6 +37,23 @@ export interface SeedDataResult {
 }
 
 
+async function safeDeleteWhereNotEq(
+  supabase: SupabaseClient,
+  table: string,
+  column: string = 'id'
+): Promise<void> {
+  const { error } = await supabase
+    .from(table as unknown as never)
+    .delete()
+    .neq(column, '00000000-0000-0000-0000-000000000000');
+
+  if (error) {
+    const code = (error as { code?: string })?.code;
+    if (code === '42P01') return;
+    throw error;
+  }
+}
+
 export async function clearAllData(
   supabase: SupabaseClient,
   userId: string

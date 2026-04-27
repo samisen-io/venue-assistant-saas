@@ -48,10 +48,10 @@ export function Sidebar() {
     const { toast } = useToast();
     const [isSeeding, setIsSeeding] = useState(false);
     const [planTier, setPlanTier] = useState<string | null>(null);
-    const [venueSlug, setVenueSlug] = useState<string | null>(null);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [userEmail, setUserEmail] = useState<string | null>(null);
     const { activeVenue } = useVenueContext();
+
 
     useEffect(() => {
         fetch("/api/subscription")
@@ -60,7 +60,6 @@ export function Sidebar() {
             .catch(() => {});
         supabase.auth.getUser().then(({ data }) => {
             if (data.user?.email) setUserEmail(data.user.email);
-                    setVenueSlug(data[0].slug || null);
         });
     }, []);
 
@@ -98,6 +97,7 @@ export function Sidebar() {
     const venueItems = activeVenue ? [
         { title: "Public Page", href: `/venues/${activeVenue.id}/public-page`, icon: Globe },
         { title: "Analytics", href: `/venues/${activeVenue.id}/analytics`, icon: TrendingUp },
+        ...(activeVenue.slug ? [{ title: "View Live Page", href: `/${activeVenue.slug}`, icon: ExternalLink, external: true }] : []),
     ] : [];
 
     return (

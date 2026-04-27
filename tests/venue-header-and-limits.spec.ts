@@ -100,6 +100,7 @@ test.describe('2.4 withVenueHeader — X-Venue-Id sent from dashboard pages', ()
     // Verify the utility behaviour via in-page evaluation (no network needed)
     const result = await page.evaluate(async () => {
       // Dynamic import mirrors what the compiled bundle exports
+      // @ts-ignore — browser URL path, not a Node module path
       const mod = await import('/lib/utils/venueHeader.js').catch(() => null);
       if (!mod) return null;
       return {
