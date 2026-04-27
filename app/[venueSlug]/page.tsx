@@ -71,6 +71,21 @@ export default async function PublicVenuePage({
     notFound()
   }
 
+  const { createServiceRoleClient } = await import("@/lib/supabase/server")
+  const supabase = createServiceRoleClient()
+  const { data: sub } = await (supabase as any).from("subscriptions").select("*").eq("user_id", venue.owner_id).single()
+
+  if (sub?.status === 'trialing' && sub?.trial_ends_at && new Date(sub.trial_ends_at).getTime() < Date.now()) {
+      return (
+          <div className="min-h-[70vh] flex items-center justify-center bg-background px-4">
+              <div className="max-w-md text-center space-y-4">
+                  <h1 className="text-3xl font-bold">Temporarily Unavailable</h1>
+                  <p className="text-muted-foreground">This venue is currently updating their booking system. Please check back soon.</p>
+              </div>
+          </div>
+      )
+  }
+
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://venuemanager.pro"
 
   const addressSchema = {

@@ -1,8 +1,24 @@
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { PLAN_LIMITS, PlanTier } from '@/lib/stripe/config'
 
-export function getPlanLimits(tier: PlanTier) {
-    return PLAN_LIMITS[tier] || PLAN_LIMITS.trial
+export function getPlanLimits(tier: PlanTier | string) {
+    if (tier === 'appsumo_tier_1') return PLAN_LIMITS.starter
+    if (tier === 'appsumo_tier_2') return PLAN_LIMITS.professional
+    if (tier === 'appsumo_tier_3') return PLAN_LIMITS.enterprise
+    return PLAN_LIMITS[tier as PlanTier] || PLAN_LIMITS.trial
+}
+
+function checkSubscriptionStatus(subscription: any) {
+    if (!subscription) {
+        return { allowed: false, reason: 'No active subscription. Please subscribe to a plan.' }
+    }
+    if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+        return { allowed: false, reason: 'Your subscription is not active. Please update your billing.' }
+    }
+    if (subscription.status === 'trialing' && subscription.trial_ends_at && new Date(subscription.trial_ends_at).getTime() < Date.now()) {
+        return { allowed: false, reason: 'Your trial has expired. Please upgrade to a paid plan.' }
+    }
+    return { allowed: true }
 }
 
 async function getUserSubscription(userId: string) {
@@ -35,13 +51,10 @@ export async function canCreateSpace(userId: string): Promise<{ allowed: boolean
 
 export async function canCreateVenue(userId: string): Promise<{ allowed: boolean; reason?: string }> {
     const subscription = await getUserSubscription(userId)
-    if (!subscription) {
-        return { allowed: false, reason: 'No active subscription. Please subscribe to a plan.' }
-    }
-    if (subscription.status !== 'active' && subscription.status !== 'trialing') {
-        return { allowed: false, reason: 'Your subscription is not active. Please update your billing.' }
-    }
-    const limits = getPlanLimits(subscription.plan_tier as PlanTier)
+    const statusCheck = checkSubscriptionStatus(subscription)
+    if (!statusCheck.allowed) return statusCheck
+    
+    const limits = getPlanLimits(subscription!.plan_tier as PlanTier)
     if (limits.maxVenues === Infinity) return { allowed: true }
 
     // Count existing venues directly (not usage_tracking) for accuracy
@@ -61,13 +74,10 @@ export async function canCreateVenue(userId: string): Promise<{ allowed: boolean
 
 export async function canCreateEvent(userId: string): Promise<{ allowed: boolean; reason?: string }> {
     const subscription = await getUserSubscription(userId)
-    if (!subscription) {
-        return { allowed: false, reason: 'No active subscription. Please subscribe to a plan.' }
-    }
-    if (subscription.status !== 'active' && subscription.status !== 'trialing') {
-        return { allowed: false, reason: 'Your subscription is not active. Please update your billing.' }
-    }
-    const limits = getPlanLimits(subscription.plan_tier as PlanTier)
+    const statusCheck = checkSubscriptionStatus(subscription)
+    if (!statusCheck.allowed) return statusCheck
+    
+    const limits = getPlanLimits(subscription!.plan_tier as PlanTier)
     if (limits.maxEventsPerMonth === Infinity) return { allowed: true }
 
     const usage = await getCurrentUsage(userId)
@@ -79,13 +89,10 @@ export async function canCreateEvent(userId: string): Promise<{ allowed: boolean
 
 export async function canCreateVendor(userId: string): Promise<{ allowed: boolean; reason?: string }> {
     const subscription = await getUserSubscription(userId)
-    if (!subscription) {
-        return { allowed: false, reason: 'No active subscription. Please subscribe to a plan.' }
-    }
-    if (subscription.status !== 'active' && subscription.status !== 'trialing') {
-        return { allowed: false, reason: 'Your subscription is not active. Please update your billing.' }
-    }
-    const limits = getPlanLimits(subscription.plan_tier as PlanTier)
+    const statusCheck = checkSubscriptionStatus(subscription)
+    if (!statusCheck.allowed) return statusCheck
+    
+    const limits = getPlanLimits(subscription!.plan_tier as PlanTier)
     if (limits.maxVendors === Infinity) return { allowed: true }
 
     const usage = await getCurrentUsage(userId)
@@ -122,13 +129,10 @@ async function getUserVenueId(userId: string, preferredVenueId?: string): Promis
 
 export async function canUploadPhoto(userId: string, venueId?: string): Promise<{ allowed: boolean; reason?: string }> {
     const subscription = await getUserSubscription(userId)
-    if (!subscription) {
-        return { allowed: false, reason: 'No active subscription. Please subscribe to a plan.' }
-    }
-    if (subscription.status !== 'active' && subscription.status !== 'trialing') {
-        return { allowed: false, reason: 'Your subscription is not active. Please update your billing.' }
-    }
-    const limits = getPlanLimits(subscription.plan_tier as PlanTier)
+    const statusCheck = checkSubscriptionStatus(subscription)
+    if (!statusCheck.allowed) return statusCheck
+    
+    const limits = getPlanLimits(subscription!.plan_tier as PlanTier)
     if (limits.maxPhotos === Infinity) return { allowed: true }
 
     const resolvedVenueId = await getUserVenueId(userId, venueId)
@@ -147,13 +151,10 @@ export async function canUploadPhoto(userId: string, venueId?: string): Promise<
 
 export async function canSendChatMessage(userId: string, venueId?: string): Promise<{ allowed: boolean; reason?: string }> {
     const subscription = await getUserSubscription(userId)
-    if (!subscription) {
-        return { allowed: false, reason: 'No active subscription. Please subscribe to a plan.' }
-    }
-    if (subscription.status !== 'active' && subscription.status !== 'trialing') {
-        return { allowed: false, reason: 'Your subscription is not active. Please update your billing.' }
-    }
-    const limits = getPlanLimits(subscription.plan_tier as PlanTier)
+    const statusCheck = checkSubscriptionStatus(subscription)
+    if (!statusCheck.allowed) return statusCheck
+    
+    const limits = getPlanLimits(subscription!.plan_tier as PlanTier)
     if (limits.maxAIChatMessagesPerMonth === Infinity) return { allowed: true }
 
     const resolvedVenueId = await getUserVenueId(userId, venueId)
@@ -176,13 +177,10 @@ export async function canSendChatMessage(userId: string, venueId?: string): Prom
 
 export async function canCreateLead(userId: string): Promise<{ allowed: boolean; reason?: string }> {
     const subscription = await getUserSubscription(userId)
-    if (!subscription) {
-        return { allowed: false, reason: 'No active subscription. Please subscribe to a plan.' }
-    }
-    if (subscription.status !== 'active' && subscription.status !== 'trialing') {
-        return { allowed: false, reason: 'Your subscription is not active. Please update your billing.' }
-    }
-    const limits = getPlanLimits(subscription.plan_tier as PlanTier)
+    const statusCheck = checkSubscriptionStatus(subscription)
+    if (!statusCheck.allowed) return statusCheck
+    
+    const limits = getPlanLimits(subscription!.plan_tier as PlanTier)
     if (limits.maxLeadsPerMonth === Infinity) return { allowed: true }
 
     const venueId = await getUserVenueId(userId)

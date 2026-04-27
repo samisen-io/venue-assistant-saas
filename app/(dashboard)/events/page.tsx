@@ -142,10 +142,10 @@ export default function EventsPage() {
 
             {filteredEvents.length === 0 ? (
                 <EmptyState
-                    title={searchTerm || selectedStatus !== "all" ? "No matches found" : "No events found"}
+                    title={searchTerm || selectedStatus !== "all" ? "No matches found" : "No events yet"}
                     description={searchTerm || selectedStatus !== "all"
                         ? "Try adjusting your search filters to find more events."
-                        : "Create your first event to start managing vendors, tracking budgets, and coordinating details."}
+                        : "No events yet — convert a lead to book your first event."}
                     actionLabel={searchTerm || selectedStatus !== "all" ? "Clear Filters" : "Create Event"}
                     {...(searchTerm || selectedStatus !== "all"
                         ? {

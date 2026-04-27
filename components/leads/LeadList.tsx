@@ -135,10 +135,19 @@ export function LeadList() {
           description={
             activeFilterCount > 0
               ? "No leads match your current filters."
-              : "Leads from AI chat conversations and manual entries will appear here."
+              : "No leads yet — share your page link to start getting inquiries."
           }
-          actionLabel={activeFilterCount > 0 ? undefined : "Add Lead"}
-          actionHref={activeFilterCount > 0 ? undefined : "/leads/new"}
+          actionLabel={activeFilterCount > 0 ? "Clear Filters" : "Add Lead"}
+          {...(activeFilterCount > 0
+            ? {
+                onAction: () => {
+                  setSearch("");
+                  setStatus("all");
+                  setSource("all");
+                }
+              }
+            : { actionHref: "/leads/new" }
+          )}
         />
       ) : isMobile || viewMode === "grid" ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
