@@ -6,3 +6,4 @@ graphify-out/
 docs/translations/
 *.generated.*
 .graphifyignore
+**/error.tsx
