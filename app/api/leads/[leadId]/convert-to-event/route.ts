@@ -2,17 +2,21 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-async function getAuthedVenueId(supabase: any) {
+async function getAuthedUserAndVenue(supabase: any) {
     const {
         data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return null;
-    const { data: venue } = await supabase
-        .from("venues")
-        .select("id")
-        .eq("owner_id", user.id)
-        .single();
-    return venue?.id ?? null;
+    if (!user) return { user: null, venueId: null };
+    
+    // Check old owner_id or new venue_team_members
+    const { data: member } = await supabase
+        .from("venue_team_members")
+        .select("venue_id")
+        .eq("profile_id", user.id)
+        .limit(1)
+        .maybeSingle();
+        
+    return { user, venueId: member?.venue_id ?? null };
 }
 
 export async function POST(
@@ -21,8 +25,8 @@ export async function POST(
 ) {
     try {
         const supabase = await createClient();
-        const venueId = await getAuthedVenueId(supabase);
-        if (!venueId) return new NextResponse("Unauthorized", { status: 401 });
+        const { user, venueId } = await getAuthedUserAndVenue(supabase);
+        if (!user || !venueId) return new NextResponse("Unauthorized", { status: 401 });
 
         const { leadId } = await params;
 
@@ -141,12 +145,24 @@ export async function POST(
             })
             .eq("id", leadId);
 
-        // Create a lead activity
+        // Create a lead activity (legacy)
         await (supabase as any).from("lead_activities").insert({
             lead_id: leadId,
             activity_type: "converted_to_event",
             description: `Lead converted to event: ${event.event_name}`,
             metadata: { event_id: event.id },
+        });
+
+        // Global Audit Trail
+        const { logActivity } = await import("@/lib/audit/logger");
+        await logActivity({
+            venueId,
+            actorId: user.id,
+            actionType: "create",
+            entityType: "event",
+            entityId: event.id,
+            description: `Converted lead ${lead.contact_name} into an Event.`,
+            changes: { new: eventData }
         });
 
         return NextResponse.json({

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { User, Shield, Bell, CreditCard, Calendar } from "lucide-react";
+import { User, Shield, Bell, CreditCard, Calendar, Users, History } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -198,6 +198,48 @@ export default function SettingsPage() {
                             </div>
                             <Button variant="outline" asChild>
                                 <Link href="/settings/subscription">Manage</Link>
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Users className="h-5 w-5" />
+                            Team Management
+                        </CardTitle>
+                        <CardDescription>Manage who has access to your venue and their permissions.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                            <div>
+                                <p className="font-medium">Team Members</p>
+                                <p className="text-sm text-muted-foreground">Invite staff and assign roles to your venue team</p>
+                            </div>
+                            <Button variant="outline" asChild>
+                                <Link href="/settings/team">Manage Team</Link>
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <History className="h-5 w-5" />
+                            Audit Trail
+                        </CardTitle>
+                        <CardDescription>View a chronological log of all actions taken in your venue.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                            <div>
+                                <p className="font-medium">Activity Logs</p>
+                                <p className="text-sm text-muted-foreground">Track changes made by team members and the AI Agent</p>
+                            </div>
+                            <Button variant="outline" asChild>
+                                <Link href="/settings/audit">View Logs</Link>
                             </Button>
                         </div>
                     </CardContent>
