@@ -62,3 +62,9 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Graphify — commit the graph, skip local-only files
+# mtime-based, invalid after git clone — always ignore
+/graphify-out/manifest.json
+# local token tracking — not useful to share
+/graphify-out/cost.json
