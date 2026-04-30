@@ -8,9 +8,11 @@ import { CheckCircle, Loader2 } from "lucide-react"
 
 interface InquiryFormProps {
   slug: string
+  showTitle?: boolean
+  className?: string
 }
 
-export function InquiryForm({ slug }: InquiryFormProps) {
+export function InquiryForm({ slug, showTitle = true, className }: InquiryFormProps) {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -69,9 +71,9 @@ export function InquiryForm({ slug }: InquiryFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-xl border p-6"
+      className={className ?? "space-y-4 rounded-xl border p-6"}
     >
-      <h3 className="text-lg font-semibold">Send an Inquiry</h3>
+      {showTitle && <h3 className="text-lg font-semibold">Send an Inquiry</h3>}
 
       <div className="space-y-1.5">
         <Label htmlFor="inq-name">Name *</Label>

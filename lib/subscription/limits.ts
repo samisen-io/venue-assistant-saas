@@ -146,24 +146,40 @@ export async function canUploadPhoto(userId: string, venueId?: string): Promise<
 
 export async function canSendChatMessage(userId: string, venueId?: string): Promise<{ allowed: boolean; reason?: string }> {
     const subscription = await getUserSubscription(userId)
-    const statusCheck = checkSubscriptionStatus(subscription)
-    if (!statusCheck.allowed) return statusCheck
-    
-    const limits = getPlanLimits(subscription!.plan_tier as PlanTier)
+
+    // For the public-facing chat, a missing or expired subscription falls back to
+    // trial-tier limits rather than hard-blocking visitors from chatting.
+    let effectiveTier: PlanTier = 'trial'
+    if (subscription && checkSubscriptionStatus(subscription).allowed) {
+        effectiveTier = subscription.plan_tier as PlanTier
+    }
+
+    const limits = getPlanLimits(effectiveTier)
     if (limits.maxAIChatMessagesPerMonth === Infinity) return { allowed: true }
 
     const resolvedVenueId = await getUserVenueId(userId, venueId)
     if (!resolvedVenueId) return { allowed: true }
 
+    // conversation_messages has no venue_id; join through conversations
     const supabase = createServiceRoleClient()
     const now = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+
+    const { data: convData } = await (supabase as any)
+        .from('conversations')
+        .select('id')
+        .eq('venue_id', resolvedVenueId)
+
+    const convIds = ((convData ?? []) as { id: string }[]).map((c) => c.id)
+    if (convIds.length === 0) return { allowed: true }
+
     const { count } = await (supabase as any)
         .from('conversation_messages')
         .select('id', { count: 'exact', head: true })
-        .eq('venue_id', resolvedVenueId)
+        .in('conversation_id', convIds)
         .eq('role', 'assistant')
         .gte('created_at', monthStart)
+
     if ((count ?? 0) >= limits.maxAIChatMessagesPerMonth) {
         return { allowed: false, reason: `You've reached your limit of ${limits.maxAIChatMessagesPerMonth} AI chat messages this month. Upgrade your plan for more.` }
     }

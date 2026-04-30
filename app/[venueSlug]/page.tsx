@@ -10,7 +10,7 @@ import { AvailabilityCalendar } from "@/components/public-page/AvailabilityCalen
 import { LocationContact } from "@/components/public-page/LocationContact"
 import { TestimonialsCarousel } from "@/components/public-page/TestimonialsCarousel"
 import { PricingPackages } from "@/components/public-page/PricingPackages"
-import { InquiryForm } from "@/components/public-page/InquiryForm"
+import { InquiryModal } from "@/components/public-page/InquiryModal"
 import { EmbeddedChat } from "@/components/public-page/EmbeddedChat"
 import { ChatWidget } from "@/components/public-page/ChatWidget"
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs"
@@ -213,15 +213,15 @@ export default async function PublicVenuePage({
 
           <aside className="lg:sticky lg:top-24 lg:h-fit">
             <div className="space-y-4">
-              <InquiryForm slug={venueSlug} />
               <EmbeddedChat
-              slug={venueSlug}
-              greeting={null}
-              phone={venue.phone}
-              email={venue.email}
-              hidePhone={privacySettings?.hide_phone === true}
-              hideEmail={privacySettings?.hide_email === true}
-            />
+                slug={venueSlug}
+                greeting={null}
+                phone={venue.phone}
+                email={venue.email}
+                hidePhone={privacySettings?.hide_phone === true}
+                hideEmail={privacySettings?.hide_email === true}
+              />
+              <InquiryModal slug={venueSlug} />
             </div>
           </aside>
         </div>
