@@ -1,0 +1,9 @@
+# .graphifyignore
+node_modules/
+dist/
+.next/
+graphify-out/
+docs/translations/
+*.generated.*
+.graphifyignore
+**/error.tsx

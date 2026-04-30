@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { venueFormSchema } from '@/lib/utils/validation'
 import { canCreateVenue } from '@/lib/subscription/limits'
 
@@ -12,10 +12,11 @@ export async function GET(request: Request) {
             return new NextResponse('Unauthorized', { status: 401 })
         }
 
+        // Query via venue_team_members so invited members see their venues too
         const { data: venues, error } = await (supabase as any)
             .from('venues')
-            .select('*')
-            .eq('owner_id', user.id)
+            .select('*, venue_team_members!inner(profile_id)')
+            .eq('venue_team_members.profile_id', user.id)
             .order('created_at', { ascending: false })
 
         if (error) throw error
@@ -59,6 +60,16 @@ export async function POST(request: Request) {
             .single()
 
         if (error) throw error
+
+        // Seed the creator as owner in venue_team_members.
+        // Must use service role because the RLS policy requires membership to insert,
+        // creating a chicken-and-egg problem for brand new venues.
+        const serviceRole = createServiceRoleClient()
+        await (serviceRole as any).from('venue_team_members').insert({
+            venue_id: venue.id,
+            profile_id: user.id,
+            role: 'owner',
+        })
 
         return NextResponse.json(venue)
     } catch (error) {

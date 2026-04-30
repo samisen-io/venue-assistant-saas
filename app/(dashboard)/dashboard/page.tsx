@@ -22,7 +22,6 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { EventCard } from "@/components/events/EventCard";
 import { Event } from "@/lib/types";
 import { Loading } from "@/components/shared/Loading";
-import { TrialBanner } from "@/components/subscription/TrialBanner";
 import { SubscriptionBadge } from "@/components/subscription/SubscriptionBadge";
 import Link from "next/link";
 
@@ -159,9 +158,6 @@ export default function DashboardPage() {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
-            {trialDaysRemaining !== null && (
-                <TrialBanner daysRemaining={trialDaysRemaining} />
-            )}
 
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="min-w-0">
