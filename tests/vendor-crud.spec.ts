@@ -25,6 +25,16 @@ test.describe('Vendor CRUD', () => {
     requireAuthCredentials();
 
     await loginAsTestUser(page);
+    // The venue context initialises activeVenueId in localStorage asynchronously after the
+    // dashboard mounts. Wait for it here before navigating away so we don't read a stale null.
+    await page.waitForFunction(() => localStorage.getItem('activeVenueId') !== null, {
+      timeout: 10_000,
+    }).catch(() => {
+      throw new Error(
+        'Timed out waiting for activeVenueId in localStorage. ' +
+          'Ensure the test user has at least one venue created in the app.',
+      );
+    });
     await page.goto('/vendors');
 
     const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -38,12 +48,8 @@ test.describe('Vendor CRUD', () => {
     let createdVendorId: string | null = null;
     let createdEventServiceId: string | null = null;
 
-    const venuesRes = await page.request.get('/api/venues');
-    expect(venuesRes.ok()).toBeTruthy();
-    const venues = (await venuesRes.json()) as Array<{ id: string }>;
-    const fallbackVenueId = venues[0]?.id;
-    const venueIdForService = activeVenueId || fallbackVenueId;
-    expect(venueIdForService).toBeTruthy();
+    const venueIdForService = activeVenueId;
+    expect(venueIdForService, 'Test user has no active venue — create one in the app first').toBeTruthy();
 
     const eventServicesRes = await page.request.get('/api/event-services');
     expect(eventServicesRes.ok()).toBeTruthy();

@@ -28337,8 +28337,8 @@
       "source_file": "lib/audit/logger.ts",
       "source_location": "L31",
       "weight": 1.0,
-      "_src": "audit_logger_logactivity",
-      "_tgt": "supabase_server_createserviceroleclient",
+      "_src": "supabase_server_createserviceroleclient",
+      "_tgt": "audit_logger_logactivity",
       "source": "supabase_server_createserviceroleclient",
       "target": "audit_logger_logactivity"
     },
@@ -28349,8 +28349,8 @@
       "source_file": "lib/ai/systemUser.ts",
       "source_location": "L11",
       "weight": 1.0,
-      "_src": "ai_systemuser_getaiagentprofileid",
-      "_tgt": "supabase_server_createserviceroleclient",
+      "_src": "supabase_server_createserviceroleclient",
+      "_tgt": "ai_systemuser_getaiagentprofileid",
       "source": "supabase_server_createserviceroleclient",
       "target": "ai_systemuser_getaiagentprofileid"
     },
