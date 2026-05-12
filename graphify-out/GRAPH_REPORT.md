@@ -1,12 +1,12 @@
-# Graph Report - venue-assistant-saas  (2026-04-30)
+# Graph Report - venue-assistant-saas  (2026-05-12)
 
 ## Corpus Check
-- 465 files · ~254,326 words
+- 489 files · ~453,286 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1424 nodes · 1722 edges · 34 communities detected
-- Extraction: 71% EXTRACTED · 29% INFERRED · 0% AMBIGUOUS · INFERRED: 500 edges (avg confidence: 0.8)
+- 1464 nodes · 1754 edges · 34 communities detected
+- Extraction: 71% EXTRACTED · 29% INFERRED · 0% AMBIGUOUS · INFERRED: 516 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -37,16 +37,16 @@
 - [[_COMMUNITY_Community 24|Community 24]]
 - [[_COMMUNITY_Community 25|Community 25]]
 - [[_COMMUNITY_Community 26|Community 26]]
-- [[_COMMUNITY_Community 31|Community 31]]
-- [[_COMMUNITY_Community 35|Community 35]]
+- [[_COMMUNITY_Community 30|Community 30]]
+- [[_COMMUNITY_Community 32|Community 32]]
 - [[_COMMUNITY_Community 36|Community 36]]
 - [[_COMMUNITY_Community 38|Community 38]]
 - [[_COMMUNITY_Community 51|Community 51]]
 - [[_COMMUNITY_Community 53|Community 53]]
-- [[_COMMUNITY_Community 262|Community 262]]
+- [[_COMMUNITY_Community 270|Community 270]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `createClient()` - 126 edges
+1. `createClient()` - 142 edges
 2. `createServiceRoleClient()` - 51 edges
 3. `toast()` - 37 edges
 4. `getAuthorizedVenue()` - 30 edges
@@ -60,14 +60,14 @@
 ## Surprising Connections (you probably didn't know these)
 - `GET()` --calls--> `createClient()`  [INFERRED]
   app/api/venues/route.ts → lib/supabase/server.ts
+- `GET()` --calls--> `resolveVenue()`  [INFERRED]
+  app/api/cron/agent-monitor/route.ts → lib/venues/resolveVenue.ts
 - `buildAdminClient()` --calls--> `createClient()`  [INFERRED]
   tests/event-conflict.spec.ts → lib/supabase/server.ts
 - `checkRateLimit()` --calls--> `DELETE()`  [INFERRED]
   proxy.ts → app/api/events/[eventId]/vendors/[associationId]/route.ts
 - `sitemap()` --calls--> `createServiceRoleClient()`  [INFERRED]
   app/sitemap.ts → lib/supabase/server.ts
-- `handleRedeem()` --calls--> `toast()`  [INFERRED]
-  app/redeem/page.tsx → hooks/use-toast.ts
 
 ## Hyperedges (group relationships)
 - **AppSumo Launch Flow: Redemption, Limits & Onboarding** — appsumo_redemption_flow, lib_subscription_limits, onboarding_checklist_component, support_widget_component, seed_demo_script [EXTRACTED 0.95]
@@ -81,7 +81,7 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.02
-Nodes (84): GET(), POST(), checkSpaceAvailability(), getConflictingEvents(), POST(), GET(), GET(), getSafeNext() (+76 more)
+Nodes (108): GET(), POST(), checkSpaceAvailability(), getConflictingEvents(), POST(), GET(), GET(), getSafeNext() (+100 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.02
@@ -89,47 +89,47 @@ Nodes (47): handleStartAgent(), rankVendorsByMatch(), handleFormSubmit(), fetchE
 
 ### Community 2 - "Community 2"
 Cohesion: 0.03
-Nodes (66): DELETE(), handleEmailBounced(), handleEmailClicked(), handleEmailComplained(), handleEmailDelivered(), handleEmailOpened(), handleEmailSent(), processWebhookEvent() (+58 more)
+Nodes (63): DELETE(), handleEmailBounced(), handleEmailClicked(), handleEmailComplained(), handleEmailDelivered(), handleEmailOpened(), handleEmailSent(), processWebhookEvent() (+55 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.03
-Nodes (92): AI Chat Widget (Claude-Powered), AI Agent for Vendor Outreach, Anthropic Claude API, app/api/appsumo/redeem/route.ts, GET /api/public/venues/search Endpoint, app/redeem/page.tsx, appsumo_codes Database Table, AppSumo Launch & Distribution Plan (+84 more)
+Nodes (93): AI Chat Widget (Claude-Powered), AI Agent for Vendor Outreach, Anthropic Claude API, app/api/appsumo/redeem/route.ts, GET /api/public/venues/search Endpoint, app/redeem/page.tsx, appsumo_codes Database Table, AppSumo Launch & Distribution Plan (+85 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.03
-Nodes (86): AI Chat Conversation Flow (4 Stages), AI Conversation Engine (4-Stage Flow, Claude API), lib/ai/escalation.ts — Escalation Logic, lib/analytics/tracker.ts, app/api/venues/public/[slug]/route.ts — Public Page Data API, API Integration Test Layer (tests/integration/*), Automated Test Phase 1: Foundation (Seed, Auth, data-testid, CI), Automated Test Phase 3: Core CRUD Flows (+78 more)
+Nodes (81): AI Chat Conversation Flow (4 Stages), AI Conversation Engine (4-Stage Flow, Claude API), lib/ai/escalation.ts — Escalation Logic, lib/analytics/tracker.ts, app/api/venues/public/[slug]/route.ts — Public Page Data API, API Integration Test Layer (tests/integration/*), Automated Test Phase 1: Foundation (Seed, Auth, data-testid, CI), Automated Test Phase 3: Core CRUD Flows (+73 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.05
 Nodes (41): GET(), PUT(), GET(), PUT(), DELETE(), GET(), PUT(), GET() (+33 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.06
-Nodes (31): GET(), shouldEscalate(), buildExtractionPrompt(), fallbackSearch(), POST(), hashIp(), trackEvent(), extractDatesFromMessage() (+23 more)
-
-### Community 7 - "Community 7"
 Cohesion: 0.07
 Nodes (25): AgentOrchestrator, getAgentOrchestrator(), analyzeVendorReply(), extractQuoteDetails(), extractQuoteFromReply(), calculateVendorMetrics(), canSendFollowUp(), getDaysSinceLastOutbound() (+17 more)
+
+### Community 7 - "Community 7"
+Cohesion: 0.06
+Nodes (30): GET(), shouldEscalate(), buildExtractionPrompt(), fallbackSearch(), POST(), hashIp(), trackEvent(), extractDatesFromMessage() (+22 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.06
 Nodes (24): handleVendorDecision(), PUT(), POST(), executeAction(), handleAction(), renderActionItem(), generateConfirmationHTML(), generateConfirmationPlainText() (+16 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.07
-Nodes (25): getEmailConfig(), getResendClient(), getResendClientInstance(), ResendEmailClient, sendBatchEmails(), sendEmail(), getLeadsNeedingFollowUp(), processAllFollowUps() (+17 more)
+Cohesion: 0.08
+Nodes (21): getEmailConfig(), getResendClient(), getResendClientInstance(), ResendEmailClient, sendBatchEmails(), sendEmail(), getLeadsNeedingFollowUp(), processAllFollowUps() (+13 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.06
 Nodes (18): useVenueContext(), EditClientPage(), EditEventPage(), EditSpacePage(), EditVendorPage(), EditVenuePage(), useToast(), useAddActivity() (+10 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.08
-Nodes (17): addHours(), calculateDaysBetween(), calculateDurationHours(), doTimeRangesOverlap(), findAvailableSpaces(), getNextAvailableSlot(), getSpaceUtilization(), timeToMinutes() (+9 more)
-
-### Community 12 - "Community 12"
 Cohesion: 0.1
 Nodes (25): GET(), getAuthedVenueIdForLead(), POST(), GET(), getAuthedVenueIdForProposal(), PUT(), generateProposalPDF(), textLines() (+17 more)
+
+### Community 12 - "Community 12"
+Cohesion: 0.08
+Nodes (17): addHours(), calculateDaysBetween(), calculateDurationHours(), doTimeRangesOverlap(), findAvailableSpaces(), getNextAvailableSlot(), getSpaceUtilization(), timeToMinutes() (+9 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.12
@@ -144,16 +144,16 @@ Cohesion: 0.25
 Nodes (14): canvasToBlob(), mergeOptions(), optimizeImageFile(), readImageBitmap(), scaleDimensions(), supportsWebP(), buildStoragePath(), deleteVenuePhoto() (+6 more)
 
 ### Community 16 - "Community 16"
+Cohesion: 0.13
+Nodes (15): Feature Flags (ENABLE_NL_EVENT_CREATION, ENABLE_AI_AGENT, ENABLE_REAL_TIME_UPDATES), lib/leads/leadNotifier.ts, Final Pre-Launch Deployment Checklist, Pre-Launch Guide for VenueManager, Pre-Launch Icon Generation (PNG from SVG), Pre-Launch OG Image Creation, Pre-Launch Vercel Environment Variables Setup, lib/leads/priorityScoring.ts (+7 more)
+
+### Community 17 - "Community 17"
 Cohesion: 0.22
 Nodes (9): calculateBudgetVariance(), calculateVarianceAmount(), checkQuoteAgainstBudget(), compareBudget(), determineStatusFromResponse(), formatVarianceAmount(), getBudgetStatusMessage(), shouldFlagForAttention() (+1 more)
 
-### Community 17 - "Community 17"
+### Community 18 - "Community 18"
 Cohesion: 0.27
 Nodes (6): extractAttachments(), extractEmailBody(), extractThreadId(), parseTextEmail(), parseVendorEmail(), stripHtml()
-
-### Community 18 - "Community 18"
-Cohesion: 0.18
-Nodes (11): Feature Flags (ENABLE_NL_EVENT_CREATION, ENABLE_AI_AGENT, ENABLE_REAL_TIME_UPDATES), Final Pre-Launch Deployment Checklist, Pre-Launch Guide for VenueManager, Pre-Launch Icon Generation (PNG from SVG), Pre-Launch OG Image Creation, Pre-Launch Vercel Environment Variables Setup, Setup Guide Environment Variables, AI Agent & Webhook Setup Guide (+3 more)
 
 ### Community 19 - "Community 19"
 Cohesion: 0.29
@@ -187,17 +187,17 @@ Nodes (3): createLeadFromConversation(), calculatePriorityScore(), priorityFromE
 Cohesion: 0.4
 Nodes (3): POST(), buildEventExtractionPrompt(), validateEventExtraction()
 
-### Community 31 - "Community 31"
+### Community 30 - "Community 30"
+Cohesion: 0.5
+Nodes (2): AnalyticsDashboard(), useAnalytics()
+
+### Community 32 - "Community 32"
 Cohesion: 0.67
 Nodes (2): loginAs(), loginAsTestUser()
 
-### Community 35 - "Community 35"
+### Community 36 - "Community 36"
 Cohesion: 0.83
 Nodes (3): useCanCreate(), useSubscription(), useUsage()
-
-### Community 36 - "Community 36"
-Cohesion: 0.5
-Nodes (2): AnalyticsDashboard(), useAnalytics()
 
 ### Community 38 - "Community 38"
 Cohesion: 0.5
@@ -211,7 +211,7 @@ Nodes (2): changed(), ChangesSummaryPanel()
 Cohesion: 1.0
 Nodes (2): handleExtract(), handleKeyDown()
 
-### Community 262 - "Community 262"
+### Community 270 - "Community 270"
 Cohesion: 1.0
 Nodes (1): One Venue Per User Architectural Constraint
 
@@ -224,28 +224,28 @@ Nodes (1): One Venue Per User Architectural Constraint
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 24`** (6 nodes): `SectionErrorBoundary.tsx`, `SectionErrorBoundary`, `.componentDidCatch()`, `.constructor()`, `.getDerivedStateFromError()`, `.render()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 31`** (4 nodes): `loginAs()`, `loginAsTestUser()`, `logout()`, `auth.ts`
+- **Thin community `Community 30`** (4 nodes): `AnalyticsDashboard()`, `page.tsx`, `useAnalytics.ts`, `useAnalytics()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 36`** (4 nodes): `AnalyticsDashboard()`, `page.tsx`, `useAnalytics.ts`, `useAnalytics()`
+- **Thin community `Community 32`** (4 nodes): `loginAs()`, `loginAsTestUser()`, `logout()`, `auth.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 51`** (3 nodes): `ChangesSummaryPanel.tsx`, `changed()`, `ChangesSummaryPanel()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 53`** (3 nodes): `NaturalLanguageEventForm.tsx`, `handleExtract()`, `handleKeyDown()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 262`** (1 nodes): `One Venue Per User Architectural Constraint`
+- **Thin community `Community 270`** (1 nodes): `One Venue Per User Architectural Constraint`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `createClient()` connect `Community 0` to `Community 2`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 11`, `Community 12`, `Community 13`, `Community 15`, `Community 16`, `Community 19`?**
-  _High betweenness centrality (0.128) - this node is a cross-community bridge._
-- **Why does `createServiceRoleClient()` connect `Community 2` to `Community 9`, `Community 11`, `Community 6`, `Community 25`?**
-  _High betweenness centrality (0.042) - this node is a cross-community bridge._
-- **Why does `sendEmail()` connect `Community 9` to `Community 2`, `Community 7`, `Community 8`, `Community 12`, `Community 13`?**
-  _High betweenness centrality (0.030) - this node is a cross-community bridge._
-- **Are the 125 inferred relationships involving `createClient()` (e.g. with `GET()` and `POST()`) actually correct?**
-  _`createClient()` has 125 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `createClient()` connect `Community 0` to `Community 2`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 11`, `Community 12`, `Community 13`, `Community 15`, `Community 17`, `Community 19`?**
+  _High betweenness centrality (0.160) - this node is a cross-community bridge._
+- **Why does `createServiceRoleClient()` connect `Community 2` to `Community 0`, `Community 7`, `Community 9`, `Community 12`, `Community 25`?**
+  _High betweenness centrality (0.062) - this node is a cross-community bridge._
+- **Why does `sendEmail()` connect `Community 9` to `Community 2`, `Community 6`, `Community 8`, `Community 11`, `Community 13`?**
+  _High betweenness centrality (0.029) - this node is a cross-community bridge._
+- **Are the 141 inferred relationships involving `createClient()` (e.g. with `GET()` and `POST()`) actually correct?**
+  _`createClient()` has 141 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 50 inferred relationships involving `createServiceRoleClient()` (e.g. with `sitemap()` and `GET()`) actually correct?**
   _`createServiceRoleClient()` has 50 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 34 inferred relationships involving `toast()` (e.g. with `handleRedeem()` and `onSubmit()`) actually correct?**
