@@ -22139,8 +22139,8 @@
       "source_file": "lib/algorithms/space-availability.ts",
       "source_location": "L274",
       "weight": 1.0,
-      "_src": "algorithms_space_availability_addhours",
-      "_tgt": "public_page_inquirymodal_string",
+      "_src": "public_page_inquirymodal_string",
+      "_tgt": "algorithms_space_availability_addhours",
       "source": "public_page_inquirymodal_string",
       "target": "algorithms_space_availability_addhours"
     },
@@ -22151,8 +22151,8 @@
       "source_file": "lib/proposals/proposalGenerator.ts",
       "source_location": "L40",
       "weight": 1.0,
-      "_src": "proposals_proposalgenerator_generatereferencenumber",
-      "_tgt": "public_page_inquirymodal_string",
+      "_src": "public_page_inquirymodal_string",
+      "_tgt": "proposals_proposalgenerator_generatereferencenumber",
       "source": "public_page_inquirymodal_string",
       "target": "proposals_proposalgenerator_generatereferencenumber"
     },
@@ -22163,8 +22163,8 @@
       "source_file": "lib/proposals/pdfGenerator.ts",
       "source_location": "L53",
       "weight": 1.0,
-      "_src": "proposals_pdfgenerator_generateproposalpdf",
-      "_tgt": "public_page_inquirymodal_string",
+      "_src": "public_page_inquirymodal_string",
+      "_tgt": "proposals_pdfgenerator_generateproposalpdf",
       "source": "public_page_inquirymodal_string",
       "target": "proposals_pdfgenerator_generateproposalpdf"
     },
