@@ -12,6 +12,8 @@ import { TestimonialsCarousel } from "@/components/public-page/TestimonialsCarou
 import { EmbeddedChat } from "@/components/public-page/EmbeddedChat"
 import { ChatWidget } from "@/components/public-page/ChatWidget"
 import { fetchVenuePublicPageData } from "@/lib/public-page/fetchPublicVenue"
+import { DemoBanner } from "@/components/public-page/DemoBanner"
+import { isVenueDemo } from "@/lib/public-page/demo"
 
 export async function generateMetadata({
   params,
@@ -32,10 +34,14 @@ export async function generateMetadata({
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://venuemanager.pro"
   const canonicalUrl = venue.website || `${baseUrl}/${venueSlug}`
 
+  // Demo workspaces are showcases: keep them out of the index entirely.
+  const isDemo = await isVenueDemo(venue)
+
   return {
     title,
     description,
     keywords: venue.seo_keywords || undefined,
+    robots: isDemo ? { index: false, follow: true } : undefined,
     alternates: {
       canonical: canonicalUrl,
     },
@@ -87,6 +93,8 @@ export default async function PublicVenuePage({
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://venuemanager.pro"
+
+  const isDemo = await isVenueDemo(venue)
 
   const addressSchema = {
     "@type": "PostalAddress",
@@ -156,6 +164,7 @@ export default async function PublicVenuePage({
 
   return (
     <main>
+      {isDemo && <DemoBanner venueName={venue.name} />}
       <Script
         id="event-venue-schema"
         type="application/ld+json"

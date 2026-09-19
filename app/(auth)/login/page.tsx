@@ -74,6 +74,18 @@ export default function LoginPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
+                {process.env.NEXT_PUBLIC_DEMO_LOGIN ? (
+                    <div className="mb-5 rounded-md border border-dashed bg-muted/40 p-3 text-sm">
+                        <p className="font-medium">Reviewing this product?</p>
+                        <p className="mt-1 text-muted-foreground">
+                            Sign in to the demo workspace to open the dashboard, the AI
+                            agent and the public-page builder (sample data only):{" "}
+                            <code className="rounded bg-muted px-1 py-0.5 text-xs">
+                                {process.env.NEXT_PUBLIC_DEMO_LOGIN}
+                            </code>
+                        </p>
+                    </div>
+                ) : null}
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <FormField
