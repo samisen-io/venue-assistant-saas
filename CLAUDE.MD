@@ -231,4 +231,4 @@ This comprehensive PRD contains:
 
 ## Current Status
 
-This project exists as a complete PRD ready for implementation. When working on features, refer to the PRD for detailed specifications including UI mockups, validation rules, and success criteria.
+MVP is implemented: authentication, multi-venue and event management, the vendor database and matching engine, budget tracking and reviews, with 31 Playwright specs covering the flows and the tenant boundaries. When working on features, refer to the PRDs in docs/ for specifications including validation rules and success criteria, and add Playwright coverage alongside the code.

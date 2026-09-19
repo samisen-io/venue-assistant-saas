@@ -1,196 +1,130 @@
-# Venue Manager SaaS
+# Venue Manager — multi-tenant SaaS for venue and event operations
 
-A Micro-SaaS web application for event venue managers to streamline vendor coordination, budget tracking, and performance management.
+A production-shaped micro-SaaS for event venue managers (hotels, banquet halls, conference centres):
+manage spaces, run events end to end, keep a vendor database with performance history, match vendors
+to an event, and track budget variance in real time — plus an AI layer that turns a manager's request
+into structured work.
 
-## Overview
+Built as a single Next.js App Router application with Supabase (Postgres + Row Level Security),
+Supabase Auth, Tailwind + shadcn/ui, and Claude for the AI features.
 
-**Target Users**: Managers of hotels, banquet halls, and conference centers
-**Core Value**: Simplify event planning through intelligent vendor matching, real-time budget tracking, and performance analytics
+## Why it is worth a look
 
-## Tech Stack
+Most portfolio projects stop at a UI over a table. This one carries the parts that make software
+survivable in production:
 
-- **Framework**: Next.js 14+ (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS + shadcn/ui
-- **Database**: Supabase (PostgreSQL)
-- **Authentication**: Supabase Auth
-- **Deployment**: Vercel
+- **Multi-tenant isolation in the database, not in application code.** Every table has RLS policies;
+  `tests/security-rls.spec.ts` and `tests/public-venue-data-boundaries.spec.ts` assert that one
+  tenant's data cannot leak into another's queries.
+- **31 Playwright specs** covering authentication and onboarding, event and space CRUD, budget
+  tracking, vendor matching, the public marketplace, mobile responsiveness, error handling and
+  performance/security boundaries (`npm run test:e2e`, plus a `@smoke` subset for quick runs).
+- **Migrations as files** (`migrations/*.sql`, 8 of them) rather than edits made in a dashboard.
+- **An AI layer behind one interface** (`lib/ai/claude.ts`) with typed error handling, so the product
+  features that use Claude do not know or care which model answers.
+- **83 API route files** — the app is API-first, so the same operations serve the dashboard and the
+  public pages.
 
-## Quick Start
+## Tech stack
 
-### Prerequisites
+- **Framework:** Next.js (App Router), TypeScript
+- **UI:** Tailwind CSS + shadcn/ui
+- **Data:** Supabase (PostgreSQL) with Row Level Security; schema in `setup-database.sql` + `migrations/`
+- **Auth:** Supabase Auth
+- **AI:** Anthropic Claude via `lib/ai/claude.ts`
+- **Tests:** Playwright (31 specs) · **Deploy:** Vercel
 
-- Node.js 18+ installed
-- Supabase account ([supabase.com](https://supabase.com))
-- Git
+## Features
 
-### Installation
+- **Authentication & onboarding** — signup, profile setup, first-venue wizard
+- **Multi-venue management** — several venues per account, with spaces inside each
+- **Event management** — full CRUD, status tracking (planning → confirmed → in progress → completed), dashboard of upcoming events
+- **Vendor database** — categories (catering, AV, florals, parking, security, entertainment), cost structures, performance metrics
+- **Vendor matching engine** — score 0-100 from reliability (40%), cost fit (30%), experience (20%), on-time history (10%), with primary/backup assignment
+- **Budget tracking** — per-category breakdown, quoted vs actual, variance alerts, export
+- **Performance reviews** — post-event ratings that feed the reliability score
+- **AI features** — conversational assistance and vendor communications built on Claude
 
-1. Clone the repository
-```bash
-git clone <your-repo-url>
-cd venue-assistant-saas
-```
+## Quick start
 
-2. Install dependencies
 ```bash
 npm install
+# .env.local
+#   NEXT_PUBLIC_SUPABASE_URL=...
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+#   SUPABASE_SERVICE_ROLE_KEY=...      # server-side only, never exposed to the client
+#   ANTHROPIC_API_KEY=...              # for the AI features
+npm run dev            # http://localhost:3000
 ```
 
-3. Set up environment variables
-
-Create a `.env.local` file in the root directory:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-```
-
-4. Set up the database
-
-- Go to your Supabase project SQL Editor
-- Run the complete setup script: [setup-database.sql](setup-database.sql)
-- This creates all tables, indexes, RLS policies, and triggers
-
-5. Run the development server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) to see the application.
-
-## Project Structure
-
-```
-app/
-├── (auth)/          # Authentication pages
-├── (dashboard)/     # Protected dashboard pages
-└── api/            # Backend API routes
-
-components/
-├── ui/             # shadcn/ui components
-├── events/         # Event-related components
-├── vendors/        # Vendor-related components
-└── shared/         # Shared utilities
-
-lib/
-├── supabase/       # Database clients
-├── utils/          # Helper functions
-├── algorithms/     # Vendor matching logic
-└── types/          # TypeScript definitions
-```
-
-## Key Features (MVP)
-
-- **Authentication & Onboarding** - Secure user signup with profile setup
-- **Multi-Venue Management** - Manage multiple venue spaces
-- **Event Management** - Full CRUD operations for events
-- **Vendor Database** - Track vendors with performance metrics
-- **Vendor Matching Engine** - Score-based vendor recommendations
-- **Budget Tracking** - Real-time variance monitoring
-- **Performance Reviews** - Post-event vendor ratings
-
-## Documentation
-
-- **[CLAUDE.md](CLAUDE.md)** - Project overview and AI assistant instructions
-- **[setup-database.sql](setup-database.sql)** - Database schema setup script
-
-### PRDs
-
-- **[docs/prds/MVP_PRD.md](docs/prds/MVP_PRD.md)** - Core MVP product requirements (Phase 1)
-- **[docs/prds/MARKETPLACE_PRD.md](docs/prds/MARKETPLACE_PRD.md)** - Public marketplace & AI conversational booking (Phase 2)
-
-### Implementation Tasks
-
-- **[docs/tasks/multi_venue_tasks.md](docs/tasks/multi_venue_tasks.md)** - Multi-venue support implementation
-- **[docs/tasks/PUBLIC_PAGES_TASKS.md](docs/tasks/PUBLIC_PAGES_TASKS.md)** - Public venue pages implementation
-- **[docs/tasks/PublicMarketplace_TaskList.md](docs/tasks/PublicMarketplace_TaskList.md)** - Marketplace launch task list
-- **[docs/tasks/STRIPE_SUBSCRIPTION_TASKS.md](docs/tasks/STRIPE_SUBSCRIPTION_TASKS.md)** - Stripe subscription implementation
-
-### Guides
-
-- **[docs/guides/DESIGN_SYSTEM.md](docs/guides/DESIGN_SYSTEM.md)** - UI/UX design system and component patterns
-- **[docs/guides/SETUP_GUIDE.md](docs/guides/SETUP_GUIDE.md)** - AI agent, webhook, and email infrastructure setup
-- **[docs/guides/PRE_LAUNCH_GUIDE.md](docs/guides/PRE_LAUNCH_GUIDE.md)** - Pre-launch and deployment checklist
-
-### Testing
-
-- **[docs/testing/MANUAL_TEST_CHECKLIST.md](docs/testing/MANUAL_TEST_CHECKLIST.md)** - Manual QA regression checklist
-
-## Development Workflow
-
-### Adding a New Feature
-
-1. Check the PRD for specifications
-2. Create/update components in `components/`
-3. Add API routes in `app/api/`
-4. Update database schema if needed (and RLS policies)
-5. Follow existing patterns in the codebase
-
-### Database Changes
-
-- Always update RLS policies when modifying tables
-- Test multi-tenant isolation (users should only see their data)
-- Run migrations in Supabase SQL Editor
-
-### Code Style
-
-- Use TypeScript for type safety
-- Follow Next.js App Router conventions
-- Keep components focused and reusable
-- Extract business logic to `lib/` directory
+Database: create a Supabase project, run `setup-database.sql` in the SQL editor, then the files in
+`migrations/` in order (they are written to be idempotent).
 
 ## Scripts
 
 ```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run start        # Start production server
-npm run lint         # Run ESLint
+npm run dev              # dev server
+npm run build            # production build
+npm run lint             # ESLint
+npm run test:e2e         # full Playwright suite
+npm run test:e2e:smoke   # @smoke-tagged specs, chromium, single worker
 ```
+
+## Project structure
+
+```
+app/
+  (auth)/        authentication pages
+  (dashboard)/   protected application
+  api/           API routes (83 files)
+components/      ui/, events/, vendors/, budget/, layout/, shared/
+lib/             supabase/ (clients), algorithms/ (matching, budget maths), ai/ (Claude), types/
+hooks/           data-fetching hooks
+migrations/      SQL migrations, in order
+tests/           31 Playwright specs + fixtures and helpers
+docs/            PRDs, task lists, guides, testing checklists
+```
+
+## Documentation in-repo
+
+- `docs/prds/MVP_PRD.md` — core MVP requirements
+- `docs/prds/MARKETPLACE_PRD.md` — public marketplace and conversational booking
+- `docs/tasks/*.md` — implementation task lists (multi-venue, public pages, Stripe, marketplace)
+- `docs/guides/DESIGN_SYSTEM.md` — UI system and component patterns
+- `docs/guides/SETUP_GUIDE.md` — AI agent, webhook and email infrastructure
+- `docs/testing/MANUAL_TEST_CHECKLIST.md` — manual QA regression checklist
+- `CLAUDE.md` — project rules and conventions for AI coding assistants
+
+## Database schema (core)
+
+`profiles` · `venues` · `spaces` · `event_services` · `vendors` · `events` · `event_vendors` ·
+`vendor_reviews`, plus AI tables (`agent_runs`, `vendor_communications`, `vendor_quotes`). All tables
+are protected by RLS policies that enforce per-tenant isolation.
+
+## Engineering notes
+
+- Business logic lives in `lib/` (matching and budget algorithms are pure functions and testable);
+  API routes stay thin.
+- RLS policy changes ship with the migration that changes the table — the two are never separated.
+- The public marketplace reads through narrower policies than the dashboard, which is what the
+  boundary specs verify.
+- AI calls go through a single client with typed error mapping; a missing or invalid key fails
+  loudly rather than silently degrading a feature.
+
+## Limitations and next steps
+
+- **No unit-test layer** — coverage is end-to-end through Playwright; the matching and budget
+  algorithms in `lib/algorithms/` would benefit from fast unit tests.
+- **No evaluation harness for the AI features.** `tests/ai-features.spec.ts` asserts the plumbing;
+  answer quality is not scored. Golden prompts with expected properties is the next step.
+- Payments (Stripe) and email (Resend) are specified in the task docs but not shipped.
+- Single-region Supabase deployment; no queue for long-running work such as bulk vendor outreach.
 
 ## Deployment
 
-This project is optimized for deployment on Vercel:
-
-1. Push your code to GitHub
-2. Import project in Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy
-
-See [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for details.
-
-## Database Schema
-
-The application uses a multi-tenant architecture with Row Level Security (RLS):
-
-**Core Tables:**
-- `profiles` - User information
-- `venues` - Venue details (one per user)
-- `spaces` - Physical spaces within venues
-- `event_services` - Service catalog per venue
-- `vendors` - Vendor database with performance metrics
-- `events` - Event management
-- `event_vendors` - Vendor assignments
-- `vendor_reviews` - Performance ratings
-
-**AI Tables** (Future):
-- `agent_runs` - AI agent execution tracking
-- `vendor_communications` - Email tracking
-- `vendor_quotes` - Quote management
-
-All tables are protected by RLS policies ensuring data isolation between users.
-
-## Contributing
-
-This is a personal/team project. Please follow the existing code patterns and update documentation when adding features.
+Push to GitHub, import in Vercel, add the environment variables, deploy. Supabase stays the data
+layer; the service-role key is used only in server-side routes.
 
 ## License
 
-[Your License Here]
-
-## Support
-
-For issues or questions, refer to the PRD or create an issue in the repository.
+MIT — see [LICENSE](LICENSE).
